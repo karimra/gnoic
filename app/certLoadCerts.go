@@ -16,4 +16,7 @@ func (a *App) InitCertLoadCertsFlags(cmd *cobra.Command) {
 	})
 }
 
-func (a *App) RunELoadCerts(cmd *cobra.Command, args []string) error { return nil }
+func (a *App) RunELoadCerts(cmd *cobra.Command, args []string) error {
+	fmt.Println("not implemented")
+	return nil
+}

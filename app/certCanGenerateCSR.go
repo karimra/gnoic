@@ -8,14 +8,13 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"google.golang.org/grpc/metadata"
-	"google.golang.org/protobuf/encoding/prototext"
 )
 
 func (a *App) InitCertCanGenerateCSRFlags(cmd *cobra.Command) {
 	cmd.ResetFlags()
 
-	cmd.Flags().StringVar(&a.Config.CertCanGenerateCSRKeyType, "key-type", "", "Key Type")
-	cmd.Flags().StringVar(&a.Config.CertCanGenerateCSRCertificateType, "cert-type", "", "Certificate Type")
+	cmd.Flags().StringVar(&a.Config.CertCanGenerateCSRKeyType, "key-type", "KT_RSA", "Key Type")
+	cmd.Flags().StringVar(&a.Config.CertCanGenerateCSRCertificateType, "cert-type", "CT_X509", "Certificate Type")
 	cmd.Flags().Uint32Var(&a.Config.CertCanGenerateCSRKeySize, "key-size", 2048, "Key Size")
 
 	cmd.LocalFlags().VisitAll(func(flag *pflag.Flag) {
@@ -56,7 +55,7 @@ func (a *App) RunECertCanGenerateCSR(cmd *cobra.Command, args []string) error {
 	if len(errs) > 0 {
 		return fmt.Errorf("there was %d errors", len(errs))
 	}
-	a.Logger.Info("done...")
+	a.Logger.Debug("done...")
 	return nil
 }
 
@@ -71,16 +70,11 @@ func (a *App) CertCanGenerateCSR(ctx context.Context, t *Target) error {
 	if err != nil {
 		return err
 	}
-	if resp == nil {
-		fmt.Println("nil response")
-		return nil
-	}
-	if resp.CanGenerate {
-		a.Logger.Infof("target %q can generate CSR", t.Config.Address)
-	} else {
-		a.Logger.Infof("target %q cannot generate CSR", t.Config.Address)
-	}
-	fmt.Println("###")
-	fmt.Println(prototext.Format(resp))
+	fmt.Printf("%q key-type=%s, cert-type=%s, key-size=%d: can_generate: %v\n",
+		t.Config.Address,
+		a.Config.CertCanGenerateCSRKeyType,
+		a.Config.CertCanGenerateCSRCertificateType,
+		a.Config.CertCanGenerateCSRKeySize,
+		resp.GetCanGenerate())
 	return nil
 }

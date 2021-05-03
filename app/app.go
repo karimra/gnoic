@@ -21,6 +21,7 @@ type App struct {
 	Cfn     context.CancelFunc
 	RootCmd *cobra.Command
 
+	wg      *sync.WaitGroup
 	Config  *config.Config
 	m       *sync.Mutex
 	Targets map[string]*Target
@@ -29,13 +30,13 @@ type App struct {
 
 func New() *App {
 	ctx, cancel := context.WithCancel(context.Background())
-	logger := log.StandardLogger()
+	logger := log.New()
 
 	a := &App{
 		ctx:     ctx,
 		Cfn:     cancel,
 		RootCmd: new(cobra.Command),
-
+		wg:      new(sync.WaitGroup),
 		Config:  config.New(),
 		m:       new(sync.Mutex),
 		Targets: make(map[string]*Target),
@@ -80,8 +81,10 @@ func (a *App) InitGlobalFlags() {
 func (a *App) PreRun(cmd *cobra.Command, args []string) error {
 	// init logger
 	a.Config.SetLogger()
-	a.Logger.Logger.SetOutput(a.Config.LogOutput())
-	grpclog.SetLogger(a.Logger)
+	if a.Config.Debug {
+		a.Logger.Logger.SetLevel(log.DebugLevel)
+		grpclog.SetLogger(a.Logger)
+	}
 	return nil
 }
 
@@ -119,5 +122,3 @@ func (a *App) createBaseDialOpts() []grpc.DialOption {
 	}
 	return opts
 }
-
-func (a *App) createCA() {}

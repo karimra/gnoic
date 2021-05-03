@@ -16,4 +16,7 @@ func (a *App) InitCertLoadCertsCaBundleFlags(cmd *cobra.Command) {
 	})
 }
 
-func (a *App) RunELoadCertsCaBundle(cmd *cobra.Command, args []string) error { return nil }
+func (a *App) RunELoadCertsCaBundle(cmd *cobra.Command, args []string) error {
+	fmt.Println("not implemented")
+	return nil
+}

@@ -56,6 +56,18 @@ type LocalFlags struct {
 	// Cert
 	CertCA    string
 	CertCAKey string
+	// Cert CreateCA
+	CertCreateCaOrg           string
+	CertCreateCaOrgUnit       string
+	CertCreateCaCountry       string
+	CertCreateCaState         string
+	CertCreateCaLocality      string
+	CertCreateCaStreetAddress string
+	CertCreateCaPostalCode    string
+	CertCreateCaValidity      time.Duration
+	CertCreateCaKeySize       int
+	CertCreateCaEmailID       string
+	CertCreateCaCommonName    string
 	// Cert Rotate
 	CertRotateCertificateID   string
 	CertRotateKeyType         string
@@ -69,6 +81,8 @@ type LocalFlags struct {
 	CertRotateOrgUnit         string
 	CertRotateIPAddress       string
 	CertRotateEmailID         string
+	CertRotateValidity        time.Duration
+	CertRotatePrintCSR        bool
 	// Cert Install
 	CertInstallCertificateID   string
 	CertInstallKeyType         string
@@ -82,6 +96,8 @@ type LocalFlags struct {
 	CertInstallOrgUnit         string
 	CertInstallIPAddress       string
 	CertInstallEmailID         string
+	CertInstallValidity        time.Duration
+	CertInstallPrintCSR        bool
 	// Cert GenerateCSR
 	CertGenerateCSRCertificateID   string
 	CertGenerateCSRKeyType         string
@@ -109,6 +125,9 @@ type LocalFlags struct {
 	CertLoadCertificateCaBundleCaCertificates []string
 	// Cert RevokeCertificate
 	CertRevokeCertificatesCertificateID []string
+	CertRevokeCertificatesAll           bool
+	// Cert GetCertificates
+	CertGetCertificatesDetails bool
 }
 
 func New() *Config {

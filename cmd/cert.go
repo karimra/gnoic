@@ -133,3 +133,15 @@ func newCertCanGenerateCSRCmd() *cobra.Command {
 	gApp.InitCertCanGenerateCSRFlags(cmd)
 	return cmd
 }
+
+// newCertGenCSRCmd represents the cert CanGenerateCSR command
+func newCertCreateCaCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:          "create-ca",
+		Short:        "create a CA Certificate and Key",
+		RunE:         gApp.RunECertCreateCa,
+		SilenceUsage: true,
+	}
+	gApp.InitCertCreateCaFlags(cmd)
+	return cmd
+}

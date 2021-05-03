@@ -66,7 +66,7 @@ func (a *App) RunEGenerateCSR(cmd *cobra.Command, args []string) error {
 	if len(errs) > 0 {
 		return fmt.Errorf("there was %d errors", len(errs))
 	}
-	a.Logger.Info("done...")
+	a.Logger.Debug("done...")
 	return nil
 }
 
@@ -91,12 +91,6 @@ func (a *App) CertGenerateCSR(ctx context.Context, t *Target) error {
 	if err != nil {
 		return err
 	}
-	if resp == nil {
-		fmt.Println("nil response")
-	} else {
-		fmt.Printf("%+v\n", resp)
-	}
-	fmt.Println("###")
 	fmt.Println(prototext.Format(resp))
 	return nil
 }
