@@ -1,0 +1,62 @@
+project_name: gnoic
+builds:
+  - env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s -w -X github.com/karimra/gnoic/app.version={{.Version}} -X github.com/karimra/gnoic/app.commit={{.ShortCommit}} -X github.com/karimra/gnoic/app.date={{.Date}} -X github.com/karimra/gnoic/app.gitURL={{.GitURL}}
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - 386
+      - arm
+      - arm64
+    hooks:
+      post: upx "{{ .Path }}"
+dockers:
+  - goos: linux
+    goarch: amd64
+    binaries:
+      - gnoic
+    image_templates:
+      - "ghcr.io/karimra/gnoic:latest"
+      - 'ghcr.io/karimra/gnoic:{{ replace .Version "v" ""}}'
+    dockerfile: goreleaser.dockerfile
+    skip_push: false
+archives:
+  - replacements:
+      darwin: Darwin
+      linux: Linux
+      amd64: x86_64
+      386: i386
+      arm: armv7
+      arm64: aarch64
+checksum:
+  name_template: "checksums.txt"
+snapshot:
+  name_template: "{{ .Tag }}"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+
+nfpms:
+  - id: gnoic
+    file_name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    replacements:
+      amd64: x86_64
+      386: i386
+      darwin: Darwin
+      linux: Linux
+    vendor: gnoic
+    homepage: https://gnoic.kmrd.dev
+    maintainer: Karim Radhouani <medkarimrdi@gmail.com>
+    description: gNOI CLI client
+    license: Apache 2.0
+    formats:
+      - deb
+      - rpm
+    bindir: /usr/local/bin

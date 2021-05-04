@@ -60,6 +60,7 @@ func newRootCmd() *cobra.Command {
 	gApp.RootCmd.AddCommand(fileCmd)
 	gApp.RootCmd.AddCommand(systemCmd)
 	gApp.RootCmd.AddCommand(newTreeCmd())
+	gApp.RootCmd.AddCommand(newVersionCmd())
 	//
 	return gApp.RootCmd
 }
