@@ -42,17 +42,16 @@ type GlobalFlags struct {
 	Timeout       time.Duration `mapstructure:"timeout,omitempty" json:"timeout,omitempty" yaml:"timeout,omitempty"`
 	Debug         bool          `mapstructure:"debug,omitempty" json:"debug,omitempty" yaml:"debug,omitempty"`
 	SkipVerify    bool          `mapstructure:"skip-verify,omitempty" json:"skip-verify,omitempty" yaml:"skip-verify,omitempty"`
-	NoPrefix      bool          `mapstructure:"no-prefix,omitempty" json:"no-prefix,omitempty" yaml:"no-prefix,omitempty"`
 	ProxyFromEnv  bool          `mapstructure:"proxy-from-env,omitempty" json:"proxy-from-env,omitempty" yaml:"proxy-from-env,omitempty"`
-	Format        string        `mapstructure:"format,omitempty" json:"format,omitempty" yaml:"format,omitempty"`
 	PrintRequest  bool          `mapstructure:"print-request,omitempty" json:"print-request,omitempty" yaml:"print-request,omitempty"`
 	Retry         time.Duration `mapstructure:"retry,omitempty" json:"retry,omitempty" yaml:"retry,omitempty"`
-	LogFile       string        `mapstructure:"log-file,omitempty" json:"log-file,omitempty" yaml:"log-file,omitempty"`
-	Log           bool          `mapstructure:"log,omitempty" json:"log,omitempty" yaml:"log,omitempty"`
 	Gzip          bool          `mapstructure:"gzip,omitempty" json:"gzip,omitempty" yaml:"gzip,omitempty"`
 }
 
 type LocalFlags struct {
+	// tree
+	TreeFlat    bool
+	TreeDetails bool
 	// Cert
 	CertCA    string
 	CertCAKey string
@@ -143,6 +142,29 @@ type LocalFlags struct {
 	FilePutHashMethod  string
 	// File Remove
 	FileRemoveFile string
+	// System
+	// System Ping
+	SystemPingDestination   string
+	SystemPingSource        string
+	SystemPingCount         int32
+	SystemPingInterval      time.Duration
+	SystemPingWait          time.Duration
+	SystemPingSize          int32
+	SystemPingDoNotFragment bool
+	SystemPingDoNotResolve  bool
+	SystemPingProtocol      string
+	// System Traceroute
+	SystemTracerouteDestination   string
+	SystemTracerouteSource        string
+	SystemTracerouteInterval      time.Duration
+	SystemTracerouteWait          time.Duration
+	SystemTracerouteInitialTTL    uint32
+	SystemTracerouteMaxTTL        int32
+	SystemTracerouteSize          int32
+	SystemTracerouteDoNotFragment bool
+	SystemTracerouteDoNotResolve  bool
+	SystemTracerouteL3Protocol    string
+	SystemTracerouteL4Protocol    string
 }
 
 func New() *Config {

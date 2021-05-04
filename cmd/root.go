@@ -53,10 +53,13 @@ func newRootCmd() *cobra.Command {
 	fileCmd.AddCommand(newFileRemoveCmd())
 	//
 	systemCmd := newSystemCmd()
+	systemCmd.AddCommand(newSystemPingCmd())
+	systemCmd.AddCommand(newSystemTracerouteCmd())
 	//
 	gApp.RootCmd.AddCommand(certCmd)
 	gApp.RootCmd.AddCommand(fileCmd)
 	gApp.RootCmd.AddCommand(systemCmd)
+	gApp.RootCmd.AddCommand(newTreeCmd())
 	//
 	return gApp.RootCmd
 }

@@ -23,7 +23,7 @@ import (
 func newCertCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "cert",
-		Short: "run certificate management gNOI services",
+		Short: "run Certificate Management gNOI RPCs",
 
 		SilenceUsage: true,
 	}
@@ -121,7 +121,7 @@ func newCertRevokeCertificatesCmd() *cobra.Command {
 	return cmd
 }
 
-// newCertGenCSRCmd represents the cert CanGenerateCSR command
+// newCertCanGenerateCSRCmd represents the cert CanGenerateCSR command
 func newCertCanGenerateCSRCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:          "can-generate-csr",

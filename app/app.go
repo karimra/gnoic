@@ -11,7 +11,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/encoding/gzip"
 	"google.golang.org/grpc/grpclog"
 )
@@ -53,7 +52,6 @@ func (a *App) InitGlobalFlags() {
 	a.RootCmd.PersistentFlags().StringVarP(&a.Config.GlobalFlags.Username, "username", "u", "", "username")
 	a.RootCmd.PersistentFlags().StringVarP(&a.Config.GlobalFlags.Password, "password", "p", "", "password")
 	a.RootCmd.PersistentFlags().StringVarP(&a.Config.GlobalFlags.Port, "port", "", defaultGrpcPort, "gRPC port")
-	a.RootCmd.PersistentFlags().StringVarP(&a.Config.GlobalFlags.Encoding, "encoding", "e", "json", fmt.Sprintf("one of %q. Case insensitive", encodingNames))
 	a.RootCmd.PersistentFlags().BoolVarP(&a.Config.GlobalFlags.Insecure, "insecure", "", false, "insecure connection")
 	a.RootCmd.PersistentFlags().StringVarP(&a.Config.GlobalFlags.TLSCa, "tls-ca", "", "", "tls certificate authority")
 	a.RootCmd.PersistentFlags().StringVarP(&a.Config.GlobalFlags.TLSCert, "tls-cert", "", "", "tls certificate")
@@ -61,13 +59,12 @@ func (a *App) InitGlobalFlags() {
 	a.RootCmd.PersistentFlags().DurationVarP(&a.Config.GlobalFlags.Timeout, "timeout", "", 10*time.Second, "grpc timeout, valid formats: 10s, 1m30s, 1h")
 	a.RootCmd.PersistentFlags().BoolVarP(&a.Config.GlobalFlags.Debug, "debug", "d", false, "debug mode")
 	a.RootCmd.PersistentFlags().BoolVarP(&a.Config.GlobalFlags.SkipVerify, "skip-verify", "", false, "skip verify tls connection")
-	a.RootCmd.PersistentFlags().BoolVarP(&a.Config.GlobalFlags.NoPrefix, "no-prefix", "", false, "do not add [ip:port] prefix to print output in case of multiple targets")
 	a.RootCmd.PersistentFlags().BoolVarP(&a.Config.GlobalFlags.ProxyFromEnv, "proxy-from-env", "", false, "use proxy from environment")
-	a.RootCmd.PersistentFlags().StringVarP(&a.Config.GlobalFlags.Format, "format", "", "", fmt.Sprintf("output format, one of: %q", formatNames))
-	a.RootCmd.PersistentFlags().StringVarP(&a.Config.GlobalFlags.LogFile, "log-file", "", "", "log file path")
-	a.RootCmd.PersistentFlags().BoolVarP(&a.Config.GlobalFlags.Log, "log", "", false, "write log messages to stderr")
+	// a.RootCmd.PersistentFlags().StringVarP(&a.Config.GlobalFlags.Format, "format", "", "", fmt.Sprintf("output format, one of: %q", formatNames))
+	// a.RootCmd.PersistentFlags().StringVarP(&a.Config.GlobalFlags.LogFile, "log-file", "", "", "log file path")
+	// a.RootCmd.PersistentFlags().BoolVarP(&a.Config.GlobalFlags.Log, "log", "", false, "write log messages to stderr")
 	a.RootCmd.PersistentFlags().BoolVarP(&a.Config.GlobalFlags.PrintRequest, "print-request", "", false, "print request as well as the response(s)")
-	a.RootCmd.PersistentFlags().DurationVarP(&a.Config.GlobalFlags.Retry, "retry", "", defaultRetryTimer, "retry timer for RPCs")
+	// a.RootCmd.PersistentFlags().DurationVarP(&a.Config.GlobalFlags.Retry, "retry", "", defaultRetryTimer, "retry timer for RPCs")
 	a.RootCmd.PersistentFlags().StringVarP(&a.Config.GlobalFlags.TLSMinVersion, "tls-min-version", "", "", fmt.Sprintf("minimum TLS supported version, one of %q", tlsVersions))
 	a.RootCmd.PersistentFlags().StringVarP(&a.Config.GlobalFlags.TLSMaxVersion, "tls-max-version", "", "", fmt.Sprintf("maximum TLS supported version, one of %q", tlsVersions))
 	a.RootCmd.PersistentFlags().StringVarP(&a.Config.GlobalFlags.TLSVersion, "tls-version", "", "", fmt.Sprintf("set TLS version. Overwrites --tls-min-version and --tls-max-version, one of %q", tlsVersions))
@@ -83,21 +80,12 @@ func (a *App) PreRun(cmd *cobra.Command, args []string) error {
 	a.Config.SetLogger()
 	if a.Config.Debug {
 		a.Logger.Logger.SetLevel(log.DebugLevel)
-		grpclog.SetLogger(a.Logger)
+		grpclog.SetLogger(a.Logger) //lint:ignore SA1019 .
 	}
 	return nil
 }
 
 func (a *App) CreateGrpcClient(ctx context.Context, t *Target, opts ...grpc.DialOption) error {
-	if t.client != nil {
-		// TODO: reuse grpc connection if it's valid.
-		switch t.client.GetState() {
-		case connectivity.Connecting:
-		case connectivity.Idle:
-		case connectivity.Shutdown:
-		case connectivity.Ready:
-		}
-	}
 	tOpts := make([]grpc.DialOption, 0, len(opts)+1)
 	tOpts = append(tOpts, opts...)
 

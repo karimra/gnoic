@@ -6,7 +6,7 @@ import "github.com/spf13/cobra"
 func newFileCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "file",
-		Short: "run file gNOI services",
+		Short: "run File gNOI RPCs",
 
 		SilenceUsage: true,
 	}
