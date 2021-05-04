@@ -30,7 +30,7 @@ jobs:
         run: sudo apt update && sudo apt install -y libucl1 && curl -L http://archive.ubuntu.com/ubuntu/pool/universe/u/upx-ucl/upx-ucl_3.96-2_amd64.deb -o /tmp/upx.deb && sudo dpkg -i /tmp/upx.deb
 
       - name: Login to github container registry
-        run: docker login ghcr.io -u karimra -p ${{ secrets.GITHUB_TOKEN }}
+        run: docker login ghcr.io -u karimra -p ${{ secrets.GHCR_TOKEN }}
 
       - name: Release with goreleaser
         uses: goreleaser/goreleaser-action@v1
