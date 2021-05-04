@@ -76,8 +76,8 @@ func (a *App) RunECertGetCertificates(cmd *cobra.Command, args []string) error {
 
 	for rsp := range responseChan {
 		if rsp.err != nil {
-			a.Logger.Errorf("%q get certificates failed: %v", rsp.targetName, err)
-			errs = append(errs, err)
+			a.Logger.Errorf("%q get certificates failed: %v", rsp.targetName, rsp.err)
+			errs = append(errs, rsp.err)
 			continue
 		}
 		result = append(result, rsp)

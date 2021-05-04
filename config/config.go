@@ -128,6 +128,21 @@ type LocalFlags struct {
 	CertRevokeCertificatesAll           bool
 	// Cert GetCertificates
 	CertGetCertificatesDetails bool
+	// File
+	// File Get
+	FileGetFile         string
+	FileGetLocalFile    string
+	FileGetTargetPrefix bool
+	// File Stat
+	FileStatFile string
+	// File Put
+	FilePutFile        string
+	FilePutRemoteFile  string
+	FilePutPermissions uint32
+	FilePutWriteSize   uint64
+	FilePutHashMethod  string
+	// File Remove
+	FileRemoveFile string
 }
 
 func New() *Config {

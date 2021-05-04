@@ -46,6 +46,11 @@ func newRootCmd() *cobra.Command {
 	certCmd.AddCommand(newCertCreateCaCmd())
 	//
 	fileCmd := newFileCmd()
+	fileCmd.AddCommand(newFileGetCmd())
+	fileCmd.AddCommand(newFileTransferCmd())
+	fileCmd.AddCommand(newFilePutCmd())
+	fileCmd.AddCommand(newFileStatCmd())
+	fileCmd.AddCommand(newFileRemoveCmd())
 	//
 	systemCmd := newSystemCmd()
 	//

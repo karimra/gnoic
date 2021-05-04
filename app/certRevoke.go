@@ -26,13 +26,9 @@ func (a *App) RunECertRevokeCertificates(cmd *cobra.Command, args []string) erro
 	if len(a.Config.CertRevokeCertificatesCertificateID) == 0 && !a.Config.CertRevokeCertificatesAll {
 		return errors.New("missing certificate ID `--id`")
 	}
-	targetsConfigs, err := a.Config.GetTargets()
+	targets, err := a.GetTargets()
 	if err != nil {
 		return err
-	}
-	targets := make(map[string]*Target)
-	for n, tc := range targetsConfigs {
-		targets[n] = NewTarget(tc)
 	}
 	errs := make([]error, 0, len(targets))
 	for _, t := range targets {

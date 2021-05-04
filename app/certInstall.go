@@ -55,13 +55,9 @@ func (a *App) RunECertInstall(cmd *cobra.Command, args []string) error {
 		}
 		a.Logger.Infof("read local CA certs")
 	}
-	targetsConfigs, err := a.Config.GetTargets()
+	targets, err := a.GetTargets()
 	if err != nil {
 		return err
-	}
-	targets := make(map[string]*Target)
-	for n, tc := range targetsConfigs {
-		targets[n] = NewTarget(tc)
 	}
 	errs := make([]error, 0, len(targets))
 	for _, t := range targets {
