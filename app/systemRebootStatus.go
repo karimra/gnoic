@@ -107,7 +107,7 @@ func (a *App) SystemRebootStatus(ctx context.Context, t *Target, subcomponents [
 	if err != nil {
 		return nil, err
 	}
-	a.Logger.Debugf("%q response: %s", prototext.Format(resp))
+	a.Logger.Debugf("%q response: %s", t.Config.Address, prototext.Format(resp))
 	a.Logger.Infof("%q rebootStatus active=%v, timeTillReboot=%s, rebootTime=%s, rebootCount=%d",
 		t.Config.Address, resp.Active,
 		time.Duration(resp.Wait), time.Unix(0, int64(resp.When)).String(),
