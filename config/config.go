@@ -128,7 +128,7 @@ type LocalFlags struct {
 	// Cert GetCertificates
 	CertGetCertificatesDetails bool     `json:"cert-get-certificates-details,omitempty" mapstructure:"cert-get-certificates-details,omitempty" yaml:"cert-get-certificates-details,omitempty"`
 	CertGetCertificatesID      []string `json:"cert-get-certificates-id,omitempty" mapstructure:"cert-get-certificates-id,omitempty" yaml:"cert-get-certificates-id,omitempty"`
-	CertGetCertificatesSave    bool
+	CertGetCertificatesSave    bool     `json:"cert-get-certificates-save,omitempty" mapstructure:"cert-get-certificates-save,omitempty" yaml:"cert-get-certificates-save,omitempty"`
 	// File
 	// File Get
 	FileGetFile         string `json:"file-get-file,omitempty" mapstructure:"file-get-file,omitempty" yaml:"file-get-file,omitempty"`
@@ -136,7 +136,7 @@ type LocalFlags struct {
 	FileGetTargetPrefix bool   `json:"file-get-target-prefix,omitempty" mapstructure:"file-get-target-prefix,omitempty" yaml:"file-get-target-prefix,omitempty"`
 	// File Stat
 	FileStatFile     string `json:"file-stat-file,omitempty" mapstructure:"file-stat-file,omitempty" yaml:"file-stat-file,omitempty"`
-	FileStatHumanize bool
+	FileStatHumanize bool   `json:"file-stat-humanize,omitempty" mapstructure:"file-stat-humanize,omitempty" yaml:"file-stat-humanize,omitempty"`
 	// File Put
 	FilePutFile        string `json:"file-put-file,omitempty" mapstructure:"file-put-file,omitempty" yaml:"file-put-file,omitempty"`
 	FilePutRemoteFile  string `json:"file-put-remote-file,omitempty" mapstructure:"file-put-remote-file,omitempty" yaml:"file-put-remote-file,omitempty"`
@@ -182,12 +182,12 @@ type LocalFlags struct {
 	// System SwitchControlProcessor
 	SystemSwitchControlProcessorPath string `json:"system-switch-control-processor-path,omitempty" mapstructure:"system-switch-control-processor-path,omitempty" yaml:"system-switch-control-processor-path,omitempty"`
 	// System SetPackage
-	SystemSetPackageFile        string
-	SystemSetPackageVersion     string
-	SystemSetPackageActivate    bool
-	SystemSetPackageRemoteFile  string
-	SystemSetPackageCredentials string
-	SystemSetPackageChunkSize   uint64
+	SystemSetPackageFile        string `json:"system-set-package-file,omitempty" mapstructure:"system-set-package-file,omitempty" yaml:"system-set-package-file,omitempty"`
+	SystemSetPackageVersion     string `json:"system-set-package-version,omitempty" mapstructure:"system-set-package-version,omitempty" yaml:"system-set-package-version,omitempty"`
+	SystemSetPackageActivate    bool   `json:"system-set-package-activate,omitempty" mapstructure:"system-set-package-activate,omitempty" yaml:"system-set-package-activate,omitempty"`
+	SystemSetPackageRemoteFile  string `json:"system-set-package-remote-file,omitempty" mapstructure:"system-set-package-remote-file,omitempty" yaml:"system-set-package-remote-file,omitempty"`
+	SystemSetPackageCredentials string `json:"system-set-package-credentials,omitempty" mapstructure:"system-set-package-credentials,omitempty" yaml:"system-set-package-credentials,omitempty"`
+	SystemSetPackageChunkSize   uint64 `json:"system-set-package-chunk-size,omitempty" mapstructure:"system-set-package-chunk-size,omitempty" yaml:"system-set-package-chunk-size,omitempty"`
 }
 
 func New() *Config {

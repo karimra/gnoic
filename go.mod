@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/adrg/xdg v0.3.3
-	github.com/dustin/go-humanize v1.0.0 // indirect
+	github.com/dustin/go-humanize v1.0.0
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/openconfig/gnoi v0.0.0-20210421212643-3e9a99fe151c

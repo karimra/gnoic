@@ -61,7 +61,7 @@ func (c *Config) setTargetConfigDefaults(tc *TargetConfig) {
 	if tc.Timeout == 0 {
 		tc.Timeout = c.Timeout
 	}
-	if tc.Insecure != nil && !*tc.Insecure {
+	if tc.Insecure == nil || (tc.Insecure != nil && !*tc.Insecure) {
 		if tc.TLSCA == nil {
 			if c.TLSCa != "" {
 				tc.TLSCA = &c.TLSCa
