@@ -69,26 +69,18 @@ func (a *App) RunEFileRemove(cmd *cobra.Command, args []string) error {
 	result := make([]*fileRemoveResponse, 0, numTargets)
 	for rsp := range responseChan {
 		if rsp.Err != nil {
-			a.Logger.Errorf("%q file Remove failed: %v", rsp.TargetName, rsp.Err)
-			errs = append(errs, rsp.Err)
+			wErr := fmt.Errorf("%q File Remove failed: %v", rsp.TargetName, rsp.Err)
+			a.Logger.Error(wErr)
+			errs = append(errs, wErr)
 			continue
 		}
 		result = append(result, rsp)
 	}
 
-	for _, err := range errs {
-		a.Logger.Errorf("err: %v", err)
-	}
 	for _, r := range result {
-		a.Logger.Infof("%q file %q removed", r.TargetName, r.file)
+		a.Logger.Infof("%q file %q removed successfully", r.TargetName, r.file)
 	}
-
-	//
-	if len(errs) > 0 {
-		return fmt.Errorf("there was %d error(s)", len(errs))
-	}
-	a.Logger.Debug("done...")
-	return nil
+	return a.handleErrs(errs)
 }
 
 func (a *App) FileRemove(ctx context.Context, t *Target) (string, error) {

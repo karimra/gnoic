@@ -74,25 +74,15 @@ func (a *App) RunEFileStat(cmd *cobra.Command, args []string) error {
 	result := make([]*fileStatResponse, 0, numTargets)
 	for rsp := range responseChan {
 		if rsp.Err != nil {
-			a.Logger.Errorf("%q file Stat failed: %v", rsp.TargetName, rsp.Err)
-			errs = append(errs, rsp.Err)
+			wErr := fmt.Errorf("%q File Stat failed: %v", rsp.TargetName, rsp.Err)
+			errs = append(errs, wErr)
 			continue
 		}
 		result = append(result, rsp)
 	}
 
-	for _, err := range errs {
-		a.Logger.Errorf("err: %v", err)
-	}
-
 	fmt.Print(statTable(result))
-
-	//
-	if len(errs) > 0 {
-		return fmt.Errorf("there was %d error(s)", len(errs))
-	}
-	a.Logger.Debug("done...")
-	return nil
+	return a.handleErrs(errs)
 }
 
 func (a *App) FileStat(ctx context.Context, t *Target) (*file.StatResponse, error) {
@@ -106,13 +96,12 @@ func statTable(r []*fileStatResponse) string {
 	tabData := make([][]string, 0)
 	for _, rsp := range r {
 		for _, si := range rsp.rsp.GetStats() {
-
 			tabData = append(tabData, []string{
 				rsp.TargetName,
 				si.GetPath(),
 				time.Unix(0, int64(si.GetLastModified())).String(),
-				strconv.Itoa(int(si.GetPermissions())),
-				strconv.Itoa(int(si.GetUmask())),
+				"0" + strconv.FormatUint(uint64(si.GetPermissions()), 8),
+				"0" + strconv.FormatUint(uint64(si.GetUmask()), 8),
 				strconv.Itoa(int(si.GetSize())),
 			})
 		}
@@ -122,7 +111,7 @@ func statTable(r []*fileStatResponse) string {
 	})
 	b := new(bytes.Buffer)
 	table := tablewriter.NewWriter(b)
-	table.SetHeader([]string{"Target Name", "Path", "LastModified", "Permissions", "Umask", "Size"})
+	table.SetHeader([]string{"Target Name", "Path", "LastModified", "Permissions", "Umask", "Size(B)"})
 	table.SetAlignment(tablewriter.ALIGN_LEFT)
 	table.SetAutoFormatHeaders(false)
 	table.SetAutoWrapText(false)

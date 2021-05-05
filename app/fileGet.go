@@ -29,7 +29,7 @@ func (a *App) InitFileGetFlags(cmd *cobra.Command) {
 	cmd.ResetFlags()
 	//
 	cmd.Flags().StringVar(&a.Config.FileGetFile, "file", "", "file to get from the target(s)")
-	cmd.Flags().StringVar(&a.Config.FileGetLocalFile, "local-file", "", "local file name")
+	cmd.Flags().StringVar(&a.Config.FileGetLocalFile, "local-file", "", "local file name, defaults to the path base of the retrieved file")
 	cmd.Flags().BoolVar(&a.Config.FileGetTargetPrefix, "target-prefix", false, "save file with the target name as prefix")
 	//
 	cmd.Flags().VisitAll(func(flag *pflag.Flag) {
@@ -81,25 +81,18 @@ func (a *App) RunEFileGet(cmd *cobra.Command, args []string) error {
 	result := make([]*fileGetResponse, 0, numTargets)
 	for rsp := range responseChan {
 		if rsp.Err != nil {
-			a.Logger.Errorf("%q file Get failed: %v", rsp.TargetName, rsp.Err)
-			errs = append(errs, rsp.Err)
+			wErr := fmt.Errorf("%q File Get failed: %v", rsp.TargetName, rsp.Err)
+			a.Logger.Error(wErr)
+			errs = append(errs, wErr)
 			continue
 		}
 		result = append(result, rsp)
 	}
 
-	for _, err := range errs {
-		a.Logger.Errorf("err: %v", err)
-	}
 	for _, r := range result {
-		fmt.Printf("%q file %q saved\n", r.TargetName, r.file)
+		a.Logger.Infof("%q file %q saved", r.TargetName, r.file)
 	}
-	//
-	if len(errs) > 0 {
-		return fmt.Errorf("there was %d error(s)", len(errs))
-	}
-	a.Logger.Debug("done...")
-	return nil
+	return a.handleErrs(errs)
 }
 
 func (a *App) FileGet(ctx context.Context, t *Target) (string, error) {

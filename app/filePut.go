@@ -21,6 +21,10 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
+const (
+	defaultChunkSize = 64 * 1000
+)
+
 type filePutResponse struct {
 	TargetError
 	file string
@@ -30,8 +34,8 @@ func (a *App) InitFilePutFlags(cmd *cobra.Command) {
 	cmd.ResetFlags()
 	//
 	cmd.Flags().StringVar(&a.Config.FilePutFile, "file", "", "file to put on the target(s)")
-	cmd.Flags().StringVar(&a.Config.FilePutRemoteFile, "remote-name", "", "file remote name")
-	cmd.Flags().Uint64Var(&a.Config.FilePutWriteSize, "write-size", 64, "chunk write size in KB, default is used if set to 0")
+	cmd.Flags().StringVar(&a.Config.FilePutRemoteFile, "remote-name", "", "file remote name, defaults to the path Base of the local file")
+	cmd.Flags().Uint64Var(&a.Config.FilePutWriteSize, "chunk-size", defaultChunkSize, "chunk write size in Bytes, default is used if set to 0")
 	cmd.Flags().Uint32Var(&a.Config.FilePutPermissions, "permission", 0777, "file permissions, in octal format. If set to 0, the local system file permissions are used")
 	cmd.Flags().StringVar(&a.Config.FilePutHashMethod, "hash-method", "MD5", "hash method, one of MD5, SHA256 or SHA512. If another value is supplied MD5 is used")
 	//
@@ -45,7 +49,7 @@ func (a *App) PreRunEFilePut(cmd *cobra.Command, args []string) error {
 		return errors.New("missing --file flag")
 	}
 	if a.Config.FilePutWriteSize == 0 {
-		a.Config.FilePutWriteSize = 64
+		a.Config.FilePutWriteSize = defaultChunkSize
 	}
 	a.Config.FilePutHashMethod = strings.ToUpper(a.Config.FilePutHashMethod)
 	switch a.Config.FilePutHashMethod {
@@ -100,27 +104,18 @@ func (a *App) RunEFilePut(cmd *cobra.Command, args []string) error {
 	result := make([]*filePutResponse, 0, numTargets)
 	for rsp := range responseChan {
 		if rsp.Err != nil {
-			a.Logger.Errorf("%q file Stat failed: %v", rsp.TargetName, rsp.Err)
-			errs = append(errs, rsp.Err)
+			wErr := fmt.Errorf("%q File Put failed: %v", rsp.TargetName, rsp.Err)
+			a.Logger.Error(wErr)
+			errs = append(errs, wErr)
 			continue
 		}
 		result = append(result, rsp)
 	}
 
-	for _, err := range errs {
-		a.Logger.Errorf("err: %v", err)
-	}
-
 	for _, r := range result {
-		a.Logger.Infof("%q file %q written\n", r.TargetName, r.file)
+		a.Logger.Infof("%q file %q written successfully", r.TargetName, r.file)
 	}
-
-	//
-	if len(errs) > 0 {
-		return fmt.Errorf("there was %d error(s)", len(errs))
-	}
-	a.Logger.Debug("done...")
-	return nil
+	return a.handleErrs(errs)
 }
 
 func (a *App) FilePut(ctx context.Context, t *Target) (string, error) {
@@ -130,7 +125,7 @@ func (a *App) FilePut(ctx context.Context, t *Target) (string, error) {
 	}
 	if fi.IsDir() {
 		// TODO:
-		return "", errors.New("file put direcotries is not supported... yet")
+		return "", fmt.Errorf("%q file put direcotries is not supported,... yet", t.Config.Address)
 	}
 	// open local file
 	f, err := os.Open(a.Config.FilePutFile)
@@ -150,11 +145,11 @@ func (a *App) FilePut(ctx context.Context, t *Target) (string, error) {
 	if a.Config.FilePutPermissions == 0 {
 		perm := "0" + strconv.FormatUint(uint64(fi.Mode().Perm()), 8)
 		a.Logger.Infof("setting permission to %s", perm)
-		doperm, err := strconv.ParseInt(perm, 8, 64)
+		operm, err := strconv.ParseInt(perm, 8, 64)
 		if err != nil {
 			return "", err
 		}
-		a.Config.FilePutPermissions = uint32(doperm)
+		a.Config.FilePutPermissions = uint32(operm)
 	}
 	req := &file.PutRequest{
 		Request: &file.PutRequest_Open{
@@ -182,7 +177,7 @@ func (a *App) FilePut(ctx context.Context, t *Target) (string, error) {
 	}
 	// send file in chunks
 	for {
-		b := make([]byte, a.Config.FilePutWriteSize*1000)
+		b := make([]byte, a.Config.FilePutWriteSize)
 		n, err := f.Read(b)
 		if err != nil && err != io.EOF {
 			return "", err

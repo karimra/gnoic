@@ -80,24 +80,17 @@ func (a *App) RunESystemReboot(cmd *cobra.Command, args []string) error {
 	}
 	a.wg.Wait()
 	close(responseChan)
+
 	errs := make([]error, 0, numTargets)
 	for rsp := range responseChan {
 		if rsp.Err != nil {
-			a.Logger.Errorf("%q system reboot failed: %v", rsp.TargetName, rsp.Err)
-			errs = append(errs, rsp.Err)
+			wErr := fmt.Errorf("%q System Reboot failed: %v", rsp.TargetName, rsp.Err)
+			a.Logger.Error(wErr)
+			errs = append(errs, wErr)
 			continue
 		}
 	}
-	for _, err := range errs {
-		a.Logger.Errorf("err: %v", err)
-	}
-
-	//
-	if len(errs) > 0 {
-		return fmt.Errorf("there was %d error(s)", len(errs))
-	}
-	a.Logger.Debug("done...")
-	return nil
+	return a.handleErrs(errs)
 }
 
 func (a *App) SystemReboot(ctx context.Context, t *Target, subcomponents []*types.Path) error {
@@ -113,6 +106,6 @@ func (a *App) SystemReboot(ctx context.Context, t *Target, subcomponents []*type
 	if err != nil {
 		return err
 	}
-	a.Logger.Infof("%q reboot request successful", t.Config.Address)
+	a.Logger.Infof("%q System Reboot Request successful", t.Config.Address)
 	return nil
 }

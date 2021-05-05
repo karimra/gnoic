@@ -12,18 +12,17 @@ import (
 )
 
 type certGenCSRResponse struct {
-	targetName string
-	rsp        *cert.GenerateCSRResponse
-	err        error
+	TargetError
+	rsp *cert.GenerateCSRResponse
 }
 
 func (a *App) InitCertGenerateCSRFlags(cmd *cobra.Command) {
 	cmd.ResetFlags()
 	//
 	//
-	cmd.Flags().StringVar(&a.Config.CertGenerateCSRCertificateID, "cert-id", "", "Certificate ID")
-	cmd.Flags().StringVar(&a.Config.CertGenerateCSRKeyType, "key-type", "", "Key Type")
-	cmd.Flags().StringVar(&a.Config.CertGenerateCSRCertificateType, "cert-type", "", "Certificate Type")
+	cmd.Flags().StringVar(&a.Config.CertGenerateCSRCertificateID, "id", "", "Certificate ID")
+	cmd.Flags().StringVar(&a.Config.CertGenerateCSRKeyType, "key-type", "KT_RSA", "Key Type")
+	cmd.Flags().StringVar(&a.Config.CertGenerateCSRCertificateType, "cert-type", "CT_X509", "Certificate Type")
 	cmd.Flags().Uint32Var(&a.Config.CertGenerateCSRMinKeySize, "min-key-size", 1024, "Minimum Key Size")
 	cmd.Flags().StringVar(&a.Config.CertGenerateCSRCommonName, "common-name", "", "CSR common name")
 	cmd.Flags().StringVar(&a.Config.CertGenerateCSRCountry, "country", "", "CSR country")
@@ -57,16 +56,20 @@ func (a *App) RunEGenerateCSR(cmd *cobra.Command, args []string) error {
 			err = a.CreateGrpcClient(ctx, t, a.createBaseDialOpts()...)
 			if err != nil {
 				responseChan <- &certGenCSRResponse{
-					targetName: t.Config.Address,
-					err:        err,
+					TargetError: TargetError{
+						TargetName: t.Config.Address,
+						Err:        err,
+					},
 				}
 				return
 			}
 			rsp, err := a.CertGenerateCSR(ctx, t)
 			responseChan <- &certGenCSRResponse{
-				targetName: t.Config.Address,
-				rsp:        rsp,
-				err:        err,
+				TargetError: TargetError{
+					TargetName: t.Config.Address,
+					Err:        err,
+				},
+				rsp: rsp,
 			}
 		}(t)
 	}
@@ -77,9 +80,10 @@ func (a *App) RunEGenerateCSR(cmd *cobra.Command, args []string) error {
 	result := make([]*certGenCSRResponse, 0, numTargets)
 
 	for rsp := range responseChan {
-		if rsp.err != nil {
-			a.Logger.Errorf("%q Cert CanGenerateCSR failed: %v", rsp.targetName, rsp.err)
-			errs = append(errs, rsp.err)
+		if rsp.Err != nil {
+			wErr := fmt.Errorf("%q Cert CanGenerateCSR failed: %v", rsp.TargetName, rsp.Err)
+			a.Logger.Error(wErr)
+			errs = append(errs, wErr)
 			continue
 		}
 		result = append(result, rsp)
@@ -88,14 +92,7 @@ func (a *App) RunEGenerateCSR(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		errs = append(errs, err)
 	}
-	for _, err := range errs {
-		a.Logger.Errorf("err: %v", err)
-	}
-	if len(errs) > 0 {
-		return fmt.Errorf("there was %d error(s)", len(errs))
-	}
-	a.Logger.Debug("done...")
-	return nil
+	return a.handleErrs(errs)
 }
 
 func (a *App) CertGenerateCSR(ctx context.Context, t *Target) (*cert.GenerateCSRResponse, error) {

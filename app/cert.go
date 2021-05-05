@@ -24,7 +24,7 @@ func (a *App) InitCertFlags(cmd *cobra.Command) {
 	cmd.ResetFlags()
 	//
 	cmd.PersistentFlags().StringVar(&a.Config.CertCAKey, "ca-key", "", "CA key")
-	cmd.PersistentFlags().StringVar(&a.Config.CertCA, "ca", "", "CA Certificate")
+	cmd.PersistentFlags().StringVar(&a.Config.CertCACert, "ca-cert", "", "CA Certificate")
 	//
 	cmd.PersistentFlags().VisitAll(func(flag *pflag.Flag) {
 		a.Config.FileConfig.BindPFlag(fmt.Sprintf("%s-%s", cmd.Name(), flag.Name), flag)
@@ -57,9 +57,9 @@ func certificateFromCSR(csr *x509.CertificateRequest, certExpiration time.Durati
 		ExtraExtensions:       csr.ExtraExtensions,
 		EmailAddresses:        csr.EmailAddresses,
 		IPAddresses:           csr.IPAddresses,
-		// URIs:                  csr.URIs,
-		PublicKeyAlgorithm: csr.PublicKeyAlgorithm,
-		PublicKey:          csr.PublicKey,
+		URIs:                  csr.URIs,
+		PublicKeyAlgorithm:    csr.PublicKeyAlgorithm,
+		PublicKey:             csr.PublicKey,
 	}
 	certificate.SubjectKeyId, err = keyID(csr.PublicKey)
 	return certificate, err

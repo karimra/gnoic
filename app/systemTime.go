@@ -72,26 +72,19 @@ func (a *App) RunESystemTime(cmd *cobra.Command, args []string) error {
 	result := make([]*systemTimeResponse, 0, numTargets)
 	for rsp := range responseChan {
 		if rsp.Err != nil {
-			a.Logger.Errorf("%q system time failed: %v", rsp.TargetName, rsp.Err)
-			errs = append(errs, rsp.Err)
+			wErr := fmt.Errorf("%q System Time failed: %v", rsp.TargetName, rsp.Err)
+			a.Logger.Error(wErr)
+			errs = append(errs, wErr)
 			continue
 		}
 		result = append(result, rsp)
-	}
-	for _, err := range errs {
-		a.Logger.Errorf("err: %v", err)
 	}
 	s, err := systemTimeTable(result)
 	if err != nil {
 		return err
 	}
 	fmt.Print(s)
-	//
-	if len(errs) > 0 {
-		return fmt.Errorf("there was %d error(s)", len(errs))
-	}
-	a.Logger.Debug("done...")
-	return nil
+	return a.handleErrs(errs)
 }
 
 func (a *App) SystemTime(ctx context.Context, t *Target) (*system.TimeResponse, error) {

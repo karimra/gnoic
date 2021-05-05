@@ -62,20 +62,13 @@ func (a *App) RunECertRevokeCertificates(cmd *cobra.Command, args []string) erro
 	errs := make([]error, 0, len(targets))
 	for rsp := range responseChan {
 		if rsp.Err != nil {
-			a.Logger.Errorf("%q cert revoke failed: %v", rsp.TargetName, rsp.Err)
-			errs = append(errs, rsp.Err)
+			wErr := fmt.Errorf("%q Cert Revoke failed: %v", rsp.TargetName, rsp.Err)
+			a.Logger.Error(wErr)
+			errs = append(errs, wErr)
 			continue
 		}
 	}
-
-	for _, err := range errs {
-		a.Logger.Errorf("err: %v", err)
-	}
-	if len(errs) > 0 {
-		return fmt.Errorf("there was %d error(s)", len(errs))
-	}
-	a.Logger.Debug("done...")
-	return nil
+	return a.handleErrs(errs)
 }
 
 func (a *App) Revoke(ctx context.Context, t *Target) error {
@@ -99,10 +92,10 @@ func (a *App) Revoke(ctx context.Context, t *Target) error {
 		return err
 	}
 	for _, revokeErr := range rsp.CertificateRevocationError {
-		fmt.Printf("%q certificateID=%s revoke failed: %v\n", t.Config.Address, revokeErr.GetCertificateId(), revokeErr.GetErrorMessage())
+		a.Logger.Errorf("%q certificateID=%s revoke failed: %v\n", t.Config.Address, revokeErr.GetCertificateId(), revokeErr.GetErrorMessage())
 	}
 	for _, revoked := range rsp.RevokedCertificateId {
-		fmt.Printf("%q certificateID=%s revoked successfully\n", t.Config.Address, revoked)
+		a.Logger.Infof("%q certificateID=%s revoked successfully\n", t.Config.Address, revoked)
 	}
 
 	return nil

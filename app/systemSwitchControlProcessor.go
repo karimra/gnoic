@@ -77,8 +77,9 @@ func (a *App) RunESystemSwitchControlProcessor(cmd *cobra.Command, args []string
 	result := make([]*systemSwitchControlProcessorResponse, 0, numTargets)
 	for rsp := range responseChan {
 		if rsp.Err != nil {
-			a.Logger.Errorf("%q system reboot failed: %v", rsp.TargetName, rsp.Err)
-			errs = append(errs, rsp.Err)
+			wErr := fmt.Errorf("%q System SwitchControlProcessor failed: %v", rsp.TargetName, rsp.Err)
+			a.Logger.Error(wErr)
+			errs = append(errs, wErr)
 			continue
 		}
 		result = append(result, rsp)
@@ -89,15 +90,7 @@ func (a *App) RunESystemSwitchControlProcessor(cmd *cobra.Command, args []string
 		return err
 	}
 	fmt.Print(s)
-	for _, err := range errs {
-		a.Logger.Errorf("err: %v", err)
-	}
-	//
-	if len(errs) > 0 {
-		return fmt.Errorf("there was %d error(s)", len(errs))
-	}
-	a.Logger.Debug("done...")
-	return nil
+	return a.handleErrs(errs)
 }
 
 func (a *App) SystemSwitchControlProcessor(ctx context.Context, t *Target) (*system.SwitchControlProcessorResponse, error) {
@@ -109,7 +102,7 @@ func (a *App) SystemSwitchControlProcessor(ctx context.Context, t *Target) (*sys
 	if err != nil {
 		return nil, err
 	}
-	a.Logger.Infof("%q switch control processor request successful", t.Config.Address)
+	a.Logger.Infof("%q System SwitchControlProcessor Request successful", t.Config.Address)
 	return rsp, nil
 }
 

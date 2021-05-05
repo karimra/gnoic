@@ -79,30 +79,22 @@ func (a *App) RunESystemRebootStatus(cmd *cobra.Command, args []string) error {
 
 	errs := make([]error, 0, numTargets)
 	result := make([]*systemRebootStatusResponse, 0, numTargets)
-
 	for rsp := range responseChan {
 		if rsp.Err != nil {
-			a.Logger.Errorf("%q system reboot status failed: %v", rsp.TargetName, rsp.Err)
-			errs = append(errs, rsp.Err)
+			wErr := fmt.Errorf("%q System Reboot Status failed: %v", rsp.TargetName, rsp.Err)
+			a.Logger.Error(wErr)
+			errs = append(errs, wErr)
 			continue
 		}
 		result = append(result, rsp)
 	}
 
-	for _, err := range errs {
-		a.Logger.Errorf("err: %v", err)
-	}
 	s, err := SystemRebootStatusTable(result)
 	if err != nil {
 		return err
 	}
 	fmt.Print(s)
-	//
-	if len(errs) > 0 {
-		return fmt.Errorf("there was %d error(s)", len(errs))
-	}
-	a.Logger.Debug("done...")
-	return nil
+	return a.handleErrs(errs)
 }
 
 func (a *App) SystemRebootStatus(ctx context.Context, t *Target, subcomponents []*types.Path) (*system.RebootStatusResponse, error) {
@@ -115,7 +107,7 @@ func (a *App) SystemRebootStatus(ctx context.Context, t *Target, subcomponents [
 	if err != nil {
 		return nil, err
 	}
-	prototext.Format(resp)
+	a.Logger.Debugf("%q response: %s", prototext.Format(resp))
 	a.Logger.Infof("%q rebootStatus active=%v, timeTillReboot=%s, rebootTime=%s, rebootCount=%d",
 		t.Config.Address, resp.Active,
 		time.Duration(resp.Wait), time.Unix(0, int64(resp.When)).String(),
@@ -142,7 +134,9 @@ func SystemRebootStatusTable(rsps []*systemRebootStatusResponse) (string, error)
 	})
 	b := new(bytes.Buffer)
 	table := tablewriter.NewWriter(b)
-	table.SetHeader([]string{"Target Name", "Subcomponents", "Active", "Duration Until Reboot", "Reboot Time", "Reason", "Count"})
+	table.SetHeader(
+		[]string{"Target Name", "Subcomponents", "Active",
+			"Duration Until Reboot", "Reboot Time", "Reason", "Count"})
 	table.SetAlignment(tablewriter.ALIGN_LEFT)
 	table.SetAutoFormatHeaders(false)
 	table.SetAutoWrapText(false)

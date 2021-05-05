@@ -19,7 +19,7 @@ import (
 func (a *App) InitCertInstallFlags(cmd *cobra.Command) {
 	cmd.ResetFlags()
 	//
-	cmd.Flags().StringVar(&a.Config.CertInstallCertificateID, "cert-id", "", "Certificate ID")
+	cmd.Flags().StringVar(&a.Config.CertInstallCertificateID, "id", "", "Certificate ID")
 	cmd.Flags().StringVar(&a.Config.CertInstallKeyType, "key-type", "KT_RSA", "Key Type")
 	cmd.Flags().StringVar(&a.Config.CertInstallCertificateType, "cert-type", "CT_X509", "Certificate Type")
 	cmd.Flags().Uint32Var(&a.Config.CertInstallMinKeySize, "min-key-size", 1024, "Minimum Key Size")
@@ -31,7 +31,7 @@ func (a *App) InitCertInstallFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&a.Config.CertInstallOrgUnit, "org-unit", "", "CSR organization unit")
 	cmd.Flags().StringVar(&a.Config.CertInstallIPAddress, "ip-address", "", "CSR IP address")
 	cmd.Flags().StringVar(&a.Config.CertInstallEmailID, "email-id", "", "CSR email ID")
-	cmd.Flags().DurationVar(&a.Config.CertInstallValidity, "validity", 87600*time.Hour, "certificate validity")
+	cmd.Flags().DurationVar(&a.Config.CertInstallValidity, "validity", 10*365*24*time.Hour, "certificate validity")
 	cmd.Flags().BoolVar(&a.Config.CertInstallPrintCSR, "print-csr", false, "print the generated Certificate Signing Request")
 	//
 	cmd.LocalFlags().VisitAll(func(flag *pflag.Flag) {
@@ -41,8 +41,8 @@ func (a *App) InitCertInstallFlags(cmd *cobra.Command) {
 
 func (a *App) RunECertInstall(cmd *cobra.Command, args []string) error {
 	var err error
-	if a.Config.CertCA != "" && a.Config.CertCAKey != "" {
-		caCert, err = tls.LoadX509KeyPair(a.Config.CertCA, a.Config.CertCAKey)
+	if a.Config.CertCACert != "" && a.Config.CertCAKey != "" {
+		caCert, err = tls.LoadX509KeyPair(a.Config.CertCACert, a.Config.CertCAKey)
 		if err != nil {
 			return err
 		}
@@ -92,20 +92,13 @@ func (a *App) RunECertInstall(cmd *cobra.Command, args []string) error {
 	errs := make([]error, 0, len(targets))
 	for rsp := range responseChan {
 		if rsp.Err != nil {
-			a.Logger.Errorf("%q cert install failed: %v", rsp.TargetName, rsp.Err)
-			errs = append(errs, rsp.Err)
+			wErr := fmt.Errorf("%q Cert Install failed: %v", rsp.TargetName, rsp.Err)
+			a.Logger.Error(wErr)
+			errs = append(errs, wErr)
 			continue
 		}
 	}
-
-	for _, err := range errs {
-		a.Logger.Errorf("err: %v", err)
-	}
-	if len(errs) > 0 {
-		return fmt.Errorf("there was %d error(s)", len(errs))
-	}
-	a.Logger.Debug("done...")
-	return nil
+	return a.handleErrs(errs)
 }
 
 func (a *App) CertInstall(ctx context.Context, t *Target) error {

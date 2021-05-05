@@ -24,10 +24,10 @@ func (a *App) InitSystemPingFlags(cmd *cobra.Command) {
 	cmd.Flags().Int32Var(&a.Config.SystemPingCount, "count", 0, "Number of packets")
 	cmd.Flags().DurationVar(&a.Config.SystemPingInterval, "interval", time.Second, "Duration between requests")
 	cmd.Flags().DurationVar(&a.Config.SystemPingWait, "wait", 0, "Duration to wait for a response")
-	cmd.Flags().Int32Var(&a.Config.SystemPingSize, "size", 0, "Duration to wait for a response")
+	cmd.Flags().Int32Var(&a.Config.SystemPingSize, "size", 0, "Size of request packet. (excluding ICMP header)")
 	cmd.Flags().BoolVar(&a.Config.SystemPingDoNotFragment, "do-not-fragment", false, "Set the do not fragment bit. (IPv4 destinations)")
 	cmd.Flags().BoolVar(&a.Config.SystemPingDoNotResolve, "do-not-resolve", false, "Do not try resolve the address returned")
-	cmd.Flags().StringVar(&a.Config.SystemPingProtocol, "protocol", "v4", "Layer3 protocol requested for the ping, IPv4 or IPv6")
+	cmd.Flags().StringVar(&a.Config.SystemPingProtocol, "protocol", "V4", "Layer3 protocol requested for the ping, V4 or V6")
 	//
 	cmd.Flags().VisitAll(func(flag *pflag.Flag) {
 		a.Config.FileConfig.BindPFlag(fmt.Sprintf("%s-%s", cmd.Name(), flag.Name), flag)
@@ -85,21 +85,13 @@ func (a *App) RunESystemPing(cmd *cobra.Command, args []string) error {
 	errs := make([]error, 0, numTargets)
 	for rsp := range responseChan {
 		if rsp.Err != nil {
-			a.Logger.Errorf("%q system ping failed: %v", rsp.TargetName, rsp.Err)
-			errs = append(errs, rsp.Err)
+			wErr := fmt.Errorf("%q System Ping failed: %v", rsp.TargetName, rsp.Err)
+			a.Logger.Error(wErr)
+			errs = append(errs, wErr)
 			continue
 		}
 	}
-	for _, err := range errs {
-		a.Logger.Errorf("err: %v", err)
-	}
-
-	//
-	if len(errs) > 0 {
-		return fmt.Errorf("there was %d error(s)", len(errs))
-	}
-	a.Logger.Debug("done...")
-	return nil
+	return a.handleErrs(errs)
 }
 
 func (a *App) SystemPing(ctx context.Context, t *Target) error {
@@ -118,7 +110,7 @@ func (a *App) SystemPing(ctx context.Context, t *Target) error {
 	a.Logger.Debug(prototext.Format(req))
 	stream, err := systemClient.Ping(ctx, req)
 	if err != nil {
-		a.Logger.Errorf("creating system ping stream failed: %v", err)
+		a.Logger.Errorf("%q creating System Ping stream failed: %v", t.Config.Address, err)
 		return err
 	}
 	for {
@@ -128,10 +120,11 @@ func (a *App) SystemPing(ctx context.Context, t *Target) error {
 			break
 		}
 		if err != nil && err != io.EOF {
-			a.Logger.Errorf("rcv system ping stream failed: %v", err)
+			a.Logger.Errorf("%q rcv creating Ping stream failed: %v", t.Config.Address, err)
 			return err
 		}
 		fmt.Print(prototext.Format(rsp))
+		// TODO: pretty print ping responses
 	}
 	return nil
 }

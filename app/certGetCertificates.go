@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/olekukonko/tablewriter"
@@ -25,7 +26,8 @@ type getCertificatesResponse struct {
 func (a *App) InitCertGetCertificatesFlags(cmd *cobra.Command) {
 	cmd.ResetFlags()
 	//
-	cmd.Flags().BoolVar(&a.Config.CertGetCertificatesDetails, "details", false, "print certificates details")
+	cmd.Flags().BoolVar(&a.Config.CertGetCertificatesDetails, "details", false, "print retrieved certificates details")
+	cmd.Flags().StringSliceVar(&a.Config.CertGetCertificatesID, "id", []string{}, "certificate ID to be displayed")
 	//
 	cmd.LocalFlags().VisitAll(func(flag *pflag.Flag) {
 		a.Config.FileConfig.BindPFlag(fmt.Sprintf("%s-%s", cmd.Name(), flag.Name), flag)
@@ -78,67 +80,73 @@ func (a *App) RunECertGetCertificates(cmd *cobra.Command, args []string) error {
 
 	for rsp := range responseChan {
 		if rsp.Err != nil {
-			a.Logger.Errorf("%q get certificates failed: %v", rsp.TargetName, rsp.Err)
-			errs = append(errs, rsp.Err)
+			wErr := fmt.Errorf("%q Cert GetCertificates failed: %v", rsp.TargetName, rsp.Err)
+			a.Logger.Error(wErr)
+			errs = append(errs, wErr)
 			continue
 		}
 		result = append(result, rsp)
 	}
 	//
-	for _, err := range errs {
-		a.Logger.Errorf("err: %v", err)
-	}
 	if a.Config.CertGetCertificatesDetails {
 		if len(result) == 0 {
-			fmt.Printf("no certificates found\n")
+			a.Logger.Warn("no certificates found")
 			return nil
 		}
 		for _, rsp := range result {
 			if rsp.rsp == nil || len(rsp.rsp.GetCertificateInfo()) == 0 {
-				fmt.Printf("%q no certificates found\n", rsp.TargetName)
+				a.Logger.Warnf("%q no certificates found", rsp.TargetName)
 				continue
 			}
 			for _, certInfo := range rsp.rsp.CertificateInfo {
+				// check name is in list
+				if !sInListNotEmpty(certInfo.CertificateId, a.Config.CertGetCertificatesID) {
+					continue
+				}
 				block, _ := pem.Decode(certInfo.Certificate.Certificate)
 				cert, err := x509.ParseCertificate(block.Bytes)
 				if err != nil {
-					return err
+					errs = append(errs, err)
+					continue
 				}
-
-				fmt.Printf("%q CertificateID: %s\n", rsp.TargetName, certInfo.CertificateId)
-				fmt.Printf("%q Certificate Type: %s\n", rsp.TargetName, certInfo.Certificate.Type.String())
-				fmt.Printf("%q Modification Time: %s\n", rsp.TargetName, time.Unix(0, certInfo.ModificationTime))
 
 				certString, err := CertificateText(cert, false)
 				if err != nil {
-					return err
+					errs = append(errs, err)
+					continue
 				}
+				fmt.Printf("%q CertificateID: %s\n", rsp.TargetName, certInfo.CertificateId)
+				fmt.Printf("%q Certificate Type: %s\n", rsp.TargetName, certInfo.Certificate.Type.String())
+				fmt.Printf("%q Modification Time: %s\n", rsp.TargetName, time.Unix(0, certInfo.ModificationTime))
 				fmt.Printf("%q %s\n", rsp.TargetName, certString)
 			}
 		}
 	} else {
-		rs, err := certTable(result)
+		rs, err := a.certTable(result)
 		if err != nil {
 			return err
+		} else {
+			fmt.Print(rs)
 		}
-		fmt.Print(rs)
 	}
-	numErrors := len(errs)
-	if numErrors > 0 {
-		return fmt.Errorf("there was %d error(s)", numErrors)
-	}
-	a.Logger.Debug("done...")
-	return nil
+	return a.handleErrs(errs)
 }
 
-func certTable(rsps []*getCertificatesResponse) (string, error) {
+func (a *App) certTable(rsps []*getCertificatesResponse) (string, error) {
 	tabData := make([][]string, 0)
 	for _, rsp := range rsps {
 		for _, certInfo := range rsp.rsp.GetCertificateInfo() {
+			if !sInListNotEmpty(certInfo.CertificateId, a.Config.CertGetCertificatesID) {
+				continue
+			}
 			block, _ := pem.Decode(certInfo.Certificate.Certificate)
 			cert, err := x509.ParseCertificate(block.Bytes)
 			if err != nil {
 				return "", err
+			}
+			ipAddrs := make([]string, 0, len(cert.IPAddresses))
+			for _, ipAddr := range cert.IPAddresses {
+				ipAddrs = append(ipAddrs, ipAddr.String())
 			}
 			tabData = append(tabData, []string{
 				rsp.TargetName,
@@ -147,7 +155,10 @@ func certTable(rsps []*getCertificatesResponse) (string, error) {
 				certInfo.GetCertificate().GetType().String(),
 				strconv.Itoa(cert.Version),
 				cert.Subject.ToRDNSequence().String(),
-				cert.Issuer.ToRDNSequence().String(),
+				// cert.Issuer.ToRDNSequence().String(),
+				cert.NotBefore.String(),
+				cert.NotAfter.String(),
+				strings.Join(ipAddrs, ", "),
 			})
 		}
 	}
@@ -156,7 +167,7 @@ func certTable(rsps []*getCertificatesResponse) (string, error) {
 	})
 	b := new(bytes.Buffer)
 	table := tablewriter.NewWriter(b)
-	table.SetHeader([]string{"Target Name", "ID", "Modification Time", "Type", "Version", "Subject", "Issuer"})
+	table.SetHeader([]string{"Target Name", "ID", "Modification Time", "Type", "Version", "Subject", "Valid From", "Valid Until", "IP Addrs"})
 	table.SetAlignment(tablewriter.ALIGN_LEFT)
 	table.SetAutoFormatHeaders(false)
 	table.SetAutoWrapText(false)
@@ -166,6 +177,5 @@ func certTable(rsps []*getCertificatesResponse) (string, error) {
 }
 
 func (a *App) CertGetCertificates(ctx context.Context, t *Target) (*cert.GetCertificatesResponse, error) {
-	certClient := cert.NewCertificateManagementClient(t.client)
-	return certClient.GetCertificates(ctx, new(cert.GetCertificatesRequest))
+	return cert.NewCertificateManagementClient(t.client).GetCertificates(ctx, new(cert.GetCertificatesRequest))
 }

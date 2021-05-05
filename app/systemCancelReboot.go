@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/encoding/prototext"
 )
 
 func (a *App) InitSystemCancelRebootFlags(cmd *cobra.Command) {
@@ -27,7 +28,7 @@ func (a *App) RunESystemCancelReboot(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	subcomponents := make([]*types.Path, len(a.Config.SystemRebootSubscomponents))
+	subcomponents := make([]*types.Path, len(a.Config.SystemCancelRebootSubcomponents))
 	for i, p := range a.Config.SystemRebootStatusSubscomponents {
 		subcomponents[i], err = ParsePath(p)
 		if err != nil {
@@ -65,22 +66,13 @@ func (a *App) RunESystemCancelReboot(cmd *cobra.Command, args []string) error {
 	errs := make([]error, 0, numTargets)
 	for rsp := range responseChan {
 		if rsp.Err != nil {
-			a.Logger.Errorf("%q system cancel reboot failed: %v", rsp.TargetName, rsp.Err)
-			errs = append(errs, rsp.Err)
+			wErr := fmt.Errorf("%q System CancelReboot failed: %v", rsp.TargetName, rsp.Err)
+			a.Logger.Error(wErr)
+			errs = append(errs, wErr)
 			continue
 		}
 	}
-	for _, err := range errs {
-		a.Logger.Errorf("err: %v", err)
-	}
-
-	//
-	if len(errs) > 0 {
-		return fmt.Errorf("there was %d error(s)", len(errs))
-	}
-	a.Logger.Debug("done...")
-
-	return nil
+	return a.handleErrs(errs)
 }
 
 func (a *App) SystemCancelReboot(ctx context.Context, t *Target, subcomponents []*types.Path) error {
@@ -89,10 +81,11 @@ func (a *App) SystemCancelReboot(ctx context.Context, t *Target, subcomponents [
 		Message:       a.Config.SystemCancelRebootMessage,
 		Subcomponents: subcomponents,
 	}
+	a.Logger.Debugf("%q System CancelReboot Request: %s", t.Config.Address, prototext.Format(req))
 	_, err := systemClient.CancelReboot(ctx, req)
 	if err != nil {
 		return err
 	}
-	a.Logger.Infof("%q CancelReboot request successful", t.Config.Address)
+	a.Logger.Infof("%q System CancelReboot Request was successful", t.Config.Address)
 	return nil
 }
