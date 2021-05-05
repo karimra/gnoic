@@ -4,7 +4,10 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
+	"fmt"
 	"io/ioutil"
+	"net"
+	"strings"
 	"time"
 
 	"google.golang.org/grpc"
@@ -33,13 +36,29 @@ func (c *Config) GetTargets() (map[string]*TargetConfig, error) {
 		return nil, errors.New("no targets found")
 	}
 	targetsConfigs := make(map[string]*TargetConfig)
+	var err error
 	for _, addr := range c.Address {
 		tc := new(TargetConfig)
-		tc.Address = addr
+		tc.Address, err = c.addPort(addr)
+		if err != nil {
+			return nil, fmt.Errorf("%q failed to parse address: %v", addr, err)
+		}
 		c.setTargetConfigDefaults(tc)
-		targetsConfigs[addr] = tc
+		targetsConfigs[tc.Address] = tc
 	}
 	return targetsConfigs, nil
+}
+
+func (c *Config) addPort(addr string) (string, error) {
+	_, _, err := net.SplitHostPort(addr)
+	if err != nil {
+		if strings.Contains(err.Error(), "missing port in address") ||
+			strings.Contains(err.Error(), "too many colons in address") {
+			return net.JoinHostPort(addr, c.Port), nil
+		}
+		return "", fmt.Errorf("error parsing address %q: %v", addr, err)
+	}
+	return addr, nil
 }
 
 func (c *Config) setTargetConfigDefaults(tc *TargetConfig) {

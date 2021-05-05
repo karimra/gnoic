@@ -28,7 +28,7 @@ func (a *App) InitCertGetCertificatesFlags(cmd *cobra.Command) {
 	//
 	cmd.Flags().BoolVar(&a.Config.CertGetCertificatesDetails, "details", false, "print retrieved certificates details")
 	cmd.Flags().StringSliceVar(&a.Config.CertGetCertificatesID, "id", []string{}, "certificate ID to be displayed")
-	cmd.Flags().BoolVar(&a.Config.CertGetCertificatesSave, "save", false, "save retrieved certificates locally")
+	// cmd.Flags().BoolVar(&a.Config.CertGetCertificatesSave, "save", false, "save retrieved certificates locally")
 	//
 	cmd.LocalFlags().VisitAll(func(flag *pflag.Flag) {
 		a.Config.FileConfig.BindPFlag(fmt.Sprintf("%s-%s", cmd.Name(), flag.Name), flag)

@@ -81,17 +81,8 @@ func (a *App) RunECertCanGenerateCSR(cmd *cobra.Command, args []string) error {
 		}
 		result = append(result, rsp)
 	}
-
 	fmt.Print(certCGCSRTable(result))
-
-	for _, err := range errs {
-		a.Logger.Errorf("err: %v", err)
-	}
-	if len(errs) > 0 {
-		return fmt.Errorf("there was %d error(s)", len(errs))
-	}
-	a.Logger.Debug("done...")
-	return nil
+	return a.handleErrs(errs)
 }
 
 func (a *App) CertCanGenerateCSR(ctx context.Context, t *Target) (bool, error) {
