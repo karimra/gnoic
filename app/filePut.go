@@ -19,10 +19,11 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/encoding/prototext"
 )
 
 const (
-	defaultChunkSize = 64 * 1000
+	defaultChunkSize = 64 * 1024
 )
 
 type filePutResponse struct {
@@ -159,7 +160,7 @@ func (a *App) FilePut(ctx context.Context, t *Target) (string, error) {
 			},
 		},
 	}
-	a.Logger.Debug(req)
+	a.Logger.Debug(prototext.Format(req))
 	err = stream.Send(req)
 	if err != nil {
 		return "", err

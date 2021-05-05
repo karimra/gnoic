@@ -30,7 +30,6 @@ type App struct {
 func New() *App {
 	ctx, cancel := context.WithCancel(context.Background())
 	logger := log.New()
-
 	a := &App{
 		ctx:     ctx,
 		Cfn:     cancel,

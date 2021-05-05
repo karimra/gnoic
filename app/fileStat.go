@@ -8,11 +8,13 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/dustin/go-humanize"
 	"github.com/olekukonko/tablewriter"
 	"github.com/openconfig/gnoi/file"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/encoding/prototext"
 )
 
 type fileStatResponse struct {
@@ -24,6 +26,7 @@ func (a *App) InitFileStatFlags(cmd *cobra.Command) {
 	cmd.ResetFlags()
 	//
 	cmd.Flags().StringVar(&a.Config.FileStatFile, "file", "", "file to get from the target(s)")
+	cmd.Flags().BoolVar(&a.Config.FileStatHumanize, "humanize", false, "make outputted values human readable")
 	//
 	cmd.Flags().VisitAll(func(flag *pflag.Flag) {
 		a.Config.FileConfig.BindPFlag(fmt.Sprintf("%s-%s", cmd.Name(), flag.Name), flag)
@@ -81,28 +84,44 @@ func (a *App) RunEFileStat(cmd *cobra.Command, args []string) error {
 		result = append(result, rsp)
 	}
 
-	fmt.Print(statTable(result))
+	fmt.Print(a.statTable(result))
 	return a.handleErrs(errs)
 }
 
 func (a *App) FileStat(ctx context.Context, t *Target) (*file.StatResponse, error) {
 	fileClient := file.NewFileClient(t.client)
-	return fileClient.Stat(ctx, &file.StatRequest{
+	r, err := fileClient.Stat(ctx, &file.StatRequest{
 		Path: a.Config.FileStatFile,
 	})
+	if err != nil {
+		return nil, err
+	}
+	a.Logger.Debugf("File Stat Response: %s", prototext.Format(r))
+	return r, nil
 }
 
-func statTable(r []*fileStatResponse) string {
+func (a *App) statTable(r []*fileStatResponse) string {
 	tabData := make([][]string, 0)
 	for _, rsp := range r {
 		for _, si := range rsp.rsp.GetStats() {
+			if a.Config.FileStatHumanize {
+				tabData = append(tabData, []string{
+					rsp.TargetName,
+					si.GetPath(),
+					humanize.Time(time.Unix(0, int64(si.GetLastModified()))),
+					"0" + strconv.FormatUint(uint64(si.GetPermissions()), 8),
+					"0" + strconv.FormatUint(uint64(si.GetUmask()), 8),
+					humanize.Bytes(si.GetSize()),
+				})
+				continue
+			}
 			tabData = append(tabData, []string{
 				rsp.TargetName,
 				si.GetPath(),
-				time.Unix(0, int64(si.GetLastModified())).String(),
+				time.Unix(0, int64(si.GetLastModified())).Format(time.RFC3339),
 				"0" + strconv.FormatUint(uint64(si.GetPermissions()), 8),
 				"0" + strconv.FormatUint(uint64(si.GetUmask()), 8),
-				strconv.Itoa(int(si.GetSize())),
+				strconv.Itoa(int((si.GetSize()))),
 			})
 		}
 	}
@@ -111,7 +130,7 @@ func statTable(r []*fileStatResponse) string {
 	})
 	b := new(bytes.Buffer)
 	table := tablewriter.NewWriter(b)
-	table.SetHeader([]string{"Target Name", "Path", "LastModified", "Permissions", "Umask", "Size(B)"})
+	table.SetHeader([]string{"Target Name", "Path", "LastModified", "Perm", "Umask", "Size"})
 	table.SetAlignment(tablewriter.ALIGN_LEFT)
 	table.SetAutoFormatHeaders(false)
 	table.SetAutoWrapText(false)

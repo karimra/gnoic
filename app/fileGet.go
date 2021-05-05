@@ -6,8 +6,8 @@ import (
 	"crypto/md5"
 	"crypto/sha256"
 	"crypto/sha512"
-	"errors"
 	"fmt"
+	"hash"
 	"os"
 	"path/filepath"
 	"strings"
@@ -124,8 +124,8 @@ func (a *App) FileGet(ctx context.Context, t *Target) (string, error) {
 			a.Logger.Infof("%q received nil hash", t.Config.Address)
 			return "", nil
 		}
-		a.Logger.Infof("%q received hash method %s", t.Config.Address, h.Method)
-		err = a.compareFileHash(b, h)
+		a.Logger.Debugf("%q received hash method %s", t.Config.Address, h.Method)
+		err = a.compareFileHash(t.Config.Address, b, h)
 		if err != nil {
 			return "", fmt.Errorf("%q hash err: %v", t.Config.Address, err)
 		}
@@ -148,42 +148,32 @@ func (a *App) FileGet(ctx context.Context, t *Target) (string, error) {
 	return name, nil
 }
 
-func (a *App) compareFileHash(b *bytes.Buffer, h *types.HashType) error {
-	switch h.Method {
+func (a *App) compareFileHash(tName string, b *bytes.Buffer, ht *types.HashType) error {
+	var r int
+	var cHash []byte
+	var h hash.Hash
+	switch ht.Method {
 	case types.HashType_MD5:
-		m := md5.New()
-		m.Write(b.Bytes())
-		cHash := m.Sum(nil)
-		r := bytes.Compare(cHash, h.Hash)
-		if r != 0 {
-			a.Logger.Errorf("wrong Hash: received: %x, calculated: %x", h.Hash, cHash)
-			return errors.New("wrong hash")
-		}
-		a.Logger.Debugf("Hash: received: %x, calculated: %x", h.Hash, cHash)
+		h = md5.New()
 	case types.HashType_SHA256:
-		s := sha256.New()
-		s.Write(b.Bytes())
-		cHash := s.Sum(nil)
-		r := bytes.Compare(cHash, h.Hash)
-		if r != 0 {
-			a.Logger.Errorf("wrong Hash: received: %x, calculated: %x", h.Hash, cHash)
-			return errors.New("wrong hash")
-		}
-		a.Logger.Debugf("Hash: received: %x, calculated: %x", h.Hash, cHash)
+		h = sha256.New()
 	case types.HashType_SHA512:
-		s := sha512.New()
-		s.Write(b.Bytes())
-		cHash := s.Sum(nil)
-		r := bytes.Compare(cHash, h.Hash)
-		if r != 0 {
-			a.Logger.Errorf("wrong Hash: received: %v, calculated: %v", h.Hash, cHash)
-			return errors.New("wrong hash")
-		}
-		a.Logger.Debugf("Hash: received: %x, calculated: %x", h.Hash, cHash)
+		h = sha512.New()
 	case types.HashType_UNSPECIFIED:
-		return errors.New("unspecified Hash Type")
+		return fmt.Errorf("%q unspecified Hash Type", tName)
 	default:
-		return errors.New("unknown Hash Type")
+		return fmt.Errorf("%q unknown Hash Type %q", tName, ht.Method)
 	}
+
+	h.Write(b.Bytes())
+	cHash = h.Sum(nil)
+	r = bytes.Compare(cHash, ht.Hash)
+	if r != 0 {
+		a.Logger.Errorf("%q wrong Hash_%s: received: %x", tName, ht.Method.String(), ht.Hash)
+		a.Logger.Errorf("%q wrong Hash_%s: calculated: %x", tName, ht.Method.String(), cHash)
+		return fmt.Errorf("%q wrong Hash_%s: recv: %x, calc: %x", tName, ht.Method.String(), ht.Hash, cHash)
+	}
+	a.Logger.Debugf("%q Hash_%s recv: %x", tName, ht.Method.String(), ht.Hash)
+	a.Logger.Debugf("%q Hash_%s calc: %x", tName, ht.Method.String(), cHash)
 	return nil
 }

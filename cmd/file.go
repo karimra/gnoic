@@ -30,9 +30,9 @@ func newFileGetCmd() *cobra.Command {
 // newFileTransferCmd represents the file transfer command
 func newFileTransferCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "transfer",
-		Short: "run file Transfer gNOI RPC",
-
+		Use:          "transfer",
+		Short:        "run file Transfer gNOI RPC",
+		Aliases:      []string{"trans", "tr"},
 		RunE:         gApp.RunEFileTransfer,
 		SilenceUsage: true,
 	}

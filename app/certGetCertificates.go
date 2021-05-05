@@ -28,6 +28,7 @@ func (a *App) InitCertGetCertificatesFlags(cmd *cobra.Command) {
 	//
 	cmd.Flags().BoolVar(&a.Config.CertGetCertificatesDetails, "details", false, "print retrieved certificates details")
 	cmd.Flags().StringSliceVar(&a.Config.CertGetCertificatesID, "id", []string{}, "certificate ID to be displayed")
+	cmd.Flags().BoolVar(&a.Config.CertGetCertificatesSave, "save", false, "save retrieved certificates locally")
 	//
 	cmd.LocalFlags().VisitAll(func(flag *pflag.Flag) {
 		a.Config.FileConfig.BindPFlag(fmt.Sprintf("%s-%s", cmd.Name(), flag.Name), flag)
@@ -151,13 +152,13 @@ func (a *App) certTable(rsps []*getCertificatesResponse) (string, error) {
 			tabData = append(tabData, []string{
 				rsp.TargetName,
 				certInfo.CertificateId,
-				time.Unix(0, certInfo.ModificationTime).String(),
+				time.Unix(0, certInfo.ModificationTime).Format(time.RFC3339),
 				certInfo.GetCertificate().GetType().String(),
 				strconv.Itoa(cert.Version),
 				cert.Subject.ToRDNSequence().String(),
 				// cert.Issuer.ToRDNSequence().String(),
-				cert.NotBefore.String(),
-				cert.NotAfter.String(),
+				cert.NotBefore.Format(time.RFC3339),
+				cert.NotAfter.Format(time.RFC3339),
 				strings.Join(ipAddrs, ", "),
 			})
 		}

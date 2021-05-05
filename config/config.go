@@ -128,13 +128,15 @@ type LocalFlags struct {
 	// Cert GetCertificates
 	CertGetCertificatesDetails bool     `json:"cert-get-certificates-details,omitempty" mapstructure:"cert-get-certificates-details,omitempty" yaml:"cert-get-certificates-details,omitempty"`
 	CertGetCertificatesID      []string `json:"cert-get-certificates-id,omitempty" mapstructure:"cert-get-certificates-id,omitempty" yaml:"cert-get-certificates-id,omitempty"`
+	CertGetCertificatesSave    bool
 	// File
 	// File Get
 	FileGetFile         string `json:"file-get-file,omitempty" mapstructure:"file-get-file,omitempty" yaml:"file-get-file,omitempty"`
 	FileGetLocalFile    string `json:"file-get-local-file,omitempty" mapstructure:"file-get-local-file,omitempty" yaml:"file-get-local-file,omitempty"`
 	FileGetTargetPrefix bool   `json:"file-get-target-prefix,omitempty" mapstructure:"file-get-target-prefix,omitempty" yaml:"file-get-target-prefix,omitempty"`
 	// File Stat
-	FileStatFile string `json:"file-stat-file,omitempty" mapstructure:"file-stat-file,omitempty" yaml:"file-stat-file,omitempty"`
+	FileStatFile     string `json:"file-stat-file,omitempty" mapstructure:"file-stat-file,omitempty" yaml:"file-stat-file,omitempty"`
+	FileStatHumanize bool
 	// File Put
 	FilePutFile        string `json:"file-put-file,omitempty" mapstructure:"file-put-file,omitempty" yaml:"file-put-file,omitempty"`
 	FilePutRemoteFile  string `json:"file-put-remote-file,omitempty" mapstructure:"file-put-remote-file,omitempty" yaml:"file-put-remote-file,omitempty"`
@@ -179,6 +181,13 @@ type LocalFlags struct {
 	SystemCancelRebootSubcomponents []string `json:"system-cancel-reboot-subcomponents,omitempty" mapstructure:"system-cancel-reboot-subcomponents,omitempty" yaml:"system-cancel-reboot-subcomponents,omitempty"`
 	// System SwitchControlProcessor
 	SystemSwitchControlProcessorPath string `json:"system-switch-control-processor-path,omitempty" mapstructure:"system-switch-control-processor-path,omitempty" yaml:"system-switch-control-processor-path,omitempty"`
+	// System SetPackage
+	SystemSetPackageFile        string
+	SystemSetPackageVersion     string
+	SystemSetPackageActivate    bool
+	SystemSetPackageRemoteFile  string
+	SystemSetPackageCredentials string
+	SystemSetPackageChunkSize   uint64
 }
 
 func New() *Config {
