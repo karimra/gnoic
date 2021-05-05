@@ -16,9 +16,8 @@ import (
 )
 
 type systemTimeResponse struct {
-	targetName string
-	rsp        *system.TimeResponse
-	err        error
+	TargetError
+	rsp *system.TimeResponse
 }
 
 func (a *App) InitSystemTimeFlags(cmd *cobra.Command) {
@@ -49,16 +48,20 @@ func (a *App) RunESystemTime(cmd *cobra.Command, args []string) error {
 			err = a.CreateGrpcClient(ctx, t, a.createBaseDialOpts()...)
 			if err != nil {
 				responseChan <- &systemTimeResponse{
-					targetName: t.Config.Address,
-					err:        err,
+					TargetError: TargetError{
+						TargetName: t.Config.Address,
+						Err:        err,
+					},
 				}
 				return
 			}
 			rsp, err := a.SystemTime(ctx, t)
 			responseChan <- &systemTimeResponse{
-				targetName: t.Config.Address,
-				rsp:        rsp,
-				err:        err,
+				TargetError: TargetError{
+					TargetName: t.Config.Address,
+					Err:        err,
+				},
+				rsp: rsp,
 			}
 		}(t)
 	}
@@ -68,9 +71,9 @@ func (a *App) RunESystemTime(cmd *cobra.Command, args []string) error {
 	errs := make([]error, 0, numTargets)
 	result := make([]*systemTimeResponse, 0, numTargets)
 	for rsp := range responseChan {
-		if rsp.err != nil {
-			a.Logger.Errorf("%q system time failed: %v", rsp.targetName, rsp.err)
-			errs = append(errs, rsp.err)
+		if rsp.Err != nil {
+			a.Logger.Errorf("%q system time failed: %v", rsp.TargetName, rsp.Err)
+			errs = append(errs, rsp.Err)
 			continue
 		}
 		result = append(result, rsp)
@@ -100,7 +103,7 @@ func systemTimeTable(rsps []*systemTimeResponse) (string, error) {
 	tabData := make([][]string, 0, len(rsps))
 	for _, rsp := range rsps {
 		tabData = append(tabData, []string{
-			rsp.targetName,
+			rsp.TargetName,
 			time.Unix(0, int64(rsp.rsp.GetTime())).String(),
 			strconv.FormatUint(rsp.rsp.GetTime(), 10),
 		})

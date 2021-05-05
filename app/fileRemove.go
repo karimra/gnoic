@@ -11,9 +11,8 @@ import (
 )
 
 type fileRemoveResponse struct {
-	targetName string
-	file       string
-	err        error
+	TargetError
+	file string
 }
 
 func (a *App) InitFileRemoveFlags(cmd *cobra.Command) {
@@ -46,16 +45,20 @@ func (a *App) RunEFileRemove(cmd *cobra.Command, args []string) error {
 			err = a.CreateGrpcClient(ctx, t, a.createBaseDialOpts()...)
 			if err != nil {
 				responseChan <- &fileRemoveResponse{
-					targetName: t.Config.Address,
-					err:        err,
+					TargetError: TargetError{
+						TargetName: t.Config.Address,
+						Err:        err,
+					},
 				}
 				return
 			}
 			filename, err := a.FileRemove(ctx, t)
 			responseChan <- &fileRemoveResponse{
-				targetName: t.Config.Address,
-				file:       filename,
-				err:        err,
+				TargetError: TargetError{
+					TargetName: t.Config.Address,
+					Err:        err,
+				},
+				file: filename,
 			}
 		}(t)
 	}
@@ -65,9 +68,9 @@ func (a *App) RunEFileRemove(cmd *cobra.Command, args []string) error {
 	errs := make([]error, 0, numTargets)
 	result := make([]*fileRemoveResponse, 0, numTargets)
 	for rsp := range responseChan {
-		if rsp.err != nil {
-			a.Logger.Errorf("%q file Remove failed: %v", rsp.targetName, rsp.err)
-			errs = append(errs, rsp.err)
+		if rsp.Err != nil {
+			a.Logger.Errorf("%q file Remove failed: %v", rsp.TargetName, rsp.Err)
+			errs = append(errs, rsp.Err)
 			continue
 		}
 		result = append(result, rsp)
@@ -77,7 +80,7 @@ func (a *App) RunEFileRemove(cmd *cobra.Command, args []string) error {
 		a.Logger.Errorf("err: %v", err)
 	}
 	for _, r := range result {
-		a.Logger.Infof("%q file %q removed", r.targetName, r.file)
+		a.Logger.Infof("%q file %q removed", r.TargetName, r.file)
 	}
 
 	//

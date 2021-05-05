@@ -21,9 +21,8 @@ import (
 )
 
 type fileGetResponse struct {
-	targetName string
-	file       string
-	err        error
+	TargetError
+	file string
 }
 
 func (a *App) InitFileGetFlags(cmd *cobra.Command) {
@@ -58,16 +57,20 @@ func (a *App) RunEFileGet(cmd *cobra.Command, args []string) error {
 			err = a.CreateGrpcClient(ctx, t, a.createBaseDialOpts()...)
 			if err != nil {
 				responseChan <- &fileGetResponse{
-					targetName: t.Config.Address,
-					err:        err,
+					TargetError: TargetError{
+						TargetName: t.Config.Address,
+						Err:        err,
+					},
 				}
 				return
 			}
 			filename, err := a.FileGet(ctx, t)
 			responseChan <- &fileGetResponse{
-				targetName: t.Config.Address,
-				file:       filename,
-				err:        err,
+				TargetError: TargetError{
+					TargetName: t.Config.Address,
+					Err:        err,
+				},
+				file: filename,
 			}
 		}(t)
 	}
@@ -77,9 +80,9 @@ func (a *App) RunEFileGet(cmd *cobra.Command, args []string) error {
 	errs := make([]error, 0, numTargets)
 	result := make([]*fileGetResponse, 0, numTargets)
 	for rsp := range responseChan {
-		if rsp.err != nil {
-			a.Logger.Errorf("%q file Get failed: %v", rsp.targetName, rsp.err)
-			errs = append(errs, rsp.err)
+		if rsp.Err != nil {
+			a.Logger.Errorf("%q file Get failed: %v", rsp.TargetName, rsp.Err)
+			errs = append(errs, rsp.Err)
 			continue
 		}
 		result = append(result, rsp)
@@ -89,7 +92,7 @@ func (a *App) RunEFileGet(cmd *cobra.Command, args []string) error {
 		a.Logger.Errorf("err: %v", err)
 	}
 	for _, r := range result {
-		fmt.Printf("%q file %q saved\n", r.targetName, r.file)
+		fmt.Printf("%q file %q saved\n", r.TargetName, r.file)
 	}
 	//
 	if len(errs) > 0 {

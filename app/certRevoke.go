@@ -11,11 +11,6 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
-type certRevokeResponse struct {
-	targetName string
-	err        error
-}
-
 func (a *App) InitCertRevokeCertificatesFlags(cmd *cobra.Command) {
 	cmd.ResetFlags()
 	//
@@ -37,7 +32,7 @@ func (a *App) RunECertRevokeCertificates(cmd *cobra.Command, args []string) erro
 	}
 
 	numTargets := len(targets)
-	responseChan := make(chan *certRevokeResponse, numTargets)
+	responseChan := make(chan *TargetError, numTargets)
 
 	a.wg.Add(numTargets)
 	for _, t := range targets {
@@ -48,16 +43,16 @@ func (a *App) RunECertRevokeCertificates(cmd *cobra.Command, args []string) erro
 			ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
 			err = a.CreateGrpcClient(ctx, t, a.createBaseDialOpts()...)
 			if err != nil {
-				responseChan <- &certRevokeResponse{
-					targetName: t.Config.Address,
-					err:        err,
+				responseChan <- &TargetError{
+					TargetName: t.Config.Address,
+					Err:        err,
 				}
 				return
 			}
 			err = a.Revoke(ctx, t)
-			responseChan <- &certRevokeResponse{
-				targetName: t.Config.Address,
-				err:        err,
+			responseChan <- &TargetError{
+				TargetName: t.Config.Address,
+				Err:        err,
 			}
 		}(t)
 	}
@@ -66,9 +61,9 @@ func (a *App) RunECertRevokeCertificates(cmd *cobra.Command, args []string) erro
 
 	errs := make([]error, 0, len(targets))
 	for rsp := range responseChan {
-		if rsp.err != nil {
-			a.Logger.Errorf("%q cert revoke failed: %v", rsp.targetName, rsp.err)
-			errs = append(errs, rsp.err)
+		if rsp.Err != nil {
+			a.Logger.Errorf("%q cert revoke failed: %v", rsp.TargetName, rsp.Err)
+			errs = append(errs, rsp.Err)
 			continue
 		}
 	}

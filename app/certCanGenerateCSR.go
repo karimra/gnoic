@@ -14,9 +14,8 @@ import (
 )
 
 type certCGCSRResponse struct {
-	targetName string
-	can        bool
-	err        error
+	TargetError
+	can bool
 }
 
 func (a *App) InitCertCanGenerateCSRFlags(cmd *cobra.Command) {
@@ -51,17 +50,21 @@ func (a *App) RunECertCanGenerateCSR(cmd *cobra.Command, args []string) error {
 			err = a.CreateGrpcClient(ctx, t, a.createBaseDialOpts()...)
 			if err != nil {
 				responseChan <- &certCGCSRResponse{
-					targetName: t.Config.Address,
-					err:        err,
+					TargetError: TargetError{
+						TargetName: t.Config.Address,
+						Err:        err,
+					},
 				}
 				return
 			}
 
 			can, err := a.CertCanGenerateCSR(ctx, t)
 			responseChan <- &certCGCSRResponse{
-				targetName: t.Config.Address,
-				can:        can,
-				err:        err,
+				TargetError: TargetError{
+					TargetName: t.Config.Address,
+					Err:        err,
+				},
+				can: can,
 			}
 		}(t)
 	}
@@ -71,9 +74,9 @@ func (a *App) RunECertCanGenerateCSR(cmd *cobra.Command, args []string) error {
 	errs := make([]error, 0, numTargets)
 	result := make([]*certCGCSRResponse, 0, numTargets)
 	for rsp := range responseChan {
-		if rsp.err != nil {
-			a.Logger.Errorf("%q Cert CanGenerateCSR failed: %v", rsp.targetName, rsp.err)
-			errs = append(errs, rsp.err)
+		if rsp.Err != nil {
+			a.Logger.Errorf("%q Cert CanGenerateCSR failed: %v", rsp.TargetName, rsp.Err)
+			errs = append(errs, rsp.Err)
 			continue
 		}
 		result = append(result, rsp)
@@ -115,7 +118,7 @@ func certCGCSRTable(rsps []*certCGCSRResponse) string {
 	tabData := make([][]string, 0, len(rsps))
 	for _, rsp := range rsps {
 		tabData = append(tabData, []string{
-			rsp.targetName,
+			rsp.TargetName,
 			fmt.Sprintf("%t", rsp.can),
 		})
 	}

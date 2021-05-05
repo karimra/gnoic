@@ -16,9 +16,8 @@ import (
 )
 
 type fileStatResponse struct {
-	targetName string
-	rsp        *file.StatResponse
-	err        error
+	TargetError
+	rsp *file.StatResponse
 }
 
 func (a *App) InitFileStatFlags(cmd *cobra.Command) {
@@ -51,16 +50,20 @@ func (a *App) RunEFileStat(cmd *cobra.Command, args []string) error {
 			err = a.CreateGrpcClient(ctx, t, a.createBaseDialOpts()...)
 			if err != nil {
 				responseChan <- &fileStatResponse{
-					targetName: t.Config.Address,
-					err:        err,
+					TargetError: TargetError{
+						TargetName: t.Config.Address,
+						Err:        err,
+					},
 				}
 				return
 			}
 			rsp, err := a.FileStat(ctx, t)
 			responseChan <- &fileStatResponse{
-				targetName: t.Config.Address,
-				rsp:        rsp,
-				err:        err,
+				TargetError: TargetError{
+					TargetName: t.Config.Address,
+					Err:        err,
+				},
+				rsp: rsp,
 			}
 		}(t)
 	}
@@ -70,9 +73,9 @@ func (a *App) RunEFileStat(cmd *cobra.Command, args []string) error {
 	errs := make([]error, 0, numTargets)
 	result := make([]*fileStatResponse, 0, numTargets)
 	for rsp := range responseChan {
-		if rsp.err != nil {
-			a.Logger.Errorf("%q file Stat failed: %v", rsp.targetName, rsp.err)
-			errs = append(errs, rsp.err)
+		if rsp.Err != nil {
+			a.Logger.Errorf("%q file Stat failed: %v", rsp.TargetName, rsp.Err)
+			errs = append(errs, rsp.Err)
 			continue
 		}
 		result = append(result, rsp)
@@ -105,7 +108,7 @@ func statTable(r []*fileStatResponse) string {
 		for _, si := range rsp.rsp.GetStats() {
 
 			tabData = append(tabData, []string{
-				rsp.targetName,
+				rsp.TargetName,
 				si.GetPath(),
 				time.Unix(0, int64(si.GetLastModified())).String(),
 				strconv.Itoa(int(si.GetPermissions())),

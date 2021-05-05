@@ -17,9 +17,8 @@ import (
 )
 
 type systemSwitchControlProcessorResponse struct {
-	targetName string
-	rsp        *system.SwitchControlProcessorResponse
-	err        error
+	TargetError
+	rsp *system.SwitchControlProcessorResponse
 }
 
 func (a *App) InitSystemSwitchControlProcessorFlags(cmd *cobra.Command) {
@@ -54,16 +53,20 @@ func (a *App) RunESystemSwitchControlProcessor(cmd *cobra.Command, args []string
 			err = a.CreateGrpcClient(ctx, t, a.createBaseDialOpts()...)
 			if err != nil {
 				responseChan <- &systemSwitchControlProcessorResponse{
-					targetName: t.Config.Address,
-					err:        err,
+					TargetError: TargetError{
+						TargetName: t.Config.Address,
+						Err:        err,
+					},
 				}
 				return
 			}
 			rsp, err := a.SystemSwitchControlProcessor(ctx, t)
 			responseChan <- &systemSwitchControlProcessorResponse{
-				targetName: t.Config.Address,
-				rsp:        rsp,
-				err:        err,
+				TargetError: TargetError{
+					TargetName: t.Config.Address,
+					Err:        err,
+				},
+				rsp: rsp,
 			}
 		}(t)
 	}
@@ -73,9 +76,9 @@ func (a *App) RunESystemSwitchControlProcessor(cmd *cobra.Command, args []string
 	errs := make([]error, 0, numTargets)
 	result := make([]*systemSwitchControlProcessorResponse, 0, numTargets)
 	for rsp := range responseChan {
-		if rsp.err != nil {
-			a.Logger.Errorf("%q system reboot failed: %v", rsp.targetName, rsp.err)
-			errs = append(errs, rsp.err)
+		if rsp.Err != nil {
+			a.Logger.Errorf("%q system reboot failed: %v", rsp.TargetName, rsp.Err)
+			errs = append(errs, rsp.Err)
 			continue
 		}
 		result = append(result, rsp)
@@ -114,7 +117,7 @@ func systemSwitchControlProcessorTable(rsps []*systemSwitchControlProcessorRespo
 	tabData := make([][]string, 0, len(rsps))
 	for _, rsp := range rsps {
 		tabData = append(tabData, []string{
-			rsp.targetName,
+			rsp.TargetName,
 			pathToXPath(rsp.rsp.GetControlProcessor()),
 			rsp.rsp.GetVersion(),
 			time.Unix(0, rsp.rsp.GetUptime()).String(),

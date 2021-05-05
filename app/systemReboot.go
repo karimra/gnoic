@@ -12,11 +12,6 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
-type systemRebootResponse struct {
-	targetName string
-	err        error
-}
-
 func (a *App) InitSystemRebootFlags(cmd *cobra.Command) {
 	cmd.ResetFlags()
 	//
@@ -59,7 +54,7 @@ func (a *App) RunESystemReboot(cmd *cobra.Command, args []string) error {
 	}
 
 	numTargets := len(targets)
-	responseChan := make(chan *systemRebootResponse, numTargets)
+	responseChan := make(chan *TargetError, numTargets)
 	a.wg.Add(numTargets)
 	for _, t := range targets {
 		go func(t *Target, subcomponents []*types.Path) {
@@ -70,16 +65,16 @@ func (a *App) RunESystemReboot(cmd *cobra.Command, args []string) error {
 
 			err = a.CreateGrpcClient(ctx, t, a.createBaseDialOpts()...)
 			if err != nil {
-				responseChan <- &systemRebootResponse{
-					targetName: t.Config.Address,
-					err:        err,
+				responseChan <- &TargetError{
+					TargetName: t.Config.Address,
+					Err:        err,
 				}
 				return
 			}
 			err := a.SystemReboot(ctx, t, subcomponents)
-			responseChan <- &systemRebootResponse{
-				targetName: t.Config.Address,
-				err:        err,
+			responseChan <- &TargetError{
+				TargetName: t.Config.Address,
+				Err:        err,
 			}
 		}(t, subcomponents)
 	}
@@ -87,9 +82,9 @@ func (a *App) RunESystemReboot(cmd *cobra.Command, args []string) error {
 	close(responseChan)
 	errs := make([]error, 0, numTargets)
 	for rsp := range responseChan {
-		if rsp.err != nil {
-			a.Logger.Errorf("%q system reboot failed: %v", rsp.targetName, rsp.err)
-			errs = append(errs, rsp.err)
+		if rsp.Err != nil {
+			a.Logger.Errorf("%q system reboot failed: %v", rsp.TargetName, rsp.Err)
+			errs = append(errs, rsp.Err)
 			continue
 		}
 	}

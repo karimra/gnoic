@@ -16,11 +16,6 @@ import (
 	"google.golang.org/protobuf/encoding/prototext"
 )
 
-type systemPingResponse struct {
-	targetName string
-	err        error
-}
-
 func (a *App) InitSystemPingFlags(cmd *cobra.Command) {
 	cmd.ResetFlags()
 	//
@@ -59,7 +54,7 @@ func (a *App) RunESystemPing(cmd *cobra.Command, args []string) error {
 	}
 
 	numTargets := len(targets)
-	responseChan := make(chan *systemPingResponse, numTargets)
+	responseChan := make(chan *TargetError, numTargets)
 
 	a.wg.Add(numTargets)
 	for _, t := range targets {
@@ -71,26 +66,27 @@ func (a *App) RunESystemPing(cmd *cobra.Command, args []string) error {
 
 			err = a.CreateGrpcClient(ctx, t, a.createBaseDialOpts()...)
 			if err != nil {
-				responseChan <- &systemPingResponse{
-					targetName: t.Config.Address,
-					err:        err,
+				responseChan <- &TargetError{
+					TargetName: t.Config.Address,
+					Err:        err,
 				}
 				return
 			}
 			err := a.SystemPing(ctx, t)
-			responseChan <- &systemPingResponse{
-				targetName: t.Config.Address,
-				err:        err,
+			responseChan <- &TargetError{
+				TargetName: t.Config.Address,
+				Err:        err,
 			}
 		}(t)
 	}
 	a.wg.Wait()
 	close(responseChan)
+
 	errs := make([]error, 0, numTargets)
 	for rsp := range responseChan {
-		if rsp.err != nil {
-			a.Logger.Errorf("%q system ping failed: %v", rsp.targetName, rsp.err)
-			errs = append(errs, rsp.err)
+		if rsp.Err != nil {
+			a.Logger.Errorf("%q system ping failed: %v", rsp.TargetName, rsp.Err)
+			errs = append(errs, rsp.Err)
 			continue
 		}
 	}

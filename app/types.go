@@ -9,3 +9,8 @@ const (
 )
 
 var tlsVersions = []string{"1.3", "1.2", "1.1", "1.0", "1"}
+
+type TargetError struct {
+	TargetName string
+	Err        error
+}

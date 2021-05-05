@@ -22,9 +22,8 @@ import (
 )
 
 type filePutResponse struct {
-	targetName string
-	file       string
-	err        error
+	TargetError
+	file string
 }
 
 func (a *App) InitFilePutFlags(cmd *cobra.Command) {
@@ -77,16 +76,20 @@ func (a *App) RunEFilePut(cmd *cobra.Command, args []string) error {
 			err = a.CreateGrpcClient(ctx, t, a.createBaseDialOpts()...)
 			if err != nil {
 				responseChan <- &filePutResponse{
-					targetName: t.Config.Address,
-					err:        err,
+					TargetError: TargetError{
+						TargetName: t.Config.Address,
+						Err:        err,
+					},
 				}
 				return
 			}
 			filename, err := a.FilePut(ctx, t)
 			responseChan <- &filePutResponse{
-				targetName: t.Config.Address,
-				file:       filename,
-				err:        err,
+				TargetError: TargetError{
+					TargetName: t.Config.Address,
+					Err:        err,
+				},
+				file: filename,
 			}
 		}(t)
 	}
@@ -96,9 +99,9 @@ func (a *App) RunEFilePut(cmd *cobra.Command, args []string) error {
 	errs := make([]error, 0, numTargets)
 	result := make([]*filePutResponse, 0, numTargets)
 	for rsp := range responseChan {
-		if rsp.err != nil {
-			a.Logger.Errorf("%q file Stat failed: %v", rsp.targetName, rsp.err)
-			errs = append(errs, rsp.err)
+		if rsp.Err != nil {
+			a.Logger.Errorf("%q file Stat failed: %v", rsp.TargetName, rsp.Err)
+			errs = append(errs, rsp.Err)
 			continue
 		}
 		result = append(result, rsp)
@@ -109,7 +112,7 @@ func (a *App) RunEFilePut(cmd *cobra.Command, args []string) error {
 	}
 
 	for _, r := range result {
-		a.Logger.Infof("%q file %q written\n", r.targetName, r.file)
+		a.Logger.Infof("%q file %q written\n", r.TargetName, r.file)
 	}
 
 	//

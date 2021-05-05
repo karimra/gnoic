@@ -41,7 +41,7 @@ func (a *App) RunESystemTraceRoute(cmd *cobra.Command, args []string) error {
 	}
 
 	numTargets := len(targets)
-	responseChan := make(chan *systemPingResponse, numTargets)
+	responseChan := make(chan *TargetError, numTargets)
 
 	a.wg.Add(numTargets)
 	for _, t := range targets {
@@ -53,16 +53,16 @@ func (a *App) RunESystemTraceRoute(cmd *cobra.Command, args []string) error {
 
 			err = a.CreateGrpcClient(ctx, t, a.createBaseDialOpts()...)
 			if err != nil {
-				responseChan <- &systemPingResponse{
-					targetName: t.Config.Address,
-					err:        err,
+				responseChan <- &TargetError{
+					TargetName: t.Config.Address,
+					Err:        err,
 				}
 				return
 			}
 			err := a.SystemTraceRoute(ctx, t)
-			responseChan <- &systemPingResponse{
-				targetName: t.Config.Address,
-				err:        err,
+			responseChan <- &TargetError{
+				TargetName: t.Config.Address,
+				Err:        err,
 			}
 		}(t)
 	}
@@ -70,12 +70,13 @@ func (a *App) RunESystemTraceRoute(cmd *cobra.Command, args []string) error {
 	close(responseChan)
 	errs := make([]error, 0, numTargets)
 	for rsp := range responseChan {
-		if rsp.err != nil {
-			a.Logger.Errorf("%q system ping failed: %v", rsp.targetName, rsp.err)
-			errs = append(errs, rsp.err)
+		if rsp.Err != nil {
+			a.Logger.Errorf("%q system ping failed: %v", rsp.TargetName, rsp.Err)
+			errs = append(errs, rsp.Err)
 			continue
 		}
 	}
+
 	for _, err := range errs {
 		a.Logger.Errorf("err: %v", err)
 	}

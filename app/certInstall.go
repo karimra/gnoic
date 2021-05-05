@@ -16,11 +16,6 @@ import (
 	"google.golang.org/protobuf/encoding/prototext"
 )
 
-type certInstallResponse struct {
-	targetName string
-	err        error
-}
-
 func (a *App) InitCertInstallFlags(cmd *cobra.Command) {
 	cmd.ResetFlags()
 	//
@@ -66,7 +61,7 @@ func (a *App) RunECertInstall(cmd *cobra.Command, args []string) error {
 	}
 
 	numTargets := len(targets)
-	responseChan := make(chan *certInstallResponse, numTargets)
+	responseChan := make(chan *TargetError, numTargets)
 
 	a.wg.Add(numTargets)
 	for _, t := range targets {
@@ -78,16 +73,16 @@ func (a *App) RunECertInstall(cmd *cobra.Command, args []string) error {
 
 			err = a.CreateGrpcClient(ctx, t, a.createBaseDialOpts()...)
 			if err != nil {
-				responseChan <- &certInstallResponse{
-					targetName: t.Config.Address,
-					err:        err,
+				responseChan <- &TargetError{
+					TargetName: t.Config.Address,
+					Err:        err,
 				}
 				return
 			}
 			err = a.CertInstall(ctx, t)
-			responseChan <- &certInstallResponse{
-				targetName: t.Config.Address,
-				err:        err,
+			responseChan <- &TargetError{
+				TargetName: t.Config.Address,
+				Err:        err,
 			}
 		}(t)
 	}
@@ -96,9 +91,9 @@ func (a *App) RunECertInstall(cmd *cobra.Command, args []string) error {
 
 	errs := make([]error, 0, len(targets))
 	for rsp := range responseChan {
-		if rsp.err != nil {
-			a.Logger.Errorf("%q cert install failed: %v", rsp.targetName, rsp.err)
-			errs = append(errs, rsp.err)
+		if rsp.Err != nil {
+			a.Logger.Errorf("%q cert install failed: %v", rsp.TargetName, rsp.Err)
+			errs = append(errs, rsp.Err)
 			continue
 		}
 	}

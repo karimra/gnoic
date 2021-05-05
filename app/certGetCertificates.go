@@ -18,9 +18,8 @@ import (
 )
 
 type getCertificatesResponse struct {
-	targetName string
-	rsp        *cert.GetCertificatesResponse
-	err        error
+	TargetError
+	rsp *cert.GetCertificatesResponse
 }
 
 func (a *App) InitCertGetCertificatesFlags(cmd *cobra.Command) {
@@ -53,18 +52,21 @@ func (a *App) RunECertGetCertificates(cmd *cobra.Command, args []string) error {
 			err = a.CreateGrpcClient(ctx, t, a.createBaseDialOpts()...)
 			if err != nil {
 				responseChan <- &getCertificatesResponse{
-					targetName: t.Config.Address,
-					rsp:        nil,
-					err:        err,
+					TargetError: TargetError{
+						TargetName: t.Config.Address,
+						Err:        err,
+					},
 				}
 				return
 			}
 			a.Logger.Debugf("%q gRPC client created", t.Config.Address)
 			rsp, err := a.CertGetCertificates(ctx, t)
 			responseChan <- &getCertificatesResponse{
-				targetName: t.Config.Address,
-				rsp:        rsp,
-				err:        err,
+				TargetError: TargetError{
+					TargetName: t.Config.Address,
+					Err:        err,
+				},
+				rsp: rsp,
 			}
 		}(t)
 	}
@@ -75,9 +77,9 @@ func (a *App) RunECertGetCertificates(cmd *cobra.Command, args []string) error {
 	result := make([]*getCertificatesResponse, 0, numTargets)
 
 	for rsp := range responseChan {
-		if rsp.err != nil {
-			a.Logger.Errorf("%q get certificates failed: %v", rsp.targetName, rsp.err)
-			errs = append(errs, rsp.err)
+		if rsp.Err != nil {
+			a.Logger.Errorf("%q get certificates failed: %v", rsp.TargetName, rsp.Err)
+			errs = append(errs, rsp.Err)
 			continue
 		}
 		result = append(result, rsp)
@@ -93,7 +95,7 @@ func (a *App) RunECertGetCertificates(cmd *cobra.Command, args []string) error {
 		}
 		for _, rsp := range result {
 			if rsp.rsp == nil || len(rsp.rsp.GetCertificateInfo()) == 0 {
-				fmt.Printf("%q no certificates found\n", rsp.targetName)
+				fmt.Printf("%q no certificates found\n", rsp.TargetName)
 				continue
 			}
 			for _, certInfo := range rsp.rsp.CertificateInfo {
@@ -103,15 +105,15 @@ func (a *App) RunECertGetCertificates(cmd *cobra.Command, args []string) error {
 					return err
 				}
 
-				fmt.Printf("%q CertificateID: %s\n", rsp.targetName, certInfo.CertificateId)
-				fmt.Printf("%q Certificate Type: %s\n", rsp.targetName, certInfo.Certificate.Type.String())
-				fmt.Printf("%q Modification Time: %s\n", rsp.targetName, time.Unix(0, certInfo.ModificationTime))
+				fmt.Printf("%q CertificateID: %s\n", rsp.TargetName, certInfo.CertificateId)
+				fmt.Printf("%q Certificate Type: %s\n", rsp.TargetName, certInfo.Certificate.Type.String())
+				fmt.Printf("%q Modification Time: %s\n", rsp.TargetName, time.Unix(0, certInfo.ModificationTime))
 
 				certString, err := CertificateText(cert, false)
 				if err != nil {
 					return err
 				}
-				fmt.Printf("%q %s\n", rsp.targetName, certString)
+				fmt.Printf("%q %s\n", rsp.TargetName, certString)
 			}
 		}
 	} else {
@@ -139,7 +141,7 @@ func certTable(rsps []*getCertificatesResponse) (string, error) {
 				return "", err
 			}
 			tabData = append(tabData, []string{
-				rsp.targetName,
+				rsp.TargetName,
 				certInfo.CertificateId,
 				time.Unix(0, certInfo.ModificationTime).String(),
 				certInfo.GetCertificate().GetType().String(),

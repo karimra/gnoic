@@ -18,9 +18,8 @@ import (
 )
 
 type systemRebootStatusResponse struct {
-	targetName string
-	rsp        *system.RebootStatusResponse
-	err        error
+	TargetError
+	rsp *system.RebootStatusResponse
 }
 
 func (a *App) InitSystemRebootStatusFlags(cmd *cobra.Command) {
@@ -58,16 +57,20 @@ func (a *App) RunESystemRebootStatus(cmd *cobra.Command, args []string) error {
 			err = a.CreateGrpcClient(ctx, t, a.createBaseDialOpts()...)
 			if err != nil {
 				responseChan <- &systemRebootStatusResponse{
-					targetName: t.Config.Address,
-					err:        err,
+					TargetError: TargetError{
+						TargetName: t.Config.Address,
+						Err:        err,
+					},
 				}
 				return
 			}
 			rsp, err := a.SystemRebootStatus(ctx, t, subcomponents)
 			responseChan <- &systemRebootStatusResponse{
-				targetName: t.Config.Address,
-				rsp:        rsp,
-				err:        err,
+				TargetError: TargetError{
+					TargetName: t.Config.Address,
+					Err:        err,
+				},
+				rsp: rsp,
 			}
 		}(t, subcomponents)
 	}
@@ -78,9 +81,9 @@ func (a *App) RunESystemRebootStatus(cmd *cobra.Command, args []string) error {
 	result := make([]*systemRebootStatusResponse, 0, numTargets)
 
 	for rsp := range responseChan {
-		if rsp.err != nil {
-			a.Logger.Errorf("%q system reboot status failed: %v", rsp.targetName, rsp.err)
-			errs = append(errs, rsp.err)
+		if rsp.Err != nil {
+			a.Logger.Errorf("%q system reboot status failed: %v", rsp.TargetName, rsp.Err)
+			errs = append(errs, rsp.Err)
 			continue
 		}
 		result = append(result, rsp)
@@ -125,7 +128,7 @@ func SystemRebootStatusTable(rsps []*systemRebootStatusResponse) (string, error)
 	tabData := make([][]string, 0, len(rsps))
 	for _, rsp := range rsps {
 		tabData = append(tabData, []string{
-			rsp.targetName,
+			rsp.TargetName,
 			fmt.Sprintf("%t", rsp.rsp.GetActive()),
 			time.Duration(rsp.rsp.GetWait()).String(),
 			time.Unix(0, int64(rsp.rsp.GetWhen())).String(),

@@ -11,11 +11,6 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
-type systemCancelRebootResponse struct {
-	targetName string
-	err        error
-}
-
 func (a *App) InitSystemCancelRebootFlags(cmd *cobra.Command) {
 	cmd.ResetFlags()
 	//
@@ -40,7 +35,7 @@ func (a *App) RunESystemCancelReboot(cmd *cobra.Command, args []string) error {
 		}
 	}
 	numTargets := len(targets)
-	responseChan := make(chan *systemCancelRebootResponse, numTargets)
+	responseChan := make(chan *TargetError, numTargets)
 	a.wg.Add(numTargets)
 	for _, t := range targets {
 		go func(t *Target, subcomponents []*types.Path) {
@@ -51,16 +46,16 @@ func (a *App) RunESystemCancelReboot(cmd *cobra.Command, args []string) error {
 
 			err = a.CreateGrpcClient(ctx, t, a.createBaseDialOpts()...)
 			if err != nil {
-				responseChan <- &systemCancelRebootResponse{
-					targetName: t.Config.Address,
-					err:        err,
+				responseChan <- &TargetError{
+					TargetName: t.Config.Address,
+					Err:        err,
 				}
 				return
 			}
 			err := a.SystemCancelReboot(ctx, t, subcomponents)
-			responseChan <- &systemCancelRebootResponse{
-				targetName: t.Config.Address,
-				err:        err,
+			responseChan <- &TargetError{
+				TargetName: t.Config.Address,
+				Err:        err,
 			}
 		}(t, subcomponents)
 	}
@@ -69,9 +64,9 @@ func (a *App) RunESystemCancelReboot(cmd *cobra.Command, args []string) error {
 
 	errs := make([]error, 0, numTargets)
 	for rsp := range responseChan {
-		if rsp.err != nil {
-			a.Logger.Errorf("%q system cancel reboot failed: %v", rsp.targetName, rsp.err)
-			errs = append(errs, rsp.err)
+		if rsp.Err != nil {
+			a.Logger.Errorf("%q system cancel reboot failed: %v", rsp.TargetName, rsp.Err)
+			errs = append(errs, rsp.Err)
 			continue
 		}
 	}
