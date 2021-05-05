@@ -72,8 +72,8 @@ func newCertGenCSRCmd() *cobra.Command {
 // newCertLoadCertificatesCmd represents the cert load-certificates command
 func newCertLoadCertificatesCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:          "load-certs",
-		Aliases:      []string{"load"},
+		Use:          "load",
+		Aliases:      []string{"load-certs"},
 		Short:        "run certificate LoadCertificates gNOI RPC",
 		RunE:         gApp.RunELoadCerts,
 		SilenceUsage: true,
@@ -85,9 +85,9 @@ func newCertLoadCertificatesCmd() *cobra.Command {
 // newCertLoadCertificateAuthorityBundleCmd represents the cert load-certificates-ca-bundle command
 func newCertLoadCertificateAuthorityBundleCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:          "load-certs-ca-bundle",
+		Use:          "load-ca",
+		Aliases:      []string{"load-certs-ca-bundle"},
 		Short:        "run certificate LoadCertificateAuthorityBundle gNOI RPC",
-		Aliases:      []string{"load-ca"},
 		RunE:         gApp.RunELoadCertsCaBundle,
 		SilenceUsage: true,
 	}
@@ -111,8 +111,8 @@ func newCertGetCertificatesCmd() *cobra.Command {
 // newCertRevokeCertificatesCmd represents the cert RevokeCertificates command
 func newCertRevokeCertificatesCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:          "revoke-certs",
-		Aliases:      []string{"revoke", "rev"},
+		Use:          "revoke",
+		Aliases:      []string{"revoke-certs", "rev"},
 		Short:        "run certificate RevokeCertificates gNOI RPC",
 		RunE:         gApp.RunECertRevokeCertificates,
 		SilenceUsage: true,

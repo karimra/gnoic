@@ -66,6 +66,8 @@ type LocalFlags struct {
 	CertCreateCaKeySize       int
 	CertCreateCaEmailID       string
 	CertCreateCaCommonName    string
+	CertCreateCaKeyOut        string
+	CertCreateCaCertOut       string
 	// Cert Rotate
 	CertRotateCertificateID   string
 	CertRotateKeyType         string
@@ -164,6 +166,19 @@ type LocalFlags struct {
 	SystemTracerouteDoNotResolve  bool
 	SystemTracerouteL3Protocol    string
 	SystemTracerouteL4Protocol    string
+	// System Reboot
+	SystemRebootMethod         string
+	SystemRebootDelay          time.Duration
+	SystemRebootMessage        string
+	SystemRebootSubscomponents []string
+	SystemRebootForce          bool
+	// System RebootStatus
+	SystemRebootStatusSubscomponents []string
+	// System CancelReboot
+	SystemCancelRebootMessage       string
+	SystemCancelRebootSubcomponents []string
+	// System SwitchControlProcessor
+	SystemSwitchControlProcessorPath string
 }
 
 func New() *Config {

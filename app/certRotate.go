@@ -16,6 +16,11 @@ import (
 	"google.golang.org/protobuf/encoding/prototext"
 )
 
+type certRotateResponse struct {
+	targetName string
+	err        error
+}
+
 func (a *App) InitCertRotateFlags(cmd *cobra.Command) {
 	cmd.ResetFlags()
 
@@ -55,23 +60,45 @@ func (a *App) RunECertRotate(cmd *cobra.Command, args []string) error {
 		}
 		a.Logger.Infof("read local CA certs")
 	}
+
 	targets, err := a.GetTargets()
 	if err != nil {
 		return err
 	}
-	errs := make([]error, 0, len(targets))
+
+	numTargets := len(targets)
+	responseChan := make(chan *certRotateResponse, numTargets)
+
+	a.wg.Add(numTargets)
 	for _, t := range targets {
-		ctx, cancel := context.WithCancel(a.ctx)
-		defer cancel()
-		ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
-		err = a.CreateGrpcClient(ctx, t, a.createBaseDialOpts()...)
-		if err != nil {
-			errs = append(errs, err)
-			continue
-		}
-		err = a.CertRotate(ctx, t)
-		if err != nil {
-			errs = append(errs, fmt.Errorf("%q Rotate RPC failed: %v", t.Config.Address, err))
+		go func(t *Target) {
+			defer a.wg.Done()
+			ctx, cancel := context.WithCancel(a.ctx)
+			defer cancel()
+			ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
+			err = a.CreateGrpcClient(ctx, t, a.createBaseDialOpts()...)
+			if err != nil {
+				responseChan <- &certRotateResponse{
+					targetName: t.Config.Address,
+					err:        err,
+				}
+				return
+			}
+			err = a.CertRotate(ctx, t)
+			responseChan <- &certRotateResponse{
+				targetName: t.Config.Address,
+				err:        err,
+			}
+		}(t)
+	}
+	a.wg.Wait()
+	close(responseChan)
+
+	errs := make([]error, 0, len(targets))
+	for rsp := range responseChan {
+		if rsp.err != nil {
+			a.Logger.Errorf("%q cert rotate failed: %v", rsp.targetName, rsp.err)
+			errs = append(errs, rsp.err)
 			continue
 		}
 	}
@@ -80,7 +107,7 @@ func (a *App) RunECertRotate(cmd *cobra.Command, args []string) error {
 		a.Logger.Errorf("err: %v", err)
 	}
 	if len(errs) > 0 {
-		return fmt.Errorf("there was %d errors", len(errs))
+		return fmt.Errorf("there was %d error(s)", len(errs))
 	}
 	a.Logger.Debug("done...")
 	return nil

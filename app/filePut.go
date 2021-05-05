@@ -33,7 +33,7 @@ func (a *App) InitFilePutFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&a.Config.FilePutFile, "file", "", "file to put on the target(s)")
 	cmd.Flags().StringVar(&a.Config.FilePutRemoteFile, "remote-name", "", "file remote name")
 	cmd.Flags().Uint64Var(&a.Config.FilePutWriteSize, "write-size", 64, "chunk write size in KB, default is used if set to 0")
-	cmd.Flags().Uint32Var(&a.Config.FilePutPermissions, "permission", 0777, "file permissions, in octal format. If set to 0, the local system file permissions are used.")
+	cmd.Flags().Uint32Var(&a.Config.FilePutPermissions, "permission", 0777, "file permissions, in octal format. If set to 0, the local system file permissions are used")
 	cmd.Flags().StringVar(&a.Config.FilePutHashMethod, "hash-method", "MD5", "hash method, one of MD5, SHA256 or SHA512. If another value is supplied MD5 is used")
 	//
 	cmd.Flags().VisitAll(func(flag *pflag.Flag) {
@@ -114,7 +114,7 @@ func (a *App) RunEFilePut(cmd *cobra.Command, args []string) error {
 
 	//
 	if len(errs) > 0 {
-		return fmt.Errorf("there was %d errors", len(errs))
+		return fmt.Errorf("there was %d error(s)", len(errs))
 	}
 	a.Logger.Debug("done...")
 	return nil

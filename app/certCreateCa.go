@@ -29,6 +29,8 @@ func (a *App) InitCertCreateCaFlags(cmd *cobra.Command) {
 	cmd.Flags().IntVar(&a.Config.CertCreateCaKeySize, "key-size", 2048, "key size")
 	cmd.Flags().StringVar(&a.Config.CertCreateCaEmailID, "email", "", "email ID")
 	cmd.Flags().StringVar(&a.Config.CertCreateCaCommonName, "common-name", "", "common name")
+	cmd.Flags().StringVar(&a.Config.CertCreateCaKeyOut, "key-out", "key.pem", "private key output path")
+	cmd.Flags().StringVar(&a.Config.CertCreateCaCertOut, "cert-out", "cert.pem", "CA certificate output path")
 	//
 	cmd.LocalFlags().VisitAll(func(flag *pflag.Flag) {
 		a.Config.FileConfig.BindPFlag(fmt.Sprintf("%s-%s", cmd.Name(), flag.Name), flag)
@@ -68,6 +70,7 @@ func (a *App) RunECertCreateCa(cmd *cobra.Command, args []string) error {
 			},
 		})
 	}
+
 	caPrivKey, err := rsa.GenerateKey(rand.Reader, a.Config.CertCreateCaKeySize)
 	if err != nil {
 		return err
@@ -77,7 +80,20 @@ func (a *App) RunECertCreateCa(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	certOut, err := os.Create("cert.pem")
+	if a.Config.Debug {
+		// parse for printing
+		nca, err := x509.ParseCertificate(caBytes)
+		if err != nil {
+			return err
+		}
+		s, err := CertificateText(nca, false)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("%s\n", s)
+	}
+	//
+	certOut, err := os.Create(a.Config.CertCreateCaCertOut)
 	if err != nil {
 		return err
 	}
@@ -89,7 +105,8 @@ func (a *App) RunECertCreateCa(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	keyOut, err := os.OpenFile("key.pem", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+
+	keyOut, err := os.OpenFile(a.Config.CertCreateCaKeyOut, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		return err
 	}
@@ -101,6 +118,7 @@ func (a *App) RunECertCreateCa(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-
+	a.Logger.Infof("CA certificate written to %s", a.Config.CertCreateCaCertOut)
+	a.Logger.Infof("CA key written to %s", a.Config.CertCreateCaKeyOut)
 	return nil
 }

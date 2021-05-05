@@ -11,6 +11,12 @@ import (
 	"google.golang.org/protobuf/encoding/prototext"
 )
 
+type certGenCSRResponse struct {
+	targetName string
+	rsp        *cert.GenerateCSRResponse
+	err        error
+}
+
 func (a *App) InitCertGenerateCSRFlags(cmd *cobra.Command) {
 	cmd.ResetFlags()
 	//
@@ -38,35 +44,61 @@ func (a *App) RunEGenerateCSR(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	errs := make([]error, 0, len(targets))
-	for _, t := range targets {
-		ctx, cancel := context.WithCancel(a.ctx)
-		defer cancel()
-		ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
-		err = a.CreateGrpcClient(ctx, t, a.createBaseDialOpts()...)
-		if err != nil {
-			errs = append(errs, err)
-			continue
-		}
-		err = a.CertGenerateCSR(ctx, t)
-		if err != nil {
-			a.Logger.Errorf("%q genrate CSR failed: %v", t.Config.Address, err)
-			errs = append(errs, err)
-			continue
-		}
-	}
 
+	numTargets := len(targets)
+	responseChan := make(chan *certGenCSRResponse, numTargets)
+	a.wg.Add(numTargets)
+	for _, t := range targets {
+		go func(t *Target) {
+			defer a.wg.Done()
+			ctx, cancel := context.WithCancel(a.ctx)
+			defer cancel()
+			ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
+			err = a.CreateGrpcClient(ctx, t, a.createBaseDialOpts()...)
+			if err != nil {
+				responseChan <- &certGenCSRResponse{
+					targetName: t.Config.Address,
+					err:        err,
+				}
+				return
+			}
+			rsp, err := a.CertGenerateCSR(ctx, t)
+			responseChan <- &certGenCSRResponse{
+				targetName: t.Config.Address,
+				rsp:        rsp,
+				err:        err,
+			}
+		}(t)
+	}
+	a.wg.Wait()
+	close(responseChan)
+
+	errs := make([]error, 0, numTargets)
+	result := make([]*certGenCSRResponse, 0, numTargets)
+
+	for rsp := range responseChan {
+		if rsp.err != nil {
+			a.Logger.Errorf("%q Cert CanGenerateCSR failed: %v", rsp.targetName, rsp.err)
+			errs = append(errs, rsp.err)
+			continue
+		}
+		result = append(result, rsp)
+	}
+	err = saveCSRs(result)
+	if err != nil {
+		errs = append(errs, err)
+	}
 	for _, err := range errs {
 		a.Logger.Errorf("err: %v", err)
 	}
 	if len(errs) > 0 {
-		return fmt.Errorf("there was %d errors", len(errs))
+		return fmt.Errorf("there was %d error(s)", len(errs))
 	}
 	a.Logger.Debug("done...")
 	return nil
 }
 
-func (a *App) CertGenerateCSR(ctx context.Context, t *Target) error {
+func (a *App) CertGenerateCSR(ctx context.Context, t *Target) (*cert.GenerateCSRResponse, error) {
 	certClient := cert.NewCertificateManagementClient(t.client)
 	resp, err := certClient.GenerateCSR(ctx, &cert.GenerateCSRRequest{
 		CsrParams: &cert.CSRParams{
@@ -85,8 +117,13 @@ func (a *App) CertGenerateCSR(ctx context.Context, t *Target) error {
 		CertificateId: a.Config.CertGenerateCSRCertificateID,
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 	fmt.Println(prototext.Format(resp))
+	return resp, nil
+}
+
+func saveCSRs(result []*certGenCSRResponse) error {
+	// TODO
 	return nil
 }

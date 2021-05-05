@@ -127,7 +127,7 @@ func printSubjectInformation(subj *pkix.Name, pkAlgo x509.PublicKeyAlgorithm, pk
 			return errors.New("certinfo: Expected ecdsa.PublicKey for type x509.DSA")
 		}
 	default:
-		return errors.New("certinfo: Unknown public key type")
+		return fmt.Errorf("certinfo: Unknown public key type %s", pkAlgo)
 	}
 	return nil
 }
@@ -206,7 +206,7 @@ func printSignature(sigAlgo x509.SignatureAlgorithm, sig []byte, buf *strings.Bu
 // CertificateText returns a human-readable string representation
 // of the certificate cert. The format is similar (but not identical)
 // to the OpenSSL way of printing certificates.
-func CertificateText(cert *x509.Certificate) (string, error) {
+func CertificateText(cert *x509.Certificate, printPEM bool) (string, error) {
 	buf := new(strings.Builder)
 	buf.Grow(4096) // 4KiB should be enough
 
@@ -485,13 +485,13 @@ func CertificateText(cert *x509.Certificate) (string, error) {
 	printSignature(cert.SignatureAlgorithm, cert.Signature, buf)
 
 	// Optional: Print the full PEM certificate
-
-	pemBlock := pem.Block{
-		Type:  "CERTIFICATE",
-		Bytes: cert.Raw,
+	if printPEM {
+		pemBlock := pem.Block{
+			Type:  "CERTIFICATE",
+			Bytes: cert.Raw,
+		}
+		buf.Write(pem.EncodeToMemory(&pemBlock))
 	}
-	buf.Write(pem.EncodeToMemory(&pemBlock))
-
 	return buf.String(), nil
 }
 

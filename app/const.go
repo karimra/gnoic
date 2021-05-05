@@ -8,20 +8,4 @@ const (
 	defaultRetryTimer = 10 * time.Second
 )
 
-var encodingNames = []string{
-	"json",
-	"bytes",
-	"proto",
-	"ascii",
-	"json_ietf",
-}
-
-var formatNames = []string{
-	"json",
-	"protojson",
-	"prototext",
-	"event",
-	"proto",
-}
-
 var tlsVersions = []string{"1.3", "1.2", "1.1", "1.0", "1"}

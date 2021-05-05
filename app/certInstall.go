@@ -16,6 +16,11 @@ import (
 	"google.golang.org/protobuf/encoding/prototext"
 )
 
+type certInstallResponse struct {
+	targetName string
+	err        error
+}
+
 func (a *App) InitCertInstallFlags(cmd *cobra.Command) {
 	cmd.ResetFlags()
 	//
@@ -59,19 +64,41 @@ func (a *App) RunECertInstall(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	errs := make([]error, 0, len(targets))
+
+	numTargets := len(targets)
+	responseChan := make(chan *certInstallResponse, numTargets)
+
+	a.wg.Add(numTargets)
 	for _, t := range targets {
-		ctx, cancel := context.WithCancel(a.ctx)
-		defer cancel()
-		ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
-		err = a.CreateGrpcClient(ctx, t, a.createBaseDialOpts()...)
-		if err != nil {
-			errs = append(errs, err)
-			continue
-		}
-		err = a.CertInstall(ctx, t)
-		if err != nil {
-			errs = append(errs, fmt.Errorf("%q Install RPC failed: %v", t.Config.Address, err))
+		go func(t *Target) {
+			defer a.wg.Done()
+			ctx, cancel := context.WithCancel(a.ctx)
+			defer cancel()
+			ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
+
+			err = a.CreateGrpcClient(ctx, t, a.createBaseDialOpts()...)
+			if err != nil {
+				responseChan <- &certInstallResponse{
+					targetName: t.Config.Address,
+					err:        err,
+				}
+				return
+			}
+			err = a.CertInstall(ctx, t)
+			responseChan <- &certInstallResponse{
+				targetName: t.Config.Address,
+				err:        err,
+			}
+		}(t)
+	}
+	a.wg.Wait()
+	close(responseChan)
+
+	errs := make([]error, 0, len(targets))
+	for rsp := range responseChan {
+		if rsp.err != nil {
+			a.Logger.Errorf("%q cert install failed: %v", rsp.targetName, rsp.err)
+			errs = append(errs, rsp.err)
 			continue
 		}
 	}
@@ -80,7 +107,7 @@ func (a *App) RunECertInstall(cmd *cobra.Command, args []string) error {
 		a.Logger.Errorf("err: %v", err)
 	}
 	if len(errs) > 0 {
-		return fmt.Errorf("there was %d errors", len(errs))
+		return fmt.Errorf("there was %d error(s)", len(errs))
 	}
 	a.Logger.Debug("done...")
 	return nil
@@ -125,7 +152,8 @@ func (a *App) CertInstall(ctx context.Context, t *Target) error {
 	if a.Config.CertInstallPrintCSR {
 		fmt.Printf("%q genCSR response:\n %s\n", t.Config.Address, prototext.Format(resp))
 	}
-	p, rest := pem.Decode(resp.GetGeneratedCsr().GetCsr().Csr)
+	a.Logger.Debugf("%q genCSR response:\n %s\n", t.Config.Address, prototext.Format(resp))
+	p, rest := pem.Decode(resp.GetGeneratedCsr().GetCsr().GetCsr())
 	if p == nil || len(rest) > 0 {
 		return fmt.Errorf("%q failed to decode returned CSR", t.Config.Address)
 	}
@@ -133,14 +161,15 @@ func (a *App) CertInstall(ctx context.Context, t *Target) error {
 	if err != nil {
 		return fmt.Errorf("failed parsing certificate request: %v", err)
 	}
-	if a.Config.CertInstallPrintCSR {
-		s, err := CertificateRequestText(creq)
-		if err != nil {
-			return err
-		}
-		fmt.Printf("%q generated CSR:\n", t.Config.Address)
-		fmt.Printf("%s\n", s)
+	s, err := CertificateRequestText(creq)
+	if err != nil {
+		return err
 	}
+	if a.Config.CertInstallPrintCSR {
+		fmt.Printf("%q generated CSR:\n%s\n", t.Config.Address, s)
+	}
+	a.Logger.Debugf("%q generated CSR:\n%s\n", t.Config.Address, s)
+	//
 	certificate, err := certificateFromCSR(creq, a.Config.CertInstallValidity)
 	if err != nil {
 		return fmt.Errorf("failed certificateFromCSR: %v", err)
@@ -150,6 +179,13 @@ func (a *App) CertInstall(ctx context.Context, t *Target) error {
 	if err != nil {
 		return fmt.Errorf("failed signing certificate: %v", err)
 	}
+	//
+	sCertText, err := CertificateText(signedCert, false)
+	if err != nil {
+		return err
+	}
+	a.Logger.Debugf("%q signed certificate:\n%s\n", t.Config.Address, sCertText)
+	//
 	b, err := toPEM(signedCert)
 	if err != nil {
 		return fmt.Errorf("failed toPEM: %v", err)

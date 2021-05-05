@@ -107,7 +107,7 @@ func (a *App) RunECertGetCertificates(cmd *cobra.Command, args []string) error {
 				fmt.Printf("%q Certificate Type: %s\n", rsp.targetName, certInfo.Certificate.Type.String())
 				fmt.Printf("%q Modification Time: %s\n", rsp.targetName, time.Unix(0, certInfo.ModificationTime))
 
-				certString, err := CertificateText(cert)
+				certString, err := CertificateText(cert, false)
 				if err != nil {
 					return err
 				}

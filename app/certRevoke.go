@@ -11,6 +11,11 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
+type certRevokeResponse struct {
+	targetName string
+	err        error
+}
+
 func (a *App) InitCertRevokeCertificatesFlags(cmd *cobra.Command) {
 	cmd.ResetFlags()
 	//
@@ -30,20 +35,40 @@ func (a *App) RunECertRevokeCertificates(cmd *cobra.Command, args []string) erro
 	if err != nil {
 		return err
 	}
-	errs := make([]error, 0, len(targets))
+
+	numTargets := len(targets)
+	responseChan := make(chan *certRevokeResponse, numTargets)
+
+	a.wg.Add(numTargets)
 	for _, t := range targets {
-		ctx, cancel := context.WithCancel(a.ctx)
-		defer cancel()
-		ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
-		err = a.CreateGrpcClient(ctx, t, a.createBaseDialOpts()...)
-		if err != nil {
-			errs = append(errs, err)
-			continue
-		}
-		err = a.Revoke(ctx, t)
-		if err != nil {
-			a.Logger.Errorf("%q Revoke RPC failed: %v", t.Config.Address, err)
-			errs = append(errs, err)
+		go func(t *Target) {
+			defer a.wg.Done()
+			ctx, cancel := context.WithCancel(a.ctx)
+			defer cancel()
+			ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
+			err = a.CreateGrpcClient(ctx, t, a.createBaseDialOpts()...)
+			if err != nil {
+				responseChan <- &certRevokeResponse{
+					targetName: t.Config.Address,
+					err:        err,
+				}
+				return
+			}
+			err = a.Revoke(ctx, t)
+			responseChan <- &certRevokeResponse{
+				targetName: t.Config.Address,
+				err:        err,
+			}
+		}(t)
+	}
+	a.wg.Wait()
+	close(responseChan)
+
+	errs := make([]error, 0, len(targets))
+	for rsp := range responseChan {
+		if rsp.err != nil {
+			a.Logger.Errorf("%q cert revoke failed: %v", rsp.targetName, rsp.err)
+			errs = append(errs, rsp.err)
 			continue
 		}
 	}
@@ -52,7 +77,7 @@ func (a *App) RunECertRevokeCertificates(cmd *cobra.Command, args []string) erro
 		a.Logger.Errorf("err: %v", err)
 	}
 	if len(errs) > 0 {
-		return fmt.Errorf("there was %d errors", len(errs))
+		return fmt.Errorf("there was %d error(s)", len(errs))
 	}
 	a.Logger.Debug("done...")
 	return nil

@@ -82,7 +82,7 @@ func (a *App) RunEFileRemove(cmd *cobra.Command, args []string) error {
 
 	//
 	if len(errs) > 0 {
-		return fmt.Errorf("there was %d errors", len(errs))
+		return fmt.Errorf("there was %d error(s)", len(errs))
 	}
 	a.Logger.Debug("done...")
 	return nil

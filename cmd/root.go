@@ -55,6 +55,12 @@ func newRootCmd() *cobra.Command {
 	systemCmd := newSystemCmd()
 	systemCmd.AddCommand(newSystemPingCmd())
 	systemCmd.AddCommand(newSystemTracerouteCmd())
+	systemCmd.AddCommand(newSystemTimeCmd())
+	systemCmd.AddCommand(newSystemSetPackageeCmd())
+	systemCmd.AddCommand(newSystemSwitchControlProcessorCmd())
+	systemCmd.AddCommand(newSystemRebootCmd())
+	systemCmd.AddCommand(newSystemRebootStatusCmd())
+	systemCmd.AddCommand(newSystemCancelRebootCmd())
 	//
 	gApp.RootCmd.AddCommand(certCmd)
 	gApp.RootCmd.AddCommand(fileCmd)
