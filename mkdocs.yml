@@ -1,0 +1,139 @@
+site_name: gNOIc
+nav:
+  - Home: index.md
+  - Getting started:
+      - Installation: install.md
+      - Basic usage: basic_usage.md
+      - Global flags: global_flags.md
+      - Releases: 
+        - Changelog: changelog.md
+  - Command reference:
+      - Cert:
+         - can-generate-csr: command_reference/cert/can-generate-csr.md
+         - create-ca: command_reference/cert/create-ca.md
+         - generate-csr: command_reference/cert/generate-csr.md
+         - get-certs: command_reference/cert/get-certs.md
+         - install: command_reference/cert/install.md
+         - load: command_reference/cert/load.md
+         - load-ca: command_reference/cert/load-ca.md
+         - revoke: command_reference/cert/revoke.md
+         - rotate: command_reference/cert/rotate.md
+      - File:
+         - get: command_reference/file/get.md
+         - put: command_reference/file/put.md
+         - remove: command_reference/file/remove.md
+         - stat: command_reference/file/stat.md
+         - transfer: command_reference/file/transfer.md
+      - System:
+         - cancel-reboot: command_reference/system/cancel-reboot.md
+         - ping: command_reference/system/ping.md
+         - reboot-status: command_reference/system/reboot-status.md
+         - reboot: command_reference/system/reboot.md
+         - set-package: command_reference/system/set-package.md
+         - switch-control-processor: command_reference/system/switch-control-processor.md
+         - time: command_reference/system/time.md
+         - traceroute: command_reference/system/traceroute.md
+      - Tree: command_reference/tree/tree.md
+      
+site_author: Karim Radhouani
+site_description: >-
+  gNOI client command line interface
+# Repository
+repo_name: karimra/gnoic
+repo_url: https://github.com/karimra/gnoic
+edit_uri: ""
+theme:
+  name: material
+
+  features:
+    - navigation.tabs
+    - navigation.expand
+    - navigation.top
+
+  # 404 page
+  static_templates:
+    - 404.html
+
+  # Necessary for search to work properly
+  include_search_page: false
+  search_index_only: true
+
+  # Default values, taken from mkdocs_theme.yml
+  language: en
+  palette:
+      # Light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: blue
+      accent: indigo
+      toggle:
+        icon: material/toggle-switch-off-outline
+        name: Switch to dark mode
+    # Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: black
+      accent: cyan
+      toggle:
+        icon: material/toggle-switch
+        name: Switch to light mode
+
+  font:
+    text: Manrope
+    code: Fira Mono
+  icon:
+    logo: octicons/pulse-24
+  favicon: images/pulse.svg
+
+extra_css:
+  - stylesheets/extra.css
+
+# Plugins
+plugins:
+  - search
+  - minify:
+      minify_html: true
+
+# Customization
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/karimra
+
+# Extensions
+markdown_extensions:
+  - markdown.extensions.admonition
+  - markdown.extensions.attr_list
+  - markdown.extensions.codehilite:
+      guess_lang: false
+  - markdown.extensions.def_list
+  - markdown.extensions.footnotes
+  - markdown.extensions.meta
+  - markdown.extensions.toc:
+      permalink: "#"
+  - pymdownx.arithmatex
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.critic
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:materialx.emoji.twemoji
+      emoji_generator: !!python/name:materialx.emoji.to_svg
+  - pymdownx.highlight:
+      linenums_style: pymdownx-inline
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.magiclink:
+      repo_url_shorthand: true
+      user: squidfunk
+      repo: mkdocs-material
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.snippets:
+      check_paths: true
+  - pymdownx.superfences
+  - pymdownx.tabbed
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
