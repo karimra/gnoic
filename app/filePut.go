@@ -36,7 +36,7 @@ func (a *App) InitFilePutFlags(cmd *cobra.Command) {
 	//
 	cmd.Flags().StringVar(&a.Config.FilePutFile, "file", "", "file to put on the target(s)")
 	cmd.Flags().StringVar(&a.Config.FilePutRemoteFile, "remote-name", "", "file remote name, defaults to the path Base of the local file")
-	cmd.Flags().Uint64Var(&a.Config.FilePutWriteSize, "chunk-size", defaultChunkSize, "chunk write size in Bytes, default is used if set to 0")
+	cmd.Flags().Uint64Var(&a.Config.FilePutChunkSize, "chunk-size", defaultChunkSize, "chunk write size in Bytes, default is used if set to 0")
 	cmd.Flags().Uint32Var(&a.Config.FilePutPermissions, "permission", 0777, "file permissions, in octal format. If set to 0, the local system file permissions are used")
 	cmd.Flags().StringVar(&a.Config.FilePutHashMethod, "hash-method", "MD5", "hash method, one of MD5, SHA256 or SHA512. If another value is supplied MD5 is used")
 	//
@@ -49,8 +49,8 @@ func (a *App) PreRunEFilePut(cmd *cobra.Command, args []string) error {
 	if a.Config.FilePutFile == "" {
 		return errors.New("missing --file flag")
 	}
-	if a.Config.FilePutWriteSize == 0 {
-		a.Config.FilePutWriteSize = defaultChunkSize
+	if a.Config.FilePutChunkSize == 0 {
+		a.Config.FilePutChunkSize = defaultChunkSize
 	}
 	a.Config.FilePutHashMethod = strings.ToUpper(a.Config.FilePutHashMethod)
 	switch a.Config.FilePutHashMethod {
@@ -178,7 +178,7 @@ func (a *App) FilePut(ctx context.Context, t *Target) (string, error) {
 	}
 	// send file in chunks
 	for {
-		b := make([]byte, a.Config.FilePutWriteSize)
+		b := make([]byte, a.Config.FilePutChunkSize)
 		n, err := f.Read(b)
 		if err != nil && err != io.EOF {
 			return "", err

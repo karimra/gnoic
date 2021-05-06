@@ -169,9 +169,7 @@ func (a *App) certTable(rsps []*getCertificatesResponse) (string, error) {
 	b := new(bytes.Buffer)
 	table := tablewriter.NewWriter(b)
 	table.SetHeader([]string{"Target Name", "ID", "Modification Time", "Type", "Version", "Subject", "Valid From", "Valid Until", "IP Addrs"})
-	table.SetAlignment(tablewriter.ALIGN_LEFT)
-	table.SetAutoFormatHeaders(false)
-	table.SetAutoWrapText(false)
+	formatTable(table)
 	table.AppendBulk(tabData)
 	table.Render()
 	return b.String(), nil

@@ -141,7 +141,7 @@ type LocalFlags struct {
 	FilePutFile        string `json:"file-put-file,omitempty" mapstructure:"file-put-file,omitempty" yaml:"file-put-file,omitempty"`
 	FilePutRemoteFile  string `json:"file-put-remote-file,omitempty" mapstructure:"file-put-remote-file,omitempty" yaml:"file-put-remote-file,omitempty"`
 	FilePutPermissions uint32 `json:"file-put-permissions,omitempty" mapstructure:"file-put-permissions,omitempty" yaml:"file-put-permissions,omitempty"`
-	FilePutWriteSize   uint64 `json:"file-put-write-size,omitempty" mapstructure:"file-put-write-size,omitempty" yaml:"file-put-write-size,omitempty"`
+	FilePutChunkSize   uint64 `json:"file-put-chunk-size,omitempty" mapstructure:"file-put-chunk-size,omitempty" yaml:"file-put-chunk-size,omitempty"`
 	FilePutHashMethod  string `json:"file-put-hash-method,omitempty" mapstructure:"file-put-hash-method,omitempty" yaml:"file-put-hash-method,omitempty"`
 	// File Remove
 	FileRemoveFile string `json:"file-remove-file,omitempty" mapstructure:"file-remove-file,omitempty" yaml:"file-remove-file,omitempty"`
