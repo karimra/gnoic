@@ -119,11 +119,15 @@ func (a *App) SystemRebootStatus(ctx context.Context, t *Target, subcomponents [
 func SystemRebootStatusTable(rsps []*systemRebootStatusResponse) (string, error) {
 	tabData := make([][]string, 0, len(rsps))
 	for _, rsp := range rsps {
+		rebootTime := ""
+		if rsp.rsp.GetWhen() > 0 {
+			rebootTime = time.Unix(0, int64(rsp.rsp.GetWhen())).Format(time.RFC3339)
+		}
 		tabData = append(tabData, []string{
 			rsp.TargetName,
 			fmt.Sprintf("%t", rsp.rsp.GetActive()),
 			time.Duration(rsp.rsp.GetWait()).String(),
-			time.Unix(0, int64(rsp.rsp.GetWhen())).String(),
+			rebootTime,
 			rsp.rsp.GetReason(),
 			strconv.FormatUint(uint64(rsp.rsp.GetCount()), 10),
 		})
@@ -135,7 +139,7 @@ func SystemRebootStatusTable(rsps []*systemRebootStatusResponse) (string, error)
 	b := new(bytes.Buffer)
 	table := tablewriter.NewWriter(b)
 	table.SetHeader(
-		[]string{"Target Name", "Subcomponents", "Active",
+		[]string{"Target Name", "Active",
 			"Duration Until Reboot", "Reboot Time", "Reason", "Count"})
 	table.SetAlignment(tablewriter.ALIGN_LEFT)
 	table.SetAutoFormatHeaders(false)

@@ -24,7 +24,7 @@ nav:
          - remove: command_reference/file/remove.md
          - stat: command_reference/file/stat.md
          - transfer: command_reference/file/transfer.md
-      - system:
+      - System:
          - cancel-reboot: command_reference/system/cancel-reboot.md
          - ping: command_reference/system/ping.md
          - reboot-status: command_reference/system/reboot-status.md
@@ -33,7 +33,7 @@ nav:
          - switch-control-processor: command_reference/system/switch-control-processor.md
          - time: command_reference/system/time.md
          - traceroute: command_reference/system/traceroute.md
-      - tree: command_reference/tree/tree.md
+      - Tree: command_reference/tree/tree.md
       
 site_author: Karim Radhouani
 site_description: >-

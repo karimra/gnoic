@@ -18,9 +18,9 @@ import (
 func (a *App) InitCertCreateCaFlags(cmd *cobra.Command) {
 	cmd.ResetFlags()
 	//
-	cmd.Flags().StringVar(&a.Config.CertCreateCaOrg, "org", "", "organization name")
-	cmd.Flags().StringVar(&a.Config.CertCreateCaOrgUnit, "org-unit", "", "organizational Unit name")
-	cmd.Flags().StringVar(&a.Config.CertCreateCaCountry, "country", "", "country name")
+	cmd.Flags().StringVar(&a.Config.CertCreateCaOrg, "org", "gNOIc", "organization name")
+	cmd.Flags().StringVar(&a.Config.CertCreateCaOrgUnit, "org-unit", "gNOIc Certs", "organizational Unit name")
+	cmd.Flags().StringVar(&a.Config.CertCreateCaCountry, "country", "OC", "country name")
 	cmd.Flags().StringVar(&a.Config.CertCreateCaState, "state", "", "state name")
 	cmd.Flags().StringVar(&a.Config.CertCreateCaLocality, "locality", "", "locality name")
 	cmd.Flags().StringVar(&a.Config.CertCreateCaStreetAddress, "street-address", "", "street-address")
