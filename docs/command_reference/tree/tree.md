@@ -2,7 +2,7 @@
 
 ### Description
 
-The `tree` command is a convinient method to display `gNOIc`'s command tree.
+The `tree` command is a convenient method to display `gNOIc`'s command tree.
 
 It takes a couple of flags:
 

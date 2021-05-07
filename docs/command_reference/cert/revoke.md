@@ -1,4 +1,5 @@
 # Cert Revoke
+
 ### Description
 
 The [gNOI Revoke RPC](https://github.com/openconfig/gnoi/blob/master/cert/cert.proto#L160) revokes any previously installed certificates.

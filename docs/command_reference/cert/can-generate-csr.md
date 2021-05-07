@@ -9,13 +9,13 @@ In order to check if a target has the ability to generate a CSR, the [CanGenerat
 
 The `can-generate-csr` command takes 3 flags:
 
-- cert-type: specifies the certificate type, defaults to `CT_X509`
-- key-type: specifies the key type, defaults to `KT_RSA`
-- key-size:specifies the key size, defaults to 2048
+- `cert-type`: specifies the certificate type, defaults to `CT_X509`
+- `key-type`: specifies the key type, defaults to `KT_RSA`
+- `key-size`:specifies the key size, defaults to 2048
 
 ### Usage
 
-`gnoic [global-flags] cert can-genrate-csr [local-flags]`
+`gnoic [global-flags] cert can-generate-csr [local-flags]`
 
 or
 
@@ -38,13 +38,15 @@ The `--key-size` set the key size the client is querying the target about the ab
 ### Examples
 
 ```bash
-gnoic -a 172.17.0.100:57400 --insecure -u admin -p admin cert can-generate-csr
+gnoic -a r1,r2,r3 --insecure -u admin -p admin cert can-generate-csr
 ```
 
 ```md
-+--------------------+------------------+
-|    Target Name     | Can Generate CSR |
-+--------------------+------------------+
-| 172.17.0.100:57400 | true             |
-+--------------------+------------------+
++-------------+------------------+
+| Target Name | Can Generate CSR |
++-------------+------------------+
+| r1:57400    | true             |
+| r2:57400    | true             |
+| r3:57400    | true             |
++-------------+------------------+
 ```

@@ -25,7 +25,7 @@ type fileStatResponse struct {
 func (a *App) InitFileStatFlags(cmd *cobra.Command) {
 	cmd.ResetFlags()
 	//
-	cmd.Flags().StringVar(&a.Config.FileStatFile, "file", "", "file to get from the target(s)")
+	cmd.Flags().StringVar(&a.Config.FileStatFile, "file", "", "file to get metadata about")
 	cmd.Flags().BoolVar(&a.Config.FileStatHumanize, "humanize", false, "make outputted values human readable")
 	//
 	cmd.Flags().VisitAll(func(flag *pflag.Flag) {
