@@ -77,9 +77,6 @@ func (c *Config) setTargetConfigDefaults(tc *TargetConfig) {
 	if tc.SkipVerify == nil {
 		tc.SkipVerify = &c.SkipVerify
 	}
-	if tc.Timeout == 0 {
-		tc.Timeout = c.Timeout
-	}
 	if tc.Insecure == nil || (tc.Insecure != nil && !*tc.Insecure) {
 		if tc.TLSCA == nil {
 			if c.TLSCa != "" {

@@ -75,7 +75,8 @@ func (a *App) RunECertCanGenerateCSR(cmd *cobra.Command, args []string) error {
 	result := make([]*certCGCSRResponse, 0, numTargets)
 	for rsp := range responseChan {
 		if rsp.Err != nil {
-			a.Logger.Errorf("%q Cert CanGenerateCSR failed: %v", rsp.TargetName, rsp.Err)
+			wErr := fmt.Errorf("%q Cert CanGenerateCSR failed: %v", rsp.TargetName, rsp.Err)
+			a.Logger.Error(wErr)
 			errs = append(errs, rsp.Err)
 			continue
 		}

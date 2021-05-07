@@ -24,7 +24,9 @@ func newCertCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "cert",
 		Short: "run Certificate Management gNOI RPCs",
-
+		PreRun: func(cmd *cobra.Command, args []string) {
+			gApp.Config.SetPersistantFlagsFromFile(cmd)
+		},
 		SilenceUsage: true,
 	}
 	gApp.InitCertFlags(cmd)
@@ -36,7 +38,9 @@ func newCertRotateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "rotate",
 		Short: "run certificate Rotate gNOI RPC",
-
+		PreRun: func(cmd *cobra.Command, args []string) {
+			gApp.Config.SetLocalFlagsFromFile(cmd)
+		},
 		RunE:         gApp.RunECertRotate,
 		SilenceUsage: true,
 	}
@@ -47,8 +51,11 @@ func newCertRotateCmd() *cobra.Command {
 // newCertInstallCmd represents the cert install command
 func newCertInstallCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:          "install",
-		Short:        "run certificate Install gNOI RPC",
+		Use:   "install",
+		Short: "run certificate Install gNOI RPC",
+		PreRun: func(cmd *cobra.Command, args []string) {
+			gApp.Config.SetLocalFlagsFromFile(cmd)
+		},
 		RunE:         gApp.RunECertInstall,
 		SilenceUsage: true,
 	}
@@ -59,9 +66,12 @@ func newCertInstallCmd() *cobra.Command {
 // newCertGenCSRCmd represents the cert generate csr command
 func newCertGenCSRCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:          "generate-csr",
-		Aliases:      []string{"gcsr", "gc"},
-		Short:        "run certificate GenerateCSR gNOI RPC",
+		Use:     "generate-csr",
+		Aliases: []string{"gcsr", "gc"},
+		Short:   "run certificate GenerateCSR gNOI RPC",
+		PreRun: func(cmd *cobra.Command, args []string) {
+			gApp.Config.SetLocalFlagsFromFile(cmd)
+		},
 		RunE:         gApp.RunEGenerateCSR,
 		SilenceUsage: true,
 	}
@@ -72,9 +82,12 @@ func newCertGenCSRCmd() *cobra.Command {
 // newCertLoadCertificatesCmd represents the cert load-certificates command
 func newCertLoadCertificatesCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:          "load",
-		Aliases:      []string{"load-certs"},
-		Short:        "run certificate LoadCertificates gNOI RPC",
+		Use:     "load",
+		Aliases: []string{"load-certs"},
+		Short:   "run certificate LoadCertificates gNOI RPC",
+		PreRun: func(cmd *cobra.Command, args []string) {
+			gApp.Config.SetLocalFlagsFromFile(cmd)
+		},
 		RunE:         gApp.RunELoadCerts,
 		SilenceUsage: true,
 	}
@@ -85,9 +98,12 @@ func newCertLoadCertificatesCmd() *cobra.Command {
 // newCertLoadCertificateAuthorityBundleCmd represents the cert load-certificates-ca-bundle command
 func newCertLoadCertificateAuthorityBundleCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:          "load-ca",
-		Aliases:      []string{"load-certs-ca-bundle"},
-		Short:        "run certificate LoadCertificateAuthorityBundle gNOI RPC",
+		Use:     "load-ca",
+		Aliases: []string{"load-certs-ca-bundle"},
+		Short:   "run certificate LoadCertificateAuthorityBundle gNOI RPC",
+		PreRun: func(cmd *cobra.Command, args []string) {
+			gApp.Config.SetLocalFlagsFromFile(cmd)
+		},
 		RunE:         gApp.RunELoadCertsCaBundle,
 		SilenceUsage: true,
 	}
@@ -98,9 +114,12 @@ func newCertLoadCertificateAuthorityBundleCmd() *cobra.Command {
 // newCertGetCertificatesCmd represents the cert GetCertificates command
 func newCertGetCertificatesCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:          "get-certs",
-		Aliases:      []string{"get"},
-		Short:        "run certificate GetCertificates gNOI RPC",
+		Use:     "get-certs",
+		Aliases: []string{"get"},
+		Short:   "run certificate GetCertificates gNOI RPC",
+		PreRun: func(cmd *cobra.Command, args []string) {
+			gApp.Config.SetLocalFlagsFromFile(cmd)
+		},
 		RunE:         gApp.RunECertGetCertificates,
 		SilenceUsage: true,
 	}
@@ -111,9 +130,12 @@ func newCertGetCertificatesCmd() *cobra.Command {
 // newCertRevokeCertificatesCmd represents the cert RevokeCertificates command
 func newCertRevokeCertificatesCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:          "revoke",
-		Aliases:      []string{"revoke-certs", "rev"},
-		Short:        "run certificate RevokeCertificates gNOI RPC",
+		Use:     "revoke",
+		Aliases: []string{"revoke-certs", "rev"},
+		Short:   "run certificate RevokeCertificates gNOI RPC",
+		PreRun: func(cmd *cobra.Command, args []string) {
+			gApp.Config.SetLocalFlagsFromFile(cmd)
+		},
 		RunE:         gApp.RunECertRevokeCertificates,
 		SilenceUsage: true,
 	}
@@ -124,9 +146,12 @@ func newCertRevokeCertificatesCmd() *cobra.Command {
 // newCertCanGenerateCSRCmd represents the cert CanGenerateCSR command
 func newCertCanGenerateCSRCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:          "can-generate-csr",
-		Aliases:      []string{"cgc"},
-		Short:        "run certificate CanGenerateCSR gNOI RPC",
+		Use:     "can-generate-csr",
+		Aliases: []string{"cgc"},
+		Short:   "run certificate CanGenerateCSR gNOI RPC",
+		PreRun: func(cmd *cobra.Command, args []string) {
+			gApp.Config.SetLocalFlagsFromFile(cmd)
+		},
 		RunE:         gApp.RunECertCanGenerateCSR,
 		SilenceUsage: true,
 	}
@@ -137,8 +162,11 @@ func newCertCanGenerateCSRCmd() *cobra.Command {
 // newCertGenCSRCmd represents the cert CanGenerateCSR command
 func newCertCreateCaCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:          "create-ca",
-		Short:        "create a CA Certificate and Key",
+		Use:   "create-ca",
+		Short: "create a CA Certificate and Key",
+		PreRun: func(cmd *cobra.Command, args []string) {
+			gApp.Config.SetLocalFlagsFromFile(cmd)
+		},
 		RunE:         gApp.RunECertCreateCa,
 		SilenceUsage: true,
 	}

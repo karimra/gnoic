@@ -33,7 +33,9 @@ func newSystemTracerouteCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "traceroute",
 		Short: "run System Traceroute gNOI RPC",
-
+		PreRun: func(cmd *cobra.Command, args []string) {
+			gApp.Config.SetLocalFlagsFromFile(cmd)
+		},
 		RunE:         gApp.RunESystemTraceRoute,
 		SilenceUsage: true,
 	}
@@ -44,8 +46,11 @@ func newSystemTracerouteCmd() *cobra.Command {
 // newSystemTimeCmd represents the system time command
 func newSystemTimeCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:          "time",
-		Short:        "run System Time gNOI RPC",
+		Use:   "time",
+		Short: "run System Time gNOI RPC",
+		PreRun: func(cmd *cobra.Command, args []string) {
+			gApp.Config.SetLocalFlagsFromFile(cmd)
+		},
 		RunE:         gApp.RunESystemTime,
 		SilenceUsage: true,
 	}
@@ -58,7 +63,9 @@ func newSystemSetPackageeCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "set-package",
 		Short: "run System SetPackage gNOI RPC",
-
+		PreRun: func(cmd *cobra.Command, args []string) {
+			gApp.Config.SetLocalFlagsFromFile(cmd)
+		},
 		RunE:         gApp.RunESystemSetPackage,
 		SilenceUsage: true,
 	}
@@ -72,7 +79,9 @@ func newSystemSwitchControlProcessorCmd() *cobra.Command {
 		Use:     "switch-control-processor",
 		Aliases: []string{"scp", "switch"},
 		Short:   "run System SwitchControlProcessor gNOI RPC",
-
+		PreRun: func(cmd *cobra.Command, args []string) {
+			gApp.Config.SetLocalFlagsFromFile(cmd)
+		},
 		RunE:         gApp.RunESystemSwitchControlProcessor,
 		SilenceUsage: true,
 	}
@@ -98,7 +107,9 @@ func newSystemRebootStatusCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "reboot-status",
 		Short: "run System RebootStatus gNOI RPC",
-
+		PreRun: func(cmd *cobra.Command, args []string) {
+			gApp.Config.SetLocalFlagsFromFile(cmd)
+		},
 		RunE:         gApp.RunESystemRebootStatus,
 		SilenceUsage: true,
 	}
@@ -111,7 +122,9 @@ func newSystemCancelRebootCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "cancel-reboot",
 		Short: "run System CancelReboot gNOI RPC",
-
+		PreRun: func(cmd *cobra.Command, args []string) {
+			gApp.Config.SetLocalFlagsFromFile(cmd)
+		},
 		RunE:         gApp.RunESystemCancelReboot,
 		SilenceUsage: true,
 	}

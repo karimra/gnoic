@@ -78,6 +78,7 @@ func (a *App) RunEFileStat(cmd *cobra.Command, args []string) error {
 	for rsp := range responseChan {
 		if rsp.Err != nil {
 			wErr := fmt.Errorf("%q File Stat failed: %v", rsp.TargetName, rsp.Err)
+			a.Logger.Error(wErr)
 			errs = append(errs, wErr)
 			continue
 		}

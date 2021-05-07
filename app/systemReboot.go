@@ -27,6 +27,7 @@ func (a *App) InitSystemRebootFlags(cmd *cobra.Command) {
 }
 
 func (a *App) PreRunESystemReboot(cmd *cobra.Command, args []string) error {
+	a.Config.SetLocalFlagsFromFile(cmd)
 	a.Config.SystemRebootMethod = strings.ToUpper(a.Config.SystemRebootMethod)
 	switch a.Config.SystemRebootMethod {
 	case "COLD":

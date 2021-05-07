@@ -19,7 +19,9 @@ func newFileGetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "get",
 		Short: "run file Get gNOI RPC",
-
+		PreRun: func(cmd *cobra.Command, args []string) {
+			gApp.Config.SetLocalFlagsFromFile(cmd)
+		},
 		RunE:         gApp.RunEFileGet,
 		SilenceUsage: true,
 	}
@@ -30,9 +32,12 @@ func newFileGetCmd() *cobra.Command {
 // newFileTransferCmd represents the file transfer command
 func newFileTransferCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:          "transfer",
-		Short:        "run file Transfer gNOI RPC",
-		Aliases:      []string{"trans", "tr"},
+		Use:     "transfer",
+		Short:   "run file Transfer gNOI RPC",
+		Aliases: []string{"trans", "tr"},
+		PreRun: func(cmd *cobra.Command, args []string) {
+			gApp.Config.SetLocalFlagsFromFile(cmd)
+		},
 		RunE:         gApp.RunEFileTransfer,
 		SilenceUsage: true,
 	}
@@ -43,9 +48,10 @@ func newFileTransferCmd() *cobra.Command {
 // newFilePutCmd represents the file put command
 func newFilePutCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:          "put",
-		Short:        "run file Put gNOI RPC",
-		PreRunE:      gApp.PreRunEFilePut,
+		Use:     "put",
+		Short:   "run file Put gNOI RPC",
+		PreRunE: gApp.PreRunEFilePut,
+
 		RunE:         gApp.RunEFilePut,
 		SilenceUsage: true,
 	}
@@ -59,7 +65,9 @@ func newFileStatCmd() *cobra.Command {
 		Use:     "stat",
 		Aliases: []string{"st"},
 		Short:   "run file Stat gNOI RPC",
-
+		PreRun: func(cmd *cobra.Command, args []string) {
+			gApp.Config.SetLocalFlagsFromFile(cmd)
+		},
 		RunE:         gApp.RunEFileStat,
 		SilenceUsage: true,
 	}
@@ -73,7 +81,9 @@ func newFileRemoveCmd() *cobra.Command {
 		Use:     "remove",
 		Aliases: []string{"rm"},
 		Short:   "run file Remove gNOI RPC",
-
+		PreRun: func(cmd *cobra.Command, args []string) {
+			gApp.Config.SetLocalFlagsFromFile(cmd)
+		},
 		RunE:         gApp.RunEFileRemove,
 		SilenceUsage: true,
 	}

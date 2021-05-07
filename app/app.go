@@ -81,6 +81,7 @@ func (a *App) PreRun(cmd *cobra.Command, args []string) error {
 		a.Logger.Logger.SetLevel(log.DebugLevel)
 		grpclog.SetLogger(a.Logger) //lint:ignore SA1019 .
 	}
+	a.Config.SetPersistantFlagsFromFile(a.RootCmd)
 	return nil
 }
 

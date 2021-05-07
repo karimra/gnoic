@@ -35,6 +35,7 @@ func (a *App) InitSystemPingFlags(cmd *cobra.Command) {
 }
 
 func (a *App) PreRunESystemPing(cmd *cobra.Command, args []string) error {
+	a.Config.SetLocalFlagsFromFile(cmd)
 	if a.Config.SystemPingDestination == "" {
 		return errors.New("flag --destination is required")
 	}

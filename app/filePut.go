@@ -46,6 +46,7 @@ func (a *App) InitFilePutFlags(cmd *cobra.Command) {
 }
 
 func (a *App) PreRunEFilePut(cmd *cobra.Command, args []string) error {
+	a.Config.SetLocalFlagsFromFile(cmd)
 	if a.Config.FilePutFile == "" {
 		return errors.New("missing --file flag")
 	}

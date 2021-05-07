@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"io"
 	"strings"
 	"time"
@@ -8,6 +9,8 @@ import (
 	"github.com/adrg/xdg"
 	"github.com/mitchellh/go-homedir"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
 
@@ -232,9 +235,65 @@ func (c *Config) Load() error {
 }
 
 func (c *Config) SetLogger() {
-	c.logger = log.NewEntry(log.StandardLogger())
+	logger := log.StandardLogger()
+	if c.Debug {
+		logger.SetLevel(log.DebugLevel)
+	}
+	c.logger = log.NewEntry(logger)
 }
 
 func (c *Config) LogOutput() io.Writer {
 	return c.logger.Logger.Out
+}
+
+func (c *Config) SetPersistantFlagsFromFile(cmd *cobra.Command) {
+	cmd.PersistentFlags().VisitAll(func(f *pflag.Flag) {
+		flagName := flagFullName(cmd, f.Name)
+		c.logger.Debugf("cmd=%s, flagName=%s, changed=%v, isSetInFile=%v",
+			cmd.Name(), flagName, f.Changed, c.FileConfig.IsSet(f.Name))
+		if !f.Changed && c.FileConfig.IsSet(f.Name) {
+			c.setFlagValue(cmd, f.Name, c.FileConfig.Get(flagName))
+		}
+	})
+}
+
+func (c *Config) SetLocalFlagsFromFile(cmd *cobra.Command) {
+	cmd.LocalFlags().VisitAll(func(f *pflag.Flag) {
+		flagName := flagFullName(cmd, f.Name)
+		c.logger.Debugf("cmd=%s, flagName=%s, changed=%v, isSetInFile=%v",
+			cmd.Name(), flagName, f.Changed, c.FileConfig.IsSet(flagName))
+		if !f.Changed && c.FileConfig.IsSet(flagName) {
+			c.setFlagValue(cmd, f.Name, c.FileConfig.Get(flagName))
+		}
+	})
+}
+
+func (c *Config) setFlagValue(cmd *cobra.Command, fName string, val interface{}) {
+	switch val := val.(type) {
+	case []interface{}:
+		c.logger.Debugf("cmd=%s, flagName=%s, valueType=%T, length=%d, value=%#v",
+			cmd.Name(), fName, val, len(val), val)
+
+		nVal := make([]string, 0, len(val))
+		for _, v := range val {
+			nVal = append(nVal, fmt.Sprintf("%v", v))
+		}
+		cmd.Flags().Set(fName, strings.Join(nVal, ","))
+	default:
+		c.logger.Debugf("cmd=%s, flagName=%s, valueType=%T, value=%#v",
+			cmd.Name(), fName, val, val)
+		cmd.Flags().Set(fName, fmt.Sprintf("%v", val))
+	}
+}
+
+func flagFullName(cmd *cobra.Command, fName string) string {
+	if cmd.Name() == "gnoic" {
+		return fName
+	}
+	ls := []string{cmd.Name(), fName}
+	for cmd.Parent() != nil && cmd.Parent().Name() != "gnoic" {
+		ls = append([]string{cmd.Parent().Name()}, ls...)
+		cmd = cmd.Parent()
+	}
+	return strings.Join(ls, "-")
 }
