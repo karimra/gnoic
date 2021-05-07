@@ -137,3 +137,7 @@ markdown_extensions:
   - pymdownx.tasklist:
       custom_checkbox: true
   - pymdownx.tilde
+
+google_analytics:
+  - 271661817
+  - auto
