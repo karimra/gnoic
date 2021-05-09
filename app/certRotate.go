@@ -107,6 +107,14 @@ func (a *App) CertRotate(ctx context.Context, t *Target) error {
 	if err != nil {
 		return fmt.Errorf("%q failed creating Rotate gRPC stream: %v", t.Config.Address, err)
 	}
+	var commonName = a.Config.CertInstallCommonName
+	var ipAddr = a.Config.CertInstallIPAddress
+	if commonName == "" {
+		commonName = t.Config.CommonName
+	}
+	if ipAddr == "" {
+		ipAddr = t.Config.ResolvedIP
+	}
 	err = stream.Send(
 		&cert.RotateCertificateRequest{
 			RotateRequest: &cert.RotateCertificateRequest_GenerateCsr{
@@ -115,13 +123,13 @@ func (a *App) CertRotate(ctx context.Context, t *Target) error {
 						Type:               cert.CertificateType(cert.CertificateType_value[a.Config.CertRotateCertificateType]),
 						MinKeySize:         a.Config.CertRotateMinKeySize,
 						KeyType:            cert.KeyType(cert.KeyType_value[a.Config.CertRotateKeyType]),
-						CommonName:         a.Config.CertRotateCommonName,
+						CommonName:         commonName,
 						Country:            a.Config.CertRotateCountry,
 						State:              a.Config.CertRotateState,
 						City:               a.Config.CertRotateCity,
 						Organization:       a.Config.CertRotateOrg,
 						OrganizationalUnit: a.Config.CertRotateOrgUnit,
-						IpAddress:          a.Config.CertRotateIPAddress,
+						IpAddress:          ipAddr,
 						EmailId:            a.Config.CertRotateEmailID,
 					},
 					CertificateId: a.Config.CertRotateCertificateID,

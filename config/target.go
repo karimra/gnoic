@@ -3,6 +3,7 @@ package config
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -15,20 +16,22 @@ import (
 )
 
 type TargetConfig struct {
-	Address       string
-	Insecure      *bool
-	SkipVerify    *bool
-	Username      *string
-	Password      *string
-	Timeout       time.Duration
-	TLSCert       *string
-	TLSKey        *string
-	TLSCA         *string
-	TLSMinVersion string
-	TLSMaxVersion string
-	TLSVersion    string
+	Address       string        `json:"address,omitempty"`
+	Insecure      *bool         `json:"insecure,omitempty"`
+	SkipVerify    *bool         `json:"skip-verify,omitempty"`
+	Username      *string       `json:"username,omitempty"`
+	Password      *string       `json:"password,omitempty"`
+	Timeout       time.Duration `json:"timeout,omitempty"`
+	TLSCert       *string       `json:"tls-cert,omitempty"`
+	TLSKey        *string       `json:"tls-key,omitempty"`
+	TLSCA         *string       `json:"tlsca,omitempty"`
+	TLSMinVersion string        `json:"tls-min-version,omitempty"`
+	TLSMaxVersion string        `json:"tls-max-version,omitempty"`
+	TLSVersion    string        `json:"tls-version,omitempty"`
+	Gzip          *bool         `json:"gzip,omitempty"`
 	//
-	Gzip *bool
+	CommonName string `json:"common-name,omitempty"`
+	ResolvedIP string `json:"resolved-ip,omitempty"`
 }
 
 func (c *Config) GetTargets() (map[string]*TargetConfig, error) {
@@ -39,26 +42,54 @@ func (c *Config) GetTargets() (map[string]*TargetConfig, error) {
 	var err error
 	for _, addr := range c.Address {
 		tc := new(TargetConfig)
-		tc.Address, err = c.addPort(addr)
+		err = c.parseAddress(tc, addr)
 		if err != nil {
 			return nil, fmt.Errorf("%q failed to parse address: %v", addr, err)
 		}
 		c.setTargetConfigDefaults(tc)
 		targetsConfigs[tc.Address] = tc
+		c.logger.Debugf("%q target-config: %s", addr, tc)
 	}
 	return targetsConfigs, nil
 }
 
-func (c *Config) addPort(addr string) (string, error) {
-	_, _, err := net.SplitHostPort(addr)
+func (c *Config) parseAddress(tc *TargetConfig, addr string) error {
+	h, _, err := net.SplitHostPort(addr)
 	if err != nil {
 		if strings.Contains(err.Error(), "missing port in address") ||
 			strings.Contains(err.Error(), "too many colons in address") {
-			return net.JoinHostPort(addr, c.Port), nil
+			tc.Address = net.JoinHostPort(addr, c.Port)
+			h = addr
+		} else {
+			return fmt.Errorf("error parsing address %q: %v", addr, err)
 		}
-		return "", fmt.Errorf("error parsing address %q: %v", addr, err)
+	} else {
+		tc.Address = addr
 	}
-	return addr, nil
+	// parse provided hostname/IPAddress
+	ip := net.ParseIP(h)
+	if ip == nil {
+		// address is a hostname
+		tc.CommonName = h
+		resolvedIP, err := net.ResolveIPAddr("ip", h)
+		if err != nil {
+			c.logger.Infof("%q could not resolve %q: %v", addr, h, err)
+		} else {
+			tc.ResolvedIP = resolvedIP.String()
+		}
+	} else {
+		// address is IPAddress
+		tc.ResolvedIP = ip.String()
+		names, err := net.LookupAddr(tc.ResolvedIP)
+		if err != nil {
+			c.logger.Warnf("%q could not lookup hostname: %v", addr, err)
+		}
+		c.logger.Debugf("%q resolved names: %v", addr, names)
+		if len(names) > 0 {
+			tc.CommonName = names[0]
+		}
+	}
+	return nil
 }
 
 func (c *Config) setTargetConfigDefaults(tc *TargetConfig) {
@@ -184,4 +215,12 @@ func loadCerts(tlscfg *tls.Config, tc *TargetConfig) error {
 		tlscfg.RootCAs = certPool
 	}
 	return nil
+}
+
+func (tc *TargetConfig) String() string {
+	b, err := json.Marshal(tc)
+	if err != nil {
+		return ""
+	}
+	return string(b)
 }

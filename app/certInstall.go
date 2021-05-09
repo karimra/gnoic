@@ -107,6 +107,14 @@ func (a *App) CertInstall(ctx context.Context, t *Target) error {
 	if err != nil {
 		return fmt.Errorf("%q failed creating Install gRPC stream: %v", t.Config.Address, err)
 	}
+	var commonName = a.Config.CertInstallCommonName
+	var ipAddr = a.Config.CertInstallIPAddress
+	if commonName == "" {
+		commonName = t.Config.CommonName
+	}
+	if ipAddr == "" {
+		ipAddr = t.Config.ResolvedIP
+	}
 	err = stream.Send(&cert.InstallCertificateRequest{
 		InstallRequest: &cert.InstallCertificateRequest_GenerateCsr{
 			GenerateCsr: &cert.GenerateCSRRequest{
@@ -114,13 +122,13 @@ func (a *App) CertInstall(ctx context.Context, t *Target) error {
 					Type:               cert.CertificateType(cert.CertificateType_value[a.Config.CertInstallCertificateType]),
 					MinKeySize:         a.Config.CertInstallMinKeySize,
 					KeyType:            cert.KeyType(cert.KeyType_value[a.Config.CertInstallKeyType]),
-					CommonName:         a.Config.CertInstallCommonName,
+					CommonName:         commonName,
 					Country:            a.Config.CertInstallCountry,
 					State:              a.Config.CertInstallState,
 					City:               a.Config.CertInstallCity,
 					Organization:       a.Config.CertInstallOrg,
 					OrganizationalUnit: a.Config.CertInstallOrgUnit,
-					IpAddress:          a.Config.CertInstallIPAddress,
+					IpAddress:          ipAddr,
 					EmailId:            a.Config.CertInstallEmailID,
 				},
 				CertificateId: a.Config.CertInstallCertificateID,
