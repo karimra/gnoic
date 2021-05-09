@@ -6,6 +6,8 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"os"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -28,7 +30,7 @@ func (a *App) InitCertGetCertificatesFlags(cmd *cobra.Command) {
 	//
 	cmd.Flags().BoolVar(&a.Config.CertGetCertificatesDetails, "details", false, "print retrieved certificates details")
 	cmd.Flags().StringSliceVar(&a.Config.CertGetCertificatesID, "id", []string{}, "certificate ID to be displayed")
-	// cmd.Flags().BoolVar(&a.Config.CertGetCertificatesSave, "save", false, "save retrieved certificates locally")
+	cmd.Flags().BoolVar(&a.Config.CertGetCertificatesSave, "save", false, "save retrieved certificates locally")
 	//
 	cmd.LocalFlags().VisitAll(func(flag *pflag.Flag) {
 		a.Config.FileConfig.BindPFlag(fmt.Sprintf("%s-%s", cmd.Name(), flag.Name), flag)
@@ -86,6 +88,9 @@ func (a *App) RunECertGetCertificates(cmd *cobra.Command, args []string) error {
 			errs = append(errs, wErr)
 			continue
 		}
+		if a.Config.CertGetCertificatesSave {
+			a.saveCerts(rsp)
+		}
 		result = append(result, rsp)
 	}
 	//
@@ -99,7 +104,7 @@ func (a *App) RunECertGetCertificates(cmd *cobra.Command, args []string) error {
 				a.Logger.Warnf("%q no certificates found", rsp.TargetName)
 				continue
 			}
-			for _, certInfo := range rsp.rsp.CertificateInfo {
+			for _, certInfo := range rsp.rsp.GetCertificateInfo() {
 				// check name is in list
 				if !sInListNotEmpty(certInfo.CertificateId, a.Config.CertGetCertificatesID) {
 					continue
@@ -125,7 +130,7 @@ func (a *App) RunECertGetCertificates(cmd *cobra.Command, args []string) error {
 	} else {
 		rs, err := a.certTable(result)
 		if err != nil {
-			return err
+			errs = append(errs, err)
 		} else {
 			fmt.Print(rs)
 		}
@@ -177,4 +182,31 @@ func (a *App) certTable(rsps []*getCertificatesResponse) (string, error) {
 
 func (a *App) CertGetCertificates(ctx context.Context, t *Target) (*cert.GetCertificatesResponse, error) {
 	return cert.NewCertificateManagementClient(t.client).GetCertificates(ctx, new(cert.GetCertificatesRequest))
+}
+
+func (a *App) saveCerts(rsp *getCertificatesResponse) {
+	_, err := os.Stat(rsp.TargetName)
+	if os.IsNotExist(err) {
+		os.Mkdir(rsp.TargetName, os.ModeDir)
+	}
+	if rsp.rsp == nil || len(rsp.rsp.GetCertificateInfo()) == 0 {
+		a.Logger.Warnf("%q no certificates found", rsp.TargetName)
+		return
+	}
+	for _, certInfo := range rsp.rsp.GetCertificateInfo() {
+		// check name is in list
+		if !sInListNotEmpty(certInfo.CertificateId, a.Config.CertGetCertificatesID) {
+			continue
+		}
+		f, err := os.Create(filepath.Join(rsp.TargetName, certInfo.CertificateId+".pem"))
+		if err != nil {
+			a.Logger.Warnf("%q cert=%q failed to create file: %v", rsp.TargetName, certInfo.CertificateId, err)
+			continue
+		}
+		_, err = f.Write(certInfo.GetCertificate().GetCertificate())
+		if err != nil {
+			a.Logger.Warnf("%q cert=%q failed to write certificate file: %v", rsp.TargetName, certInfo.CertificateId, err)
+		}
+		f.Close()
+	}
 }
