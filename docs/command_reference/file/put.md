@@ -13,7 +13,7 @@ It continues by sending the file to the target(s) in a series of chunks of maxim
 The `file put` command supports 5 flags:
 
 - `file`: file to put on the target(s).
-- `remote-name`: file remote name, defaults to the path Base of the local file.
+- `dst`: file/directory remote name. If `--file` points to a directory or multiple `--file` flags are set, `--dst` represents the destination directory, otherwise it represents the remote file name.
 - `chunk-size`: chunk write size in Bytes, default (64KB) is used if set to 0.
 - `permission`: file permissions, in octal format. If set to 0, the local system file permissions are used. Default: 0777
 - `hash-method`: one of MD5, SHA256 or SHA512. If another value is supplied MD5 is used.
@@ -26,11 +26,11 @@ The `file put` command supports 5 flags:
 
 #### file
 
-The `--file` defines the file remote name, defaults to the path Base of the local file.
+The `--file` defines the file remote name.
 
-#### remote-name
+#### dst
 
-The `remote-name` defines the file remote name, defaults to the path Base of the local file.
+The `dst` defines the remote destination. If `--file` points to a directory or multiple `--file` flags are set, `--dst` represents the destination directory, otherwise it represents the remote file name.
 
 #### chunk-size
 

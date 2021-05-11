@@ -141,11 +141,11 @@ type LocalFlags struct {
 	FileStatFile     string `json:"file-stat-file,omitempty" mapstructure:"file-stat-file,omitempty" yaml:"file-stat-file,omitempty"`
 	FileStatHumanize bool   `json:"file-stat-humanize,omitempty" mapstructure:"file-stat-humanize,omitempty" yaml:"file-stat-humanize,omitempty"`
 	// File Put
-	FilePutFile        string `json:"file-put-file,omitempty" mapstructure:"file-put-file,omitempty" yaml:"file-put-file,omitempty"`
-	FilePutRemoteFile  string `json:"file-put-remote-file,omitempty" mapstructure:"file-put-remote-file,omitempty" yaml:"file-put-remote-file,omitempty"`
-	FilePutPermissions uint32 `json:"file-put-permissions,omitempty" mapstructure:"file-put-permissions,omitempty" yaml:"file-put-permissions,omitempty"`
-	FilePutChunkSize   uint64 `json:"file-put-chunk-size,omitempty" mapstructure:"file-put-chunk-size,omitempty" yaml:"file-put-chunk-size,omitempty"`
-	FilePutHashMethod  string `json:"file-put-hash-method,omitempty" mapstructure:"file-put-hash-method,omitempty" yaml:"file-put-hash-method,omitempty"`
+	FilePutFile        []string `json:"file-put-file,omitempty" mapstructure:"file-put-file,omitempty" yaml:"file-put-file,omitempty"`
+	FilePutDst         string   `json:"file-put-dst,omitempty" mapstructure:"file-put-dst,omitempty" yaml:"file-put-dst,omitempty"`
+	FilePutPermissions uint32   `json:"file-put-permissions,omitempty" mapstructure:"file-put-permissions,omitempty" yaml:"file-put-permissions,omitempty"`
+	FilePutChunkSize   uint64   `json:"file-put-chunk-size,omitempty" mapstructure:"file-put-chunk-size,omitempty" yaml:"file-put-chunk-size,omitempty"`
+	FilePutHashMethod  string   `json:"file-put-hash-method,omitempty" mapstructure:"file-put-hash-method,omitempty" yaml:"file-put-hash-method,omitempty"`
 	// File Remove
 	FileRemoveFile string `json:"file-remove-file,omitempty" mapstructure:"file-remove-file,omitempty" yaml:"file-remove-file,omitempty"`
 	// System
