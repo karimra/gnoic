@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/openconfig/gnoi/file"
 	"github.com/spf13/cobra"
@@ -12,13 +13,13 @@ import (
 
 type fileRemoveResponse struct {
 	TargetError
-	file string
+	file []string
 }
 
 func (a *App) InitFileRemoveFlags(cmd *cobra.Command) {
 	cmd.ResetFlags()
 	//
-	cmd.Flags().StringVar(&a.Config.FileRemoveFile, "file", "", "file to remove from the target(s)")
+	cmd.Flags().StringSliceVar(&a.Config.FileRemovePath, "path", []string{}, "remote path pointing to file(s)/dir(s) to remove from the target(s)")
 	//
 	cmd.Flags().VisitAll(func(flag *pflag.Flag) {
 		a.Config.FileConfig.BindPFlag(fmt.Sprintf("%s-%s", cmd.Name(), flag.Name), flag)
@@ -78,15 +79,57 @@ func (a *App) RunEFileRemove(cmd *cobra.Command, args []string) error {
 	}
 
 	for _, r := range result {
-		a.Logger.Infof("%q file %q removed successfully", r.TargetName, r.file)
+		for _, f := range r.file {
+			a.Logger.Infof("%q file %q removed successfully", r.TargetName, f)
+		}
 	}
 	return a.handleErrs(errs)
 }
 
-func (a *App) FileRemove(ctx context.Context, t *Target) (string, error) {
+func (a *App) FileRemove(ctx context.Context, t *Target) ([]string, error) {
 	fileClient := file.NewFileClient(t.client)
-	_, err := fileClient.Remove(ctx, &file.RemoveRequest{
-		RemoteFile: a.Config.FileRemoveFile,
+	errs := make([]string, 0, len(a.Config.FileRemovePath))
+	for _, file := range a.Config.FileRemovePath {
+		err := a.fileRemove(ctx, t, fileClient, file)
+		if err != nil {
+			errs = append(errs, fmt.Sprintf("%v", err))
+		}
+	}
+	var err error
+	if len(errs) > 0 {
+		err = fmt.Errorf("%v", strings.Join(errs, ",\n"))
+	}
+	return a.Config.FileRemovePath, err
+}
+
+func (a *App) fileRemove(ctx context.Context, t *Target, fileClient file.FileClient, path string) error {
+	isDir, err := a.isDir(ctx, fileClient, path)
+	if err != nil {
+		return err
+	}
+	if isDir {
+		a.Logger.Debugf("%q remote=%q is a directory", t.Config.Address, path)
+		r, err := fileClient.Stat(ctx, &file.StatRequest{
+			Path: path,
+		})
+		if err != nil {
+			return err
+		}
+		if len(r.Stats) == 0 {
+			return fmt.Errorf("%q path %q is an empty directory", t.Config.Address, path)
+		}
+		for _, s := range r.Stats {
+			a.Logger.Debugf("%q removing file %q", t.Config.Address, s.Path)
+			err = a.fileRemove(ctx, t, fileClient, s.Path)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	a.Logger.Debugf("%q remote=%q is a file", t.Config.Address, path)
+	_, err = fileClient.Remove(ctx, &file.RemoveRequest{
+		RemoteFile: path,
 	})
-	return a.Config.FileRemoveFile, err
+	return err
 }
