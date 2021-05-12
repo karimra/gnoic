@@ -22,14 +22,14 @@ import (
 
 type fileGetResponse struct {
 	TargetError
-	file string
+	file []string
 }
 
 func (a *App) InitFileGetFlags(cmd *cobra.Command) {
 	cmd.ResetFlags()
 	//
-	cmd.Flags().StringVar(&a.Config.FileGetFile, "file", "", "file to get from the target(s)")
-	cmd.Flags().StringVar(&a.Config.FileGetLocalFile, "local-file", "", "local file name, defaults to the path base of the retrieved file")
+	cmd.Flags().StringSliceVar(&a.Config.FileGetFile, "file", []string{}, "file to get from the target(s)")
+	cmd.Flags().StringVar(&a.Config.FileGetDst, "dst", "", "local directory name, defaults to $PWD")
 	cmd.Flags().BoolVar(&a.Config.FileGetTargetPrefix, "target-prefix", false, "save file with the target name as prefix")
 	//
 	cmd.Flags().VisitAll(func(flag *pflag.Flag) {
@@ -90,25 +90,69 @@ func (a *App) RunEFileGet(cmd *cobra.Command, args []string) error {
 	}
 
 	for _, r := range result {
-		a.Logger.Infof("%q file %q saved", r.TargetName, r.file)
+		for _, f := range r.file {
+			a.Logger.Infof("%q file %q saved", r.TargetName, f)
+		}
 	}
 	return a.handleErrs(errs)
 }
 
-func (a *App) FileGet(ctx context.Context, t *Target) (string, error) {
+func (a *App) FileGet(ctx context.Context, t *Target) ([]string, error) {
 	fileClient := file.NewFileClient(t.client)
+	numFiles := len(a.Config.FileGetFile)
+	files := make([]string, 0, numFiles)
+	errs := make([]error, 0, numFiles)
+	for _, f := range a.Config.FileGetFile {
+		fs, err := a.fileGet(ctx, t, fileClient, f)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+		files = append(files, fs...)
+	}
+	if len(errs) > 0 {
+		var err = errs[0]
+		for _, e := range errs {
+			err = fmt.Errorf("%v,\n%v", err, e)
+		}
+		return files, err
+	}
+	return files, nil
+}
+
+func (a *App) fileGet(ctx context.Context, t *Target, fileClient file.FileClient, path string) ([]string, error) {
+	files := make([]string, 0)
+	isDir, err := a.isDir(ctx, fileClient, path)
+	if err != nil {
+		return nil, err
+	}
+	if isDir {
+		r, err := fileClient.Stat(ctx, &file.StatRequest{Path: path})
+		if err != nil {
+			return nil, err
+		}
+		for _, si := range r.Stats {
+			f, err := a.fileGet(ctx, t, fileClient, si.Path)
+			if err != nil {
+				return nil, err
+			}
+			files = append(files, f...)
+		}
+		return files, nil
+	}
+	files = append(files, path)
 	stream, err := fileClient.Get(ctx, &file.GetRequest{
-		RemoteFile: a.Config.FileGetFile,
+		RemoteFile: path,
 	})
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	b := new(bytes.Buffer)
 	for {
 		b.Grow(64000)
 		getResponse, err := stream.Recv()
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 
 		a.Logger.Debugf(prototext.Format(getResponse))
@@ -122,30 +166,30 @@ func (a *App) FileGet(ctx context.Context, t *Target) (string, error) {
 		h := getResponse.GetHash()
 		if h == nil {
 			a.Logger.Infof("%q received nil hash", t.Config.Address)
-			return "", nil
+			return nil, nil
 		}
 		a.Logger.Debugf("%q received hash method %s", t.Config.Address, h.Method)
 		err = a.compareFileHash(t.Config.Address, b, h)
 		if err != nil {
-			return "", fmt.Errorf("%q hash err: %v", t.Config.Address, err)
+			return nil, fmt.Errorf("%q hash err: %v", t.Config.Address, err)
 		}
 		break
 	}
-	name := a.Config.FileGetLocalFile
-	if name == "" {
-		name = filepath.Base(a.Config.FileGetFile)
-	}
+	name := filepath.Join(a.Config.FileGetDst, path)
 	if a.Config.FileGetTargetPrefix {
 		name = strings.Join([]string{t.Config.Address, name}, "_")
 	}
-	f, err := os.Create(name)
+	filePath := filepath.Clean(strings.ReplaceAll(name, "\\", "/"))
+	dir, _ := filepath.Split(filePath)
+	os.MkdirAll(dir, 0777)
+	f, err := os.Create(filePath)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	defer f.Close()
 	f.Write(b.Bytes())
 	a.Logger.Debugf("%q wrote local file %q", t.Config.Address, name)
-	return name, nil
+	return files, nil
 }
 
 func (a *App) compareFileHash(tName string, b *bytes.Buffer, ht *types.HashType) error {
