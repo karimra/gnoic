@@ -133,7 +133,7 @@ func (a *App) fileStat(ctx context.Context, t *Target, fileClient file.FileClien
 		if isDir && a.Config.FileStatRecursive {
 			fsi, err := a.fileStat(ctx, t, fileClient, si.Path)
 			if err != nil {
-				a.Logger.Errorf("%ßq file %q stat err: %v", t.Config.Address, si.Path, err)
+				a.Logger.Errorf("%q file %q stat err: %v", t.Config.Address, si.Path, err)
 				continue
 			}
 			for _, fs := range fsi {
