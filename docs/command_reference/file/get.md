@@ -9,8 +9,8 @@ At which point, the client should verify the Hash and save the file locally
 
 The `file get` command supports 3 flags:
 
-- `file`: the file name to be retrieved.
-- `local-file`: name under which to save the file in the local system.
+- `file`: the file(s)/dir(s) names to be retrieved.
+- `dst`: local directory name, defaults to `$PWD`.
 - `target-prefix`: if present, `gNOIc` prepends the target name to the retrieved file.
 
 ### Usage
@@ -21,15 +21,11 @@ The `file get` command supports 3 flags:
 
 #### file
 
-The  `--file` specifies the file name to be retrieved.
+The  `--file` flag sets the file(s)/dir(s) names to be retrieved.
 
-Retrieving a directory is not defined by the `gNOI` spec not by `gNOIc`... yet.
+#### dst
 
-#### local-file
-
-The `--local-file` specifies the name under which to the file locally.
-
-Defaults to the path Base of the retrieved file.
+The `--dst` flag sets the local directory name, defaults to `$PWD`.
 
 #### target-prefix
 

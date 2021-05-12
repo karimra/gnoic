@@ -134,9 +134,9 @@ type LocalFlags struct {
 	CertGetCertificatesSave    bool     `json:"cert-get-certificates-save,omitempty" mapstructure:"cert-get-certificates-save,omitempty" yaml:"cert-get-certificates-save,omitempty"`
 	// File
 	// File Get
-	FileGetFile         string `json:"file-get-file,omitempty" mapstructure:"file-get-file,omitempty" yaml:"file-get-file,omitempty"`
-	FileGetLocalFile    string `json:"file-get-local-file,omitempty" mapstructure:"file-get-local-file,omitempty" yaml:"file-get-local-file,omitempty"`
-	FileGetTargetPrefix bool   `json:"file-get-target-prefix,omitempty" mapstructure:"file-get-target-prefix,omitempty" yaml:"file-get-target-prefix,omitempty"`
+	FileGetFile         []string `json:"file-get-file,omitempty" mapstructure:"file-get-file,omitempty" yaml:"file-get-file,omitempty"`
+	FileGetDst          string   `json:"file-get-dst,omitempty" mapstructure:"file-get-dst,omitempty" yaml:"file-get-dst,omitempty"`
+	FileGetTargetPrefix bool     `json:"file-get-target-prefix,omitempty" mapstructure:"file-get-target-prefix,omitempty" yaml:"file-get-target-prefix,omitempty"`
 	// File Stat
 	FileStatPath      []string `json:"file-stat-path,omitempty" mapstructure:"file-stat-path,omitempty" yaml:"file-stat-path,omitempty"`
 	FileStatHumanize  bool     `json:"file-stat-humanize,omitempty" mapstructure:"file-stat-humanize,omitempty" yaml:"file-stat-humanize,omitempty"`
