@@ -138,8 +138,9 @@ type LocalFlags struct {
 	FileGetLocalFile    string `json:"file-get-local-file,omitempty" mapstructure:"file-get-local-file,omitempty" yaml:"file-get-local-file,omitempty"`
 	FileGetTargetPrefix bool   `json:"file-get-target-prefix,omitempty" mapstructure:"file-get-target-prefix,omitempty" yaml:"file-get-target-prefix,omitempty"`
 	// File Stat
-	FileStatFile     string `json:"file-stat-file,omitempty" mapstructure:"file-stat-file,omitempty" yaml:"file-stat-file,omitempty"`
-	FileStatHumanize bool   `json:"file-stat-humanize,omitempty" mapstructure:"file-stat-humanize,omitempty" yaml:"file-stat-humanize,omitempty"`
+	FileStatPath      []string `json:"file-stat-path,omitempty" mapstructure:"file-stat-path,omitempty" yaml:"file-stat-path,omitempty"`
+	FileStatHumanize  bool     `json:"file-stat-humanize,omitempty" mapstructure:"file-stat-humanize,omitempty" yaml:"file-stat-humanize,omitempty"`
+	FileStatRecursive bool     `json:"file-stat-recursive,omitempty" mapstructure:"file-stat-recursive,omitempty" yaml:"file-stat-recursive,omitempty"`
 	// File Put
 	FilePutFile        []string `json:"file-put-file,omitempty" mapstructure:"file-put-file,omitempty" yaml:"file-put-file,omitempty"`
 	FilePutDst         string   `json:"file-put-dst,omitempty" mapstructure:"file-put-dst,omitempty" yaml:"file-put-dst,omitempty"`
