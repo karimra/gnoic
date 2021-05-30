@@ -11,43 +11,78 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mitchellh/mapstructure"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
 
 type TargetConfig struct {
-	Address       string        `json:"address,omitempty"`
-	Insecure      *bool         `json:"insecure,omitempty"`
-	SkipVerify    *bool         `json:"skip-verify,omitempty"`
-	Username      *string       `json:"username,omitempty"`
-	Password      *string       `json:"password,omitempty"`
-	Timeout       time.Duration `json:"timeout,omitempty"`
-	TLSCert       *string       `json:"tls-cert,omitempty"`
-	TLSKey        *string       `json:"tls-key,omitempty"`
-	TLSCA         *string       `json:"tlsca,omitempty"`
-	TLSMinVersion string        `json:"tls-min-version,omitempty"`
-	TLSMaxVersion string        `json:"tls-max-version,omitempty"`
-	TLSVersion    string        `json:"tls-version,omitempty"`
-	Gzip          *bool         `json:"gzip,omitempty"`
+	Name          string        `json:"name,omitempty" mapstructure:"name,omitempty"`
+	Address       string        `json:"address,omitempty" mapstructure:"address,omitempty"`
+	Insecure      *bool         `json:"insecure,omitempty" mapstructure:"insecure,omitempty"`
+	SkipVerify    *bool         `json:"skip-verify,omitempty" mapstructure:"skip-verify,omitempty"`
+	Username      *string       `json:"username,omitempty" mapstructure:"username,omitempty"`
+	Password      *string       `json:"password,omitempty" mapstructure:"password,omitempty"`
+	Timeout       time.Duration `json:"timeout,omitempty" mapstructure:"timeout,omitempty"`
+	TLSCert       *string       `json:"tls-cert,omitempty" mapstructure:"tls-cert,omitempty"`
+	TLSKey        *string       `json:"tls-key,omitempty" mapstructure:"tls-key,omitempty"`
+	TLSCA         *string       `json:"tlsca,omitempty" mapstructure:"tlsca,omitempty"`
+	TLSMinVersion string        `json:"tls-min-version,omitempty" mapstructure:"tls-min-version,omitempty"`
+	TLSMaxVersion string        `json:"tls-max-version,omitempty" mapstructure:"tls-max-version,omitempty"`
+	TLSVersion    string        `json:"tls-version,omitempty" mapstructure:"tls-version,omitempty"`
+	Gzip          *bool         `json:"gzip,omitempty" mapstructure:"gzip,omitempty"`
 	//
 	CommonName string `json:"common-name,omitempty"`
 	ResolvedIP string `json:"resolved-ip,omitempty"`
 }
 
 func (c *Config) GetTargets() (map[string]*TargetConfig, error) {
-	if len(c.Address) == 0 {
+	targetsConfigs := make(map[string]*TargetConfig)
+	if len(c.Address) > 0 {
+		var err error
+		for _, addr := range c.Address {
+			tc := new(TargetConfig)
+			err = c.parseAddress(tc, addr)
+			if err != nil {
+				return nil, fmt.Errorf("%q failed to parse address: %v", addr, err)
+			}
+			c.setTargetConfigDefaults(tc)
+			targetsConfigs[tc.Name] = tc
+			c.logger.Debugf("%q target-config: %s", addr, tc)
+		}
+		return targetsConfigs, nil
+	}
+	targetsMap := c.FileConfig.GetStringMap("targets")
+	if len(targetsMap) == 0 {
 		return nil, errors.New("no targets found")
 	}
-	targetsConfigs := make(map[string]*TargetConfig)
-	var err error
-	for _, addr := range c.Address {
+	for addr, t := range targetsMap {
 		tc := new(TargetConfig)
-		err = c.parseAddress(tc, addr)
+		switch t := t.(type) {
+		case map[string]interface{}:
+			decoder, err := mapstructure.NewDecoder(
+				&mapstructure.DecoderConfig{
+					DecodeHook: mapstructure.StringToTimeDurationHookFunc(),
+					Result:     tc,
+				},
+			)
+			if err != nil {
+				return nil, err
+			}
+			err = decoder.Decode(t)
+			if err != nil {
+				return nil, err
+			}
+		case nil:
+		default:
+			return nil, fmt.Errorf("unexpected targets format, got a %T", t)
+		}
+		err := c.parseAddress(tc, addr)
 		if err != nil {
 			return nil, fmt.Errorf("%q failed to parse address: %v", addr, err)
 		}
 		c.setTargetConfigDefaults(tc)
-		targetsConfigs[tc.Address] = tc
+		targetsConfigs[tc.Name] = tc
 		c.logger.Debugf("%q target-config: %s", addr, tc)
 	}
 	return targetsConfigs, nil
@@ -93,6 +128,9 @@ func (c *Config) parseAddress(tc *TargetConfig, addr string) error {
 }
 
 func (c *Config) setTargetConfigDefaults(tc *TargetConfig) {
+	if tc.Name == "" {
+		tc.Name = tc.Address
+	}
 	if c.Insecure {
 		tc.Insecure = &c.Insecure
 	}
