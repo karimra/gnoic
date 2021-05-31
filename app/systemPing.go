@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -108,7 +109,7 @@ func (a *App) SystemPing(ctx context.Context, t *Target) error {
 		DoNotResolve:  a.Config.SystemPingDoNotResolve,
 		L3Protocol:    types.L3Protocol(types.L3Protocol_value[a.Config.SystemPingProtocol]),
 	}
-	a.Logger.Debug(prototext.Format(req))
+	a.Logger.Debugf("ping request:\n%s", prototext.Format(req))
 	stream, err := systemClient.Ping(ctx, req)
 	if err != nil {
 		a.Logger.Errorf("%q creating System Ping stream failed: %v", t.Config.Address, err)
@@ -121,11 +122,32 @@ func (a *App) SystemPing(ctx context.Context, t *Target) error {
 			break
 		}
 		if err != nil && err != io.EOF {
-			a.Logger.Errorf("%q rcv creating Ping stream failed: %v", t.Config.Address, err)
+			a.Logger.Errorf("%q rcv Ping stream failed: %v", t.Config.Address, err)
 			return err
 		}
-		fmt.Print(prototext.Format(rsp))
-		// TODO: pretty print ping responses
+		a.Logger.Debugf("ping response %s:\n%s", t.Config.Name, prototext.Format(rsp))
+		a.printPingResponse(t.Config.Name, rsp)
 	}
 	return nil
+}
+
+func (a *App) printPingResponse(name string, rsp *system.PingResponse) {
+	switch a.Config.Format {
+	case "json":
+		b, err := json.MarshalIndent(rsp, "", "  ")
+		if err != nil {
+			a.Logger.Errorf("failed to marshal ping response from %q: %v", name, rsp)
+			return
+		}
+		fmt.Println(string(b))
+	default:
+		if rsp.Bytes == 0 {
+			fmt.Printf("[%s] ---%s ping statistics ---\n[%s] %d packets sent, %d packets received, %.2f%% packet loss\n[%s] round-trip min/avg/max/stddev = %d/%d/%d/%d ms\n",
+				name, rsp.Source,
+				name, rsp.Sent, rsp.Received, ((1 - (float32(rsp.Received) / float32(rsp.Sent))) * 100),
+				name, time.Duration(rsp.MinTime).Milliseconds(), time.Duration(rsp.AvgTime).Milliseconds(), time.Duration(rsp.MaxTime).Milliseconds(), time.Duration(rsp.StdDev).Milliseconds())
+			return
+		}
+		fmt.Printf("[%s] %d bytes from %s: seq=%d ttl=%d time=%s\n", name, rsp.Bytes, rsp.Source, rsp.Sequence, rsp.Ttl, time.Duration(rsp.Time))
+	}
 }
