@@ -1,7 +1,6 @@
 package app
 
 import (
-	"bytes"
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
@@ -109,23 +108,17 @@ func (a *App) RunECertInstall(cmd *cobra.Command, args []string) error {
 }
 
 func (a *App) CertInstall(ctx context.Context, t *Target) error {
+	// create cert mgmt client
 	certClient := cert.NewCertificateManagementClient(t.client)
+	// create cert mgmt install stream RPC
 	stream, err := certClient.Install(ctx)
 	if err != nil {
 		return fmt.Errorf("%q failed creating Install gRPC stream: %v", t.Config.Address, err)
 	}
-	var commonName = a.Config.CertInstallCommonName
-	var ipAddr = a.Config.CertInstallIPAddress
-	if commonName == "" {
-		commonName = t.Config.CommonName
-	}
-	if ipAddr == "" {
-		ipAddr = t.Config.ResolvedIP
-	}
 	// if the flag --gen-csr is not present,
 	// check if the target can generateCSR,
 	// if it cannot, set --gen-csr to true,
-	//  to generate the certificate locally
+	// to generate the certificate locally
 	if !a.Config.CertInstallGenCSR {
 		cgcResp, err := certClient.CanGenerateCSR(ctx, &cert.CanGenerateCSRRequest{
 			KeyType:         cert.KeyType(cert.KeyType_value[a.Config.CertInstallKeyType]),
@@ -133,7 +126,7 @@ func (a *App) CertInstall(ctx context.Context, t *Target) error {
 			KeySize:         a.Config.CertInstallMinKeySize,
 		})
 		if err != nil {
-			return err
+			return fmt.Errorf("%q failed CanGenCSR RPC: %v", t.Config.Name, err)
 		}
 		if !cgcResp.GetCanGenerate() {
 			a.Config.CertInstallGenCSR = true
@@ -144,54 +137,12 @@ func (a *App) CertInstall(ctx context.Context, t *Target) error {
 	var creq *x509.CertificateRequest
 
 	if a.Config.CertInstallGenCSR {
-		keyPair, creq, err = a.createLocalCSR(t)
-		if err != nil {
-			return err
-		}
+		keyPair, creq, err = a.createLocalCSRInstall(t)
 	} else {
-		err = stream.Send(&cert.InstallCertificateRequest{
-			InstallRequest: &cert.InstallCertificateRequest_GenerateCsr{
-				GenerateCsr: &cert.GenerateCSRRequest{
-					CsrParams: &cert.CSRParams{
-						Type:               cert.CertificateType(cert.CertificateType_value[a.Config.CertInstallCertificateType]),
-						MinKeySize:         a.Config.CertInstallMinKeySize,
-						KeyType:            cert.KeyType(cert.KeyType_value[a.Config.CertInstallKeyType]),
-						CommonName:         commonName,
-						Country:            a.Config.CertInstallCountry,
-						State:              a.Config.CertInstallState,
-						City:               a.Config.CertInstallCity,
-						Organization:       a.Config.CertInstallOrg,
-						OrganizationalUnit: a.Config.CertInstallOrgUnit,
-						IpAddress:          ipAddr,
-						EmailId:            a.Config.CertInstallEmailID,
-					},
-					CertificateId: a.Config.CertInstallCertificateID,
-				},
-			},
-		})
-		if err != nil {
-			return fmt.Errorf("%q failed send Install RPC: GenCSR: %v", err, t.Config.Address)
-		}
-		resp, err := stream.Recv()
-		if err != nil {
-			return fmt.Errorf("%q failed rcv Install RPC: GenCSR: %v", err, t.Config.Address)
-		}
-		if resp == nil {
-			return fmt.Errorf("%q returned a <nil> CSR response", t.Config.Address)
-		}
-		if a.Config.CertInstallPrintCSR {
-			fmt.Printf("%q genCSR response:\n %s\n", t.Config.Address, prototext.Format(resp))
-		}
-		a.Logger.Debugf("%q genCSR response:\n %s\n", t.Config.Address, prototext.Format(resp))
-
-		p, rest := pem.Decode(resp.GetGeneratedCsr().GetCsr().GetCsr())
-		if p == nil || len(rest) > 0 {
-			return fmt.Errorf("%q failed to decode returned CSR", t.Config.Address)
-		}
-		creq, err = x509.ParseCertificateRequest(p.Bytes)
-		if err != nil {
-			return fmt.Errorf("failed parsing certificate request: %v", err)
-		}
+		creq, err = a.createRemoteCSRInstall(stream, t)
+	}
+	if err != nil {
+		return err
 	}
 
 	s, err := CertificateRequestText(creq)
@@ -202,15 +153,17 @@ func (a *App) CertInstall(ctx context.Context, t *Target) error {
 		fmt.Printf("%q generated CSR:\n%s\n", t.Config.Address, s)
 	}
 	a.Logger.Debugf("%q generated CSR:\n%s\n", t.Config.Address, s)
-	//
+
+	// create certificate from CSR
 	certificate, err := certificateFromCSR(creq, a.Config.CertInstallValidity)
 	if err != nil {
 		return fmt.Errorf("failed certificateFromCSR: %v", err)
 	}
+	// sign certificate
 	a.Logger.Infof("%q signing certificate %q with the provided CA", t.Config.Address, certificate.Subject.String())
 	signedCert, err := a.sign(certificate, &caCert)
 	if err != nil {
-		return fmt.Errorf("failed signing certificate: %v", err)
+		return fmt.Errorf("%q failed signing certificate: %v", t.Config.Address, err)
 	}
 	//
 	sCertText, err := CertificateText(signedCert, false)
@@ -218,10 +171,10 @@ func (a *App) CertInstall(ctx context.Context, t *Target) error {
 		return err
 	}
 	a.Logger.Debugf("%q signed certificate:\n%s\n", t.Config.Address, sCertText)
-	//
+	// encode signed certifcate in PEM format
 	b, err := toPEM(signedCert)
 	if err != nil {
-		return fmt.Errorf("failed toPEM: %v", err)
+		return fmt.Errorf("%q failed to encode as PEM: %v", t.Config.Address, err)
 	}
 	a.Logger.Infof("%q installing certificate id=%s %q", t.Config.Address, a.Config.CertInstallCertificateID, certificate.Subject.String())
 	if a.Config.CertInstallGenCSR {
@@ -261,7 +214,7 @@ func (a *App) CertInstall(ctx context.Context, t *Target) error {
 	return nil
 }
 
-func (a *App) createLocalCSR(t *Target) (*cert.KeyPair, *x509.CertificateRequest, error) {
+func (a *App) createLocalCSRInstall(t *Target) (*cert.KeyPair, *x509.CertificateRequest, error) {
 	var commonName = a.Config.CertInstallCommonName
 	var ipAddr = a.Config.CertInstallIPAddress
 	if commonName == "" {
@@ -274,15 +227,8 @@ func (a *App) createLocalCSR(t *Target) (*cert.KeyPair, *x509.CertificateRequest
 	if err != nil {
 		return nil, nil, err
 	}
-	buf := new(bytes.Buffer)
-	err = pem.Encode(buf, &pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(privateKey),
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-	subj := pkix.Name{}
+
+	var subj pkix.Name
 	if commonName != "" {
 		subj.CommonName = commonName
 	}
@@ -310,8 +256,9 @@ func (a *App) createLocalCSR(t *Target) (*cert.KeyPair, *x509.CertificateRequest
 			},
 		})
 	}
+
 	var ipAddrs net.IP
-	if a.Config.CertInstallIPAddress != "" {
+	if ipAddr != "" {
 		ipAddrs = net.ParseIP(ipAddr)
 	}
 	template := x509.CertificateRequest{
@@ -320,6 +267,7 @@ func (a *App) createLocalCSR(t *Target) (*cert.KeyPair, *x509.CertificateRequest
 		SignatureAlgorithm: x509.SHA256WithRSA,
 		IPAddresses:        make([]net.IP, 0),
 	}
+
 	if ipAddrs != nil {
 		template.IPAddresses = append(template.IPAddresses, ipAddrs)
 	}
@@ -333,8 +281,66 @@ func (a *App) createLocalCSR(t *Target) (*cert.KeyPair, *x509.CertificateRequest
 		return nil, nil, fmt.Errorf("failed parsing certificate request: %v", err)
 	}
 	return &cert.KeyPair{
-			PrivateKey: buf.Bytes(),
-			PublicKey:  csrBytes,
+			PrivateKey: pem.EncodeToMemory(&pem.Block{
+				Type:  "RSA PRIVATE KEY",
+				Bytes: x509.MarshalPKCS1PrivateKey(privateKey),
+			}),
+			PublicKey: csrBytes,
 		},
 		creq, err
+}
+
+func (a *App) createRemoteCSRInstall(stream cert.CertificateManagement_InstallClient, t *Target) (*x509.CertificateRequest, error) {
+	var commonName = a.Config.CertInstallCommonName
+	var ipAddr = a.Config.CertInstallIPAddress
+	if commonName == "" {
+		commonName = t.Config.CommonName
+	}
+	if ipAddr == "" {
+		ipAddr = t.Config.ResolvedIP
+	}
+	err := stream.Send(&cert.InstallCertificateRequest{
+		InstallRequest: &cert.InstallCertificateRequest_GenerateCsr{
+			GenerateCsr: &cert.GenerateCSRRequest{
+				CsrParams: &cert.CSRParams{
+					Type:               cert.CertificateType(cert.CertificateType_value[a.Config.CertInstallCertificateType]),
+					MinKeySize:         a.Config.CertInstallMinKeySize,
+					KeyType:            cert.KeyType(cert.KeyType_value[a.Config.CertInstallKeyType]),
+					CommonName:         commonName,
+					Country:            a.Config.CertInstallCountry,
+					State:              a.Config.CertInstallState,
+					City:               a.Config.CertInstallCity,
+					Organization:       a.Config.CertInstallOrg,
+					OrganizationalUnit: a.Config.CertInstallOrgUnit,
+					IpAddress:          ipAddr,
+					EmailId:            a.Config.CertInstallEmailID,
+				},
+				CertificateId: a.Config.CertInstallCertificateID,
+			},
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%q failed send Install RPC: GenCSR: %v", err, t.Config.Address)
+	}
+	resp, err := stream.Recv()
+	if err != nil {
+		return nil, fmt.Errorf("%q failed rcv Install RPC: GenCSR: %v", err, t.Config.Address)
+	}
+	if resp == nil {
+		return nil, fmt.Errorf("%q returned a <nil> CSR response", t.Config.Address)
+	}
+	if a.Config.CertInstallPrintCSR {
+		fmt.Printf("%q genCSR response:\n %s\n", t.Config.Address, prototext.Format(resp))
+	}
+	a.Logger.Debugf("%q genCSR response:\n %s\n", t.Config.Address, prototext.Format(resp))
+
+	p, rest := pem.Decode(resp.GetGeneratedCsr().GetCsr().GetCsr())
+	if p == nil || len(rest) > 0 {
+		return nil, fmt.Errorf("%q failed to decode returned CSR", t.Config.Address)
+	}
+	creq, err := x509.ParseCertificateRequest(p.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("failed parsing certificate request: %v", err)
+	}
+	return creq, nil
 }
