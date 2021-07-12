@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 	"time"
 
@@ -16,6 +17,11 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/encoding/prototext"
 )
+
+type targetResponse struct {
+	Target   string      `json:"target,omitempty"`
+	Response interface{} `json:"response,omitempty"`
+}
 
 func (a *App) InitSystemPingFlags(cmd *cobra.Command) {
 	cmd.ResetFlags()
@@ -134,20 +140,78 @@ func (a *App) SystemPing(ctx context.Context, t *Target) error {
 func (a *App) printPingResponse(name string, rsp *system.PingResponse) {
 	switch a.Config.Format {
 	case "json":
-		b, err := json.MarshalIndent(rsp, "", "  ")
+		tRsp := targetResponse{
+			Target:   name,
+			Response: rsp,
+		}
+		b, err := json.MarshalIndent(tRsp, "", "  ")
 		if err != nil {
-			a.Logger.Errorf("failed to marshal ping response from %q: %v", name, rsp)
+			a.Logger.Errorf("failed to marshal ping response from %q: %v", name, err)
 			return
 		}
 		fmt.Println(string(b))
 	default:
-		if rsp.Bytes == 0 {
-			fmt.Printf("[%s] ---%s ping statistics ---\n[%s] %d packets sent, %d packets received, %.2f%% packet loss\n[%s] round-trip min/avg/max/stddev = %d/%d/%d/%d ms\n",
-				name, rsp.Source,
-				name, rsp.Sent, rsp.Received, ((1 - (float32(rsp.Received) / float32(rsp.Sent))) * 100),
-				name, time.Duration(rsp.MinTime).Milliseconds(), time.Duration(rsp.AvgTime).Milliseconds(), time.Duration(rsp.MaxTime).Milliseconds(), time.Duration(rsp.StdDev).Milliseconds())
+		sb := strings.Builder{}
+		numAddress := len(a.Config.Address)
+		if rsp.GetBytes() > 0 {
+			if numAddress > 1 {
+				sb.WriteString("[")
+				sb.WriteString(name)
+				sb.WriteString("] ")
+			}
+			sb.WriteString(strconv.Itoa(int(rsp.GetBytes())))
+			sb.WriteString(" bytes from ")
+			sb.WriteString(rsp.GetSource())
+			sb.WriteString(": icmp_seq=")
+			sb.WriteString(strconv.Itoa(int(rsp.GetSequence())))
+			sb.WriteString(" ttl=")
+			sb.WriteString(strconv.Itoa(int(rsp.GetTtl())))
+			sb.WriteString(" time=")
+			sb.WriteString(time.Duration(rsp.GetTime()).String())
+			fmt.Println(sb.String())
 			return
 		}
-		fmt.Printf("[%s] %d bytes from %s: seq=%d ttl=%d time=%s\n", name, rsp.Bytes, rsp.Source, rsp.Sequence, rsp.Ttl, time.Duration(rsp.Time))
+		// summary
+		// line1
+		if numAddress > 1 {
+			sb.WriteString("[")
+			sb.WriteString(name)
+			sb.WriteString("] ")
+		}
+		sb.WriteString("--- ")
+		sb.WriteString(rsp.GetSource())
+		sb.WriteString(" ping statistics ---\n")
+		// line2
+		if numAddress > 1 {
+			sb.WriteString("[")
+			sb.WriteString(name)
+			sb.WriteString("] ")
+		}
+		sb.WriteString(strconv.Itoa(int(rsp.GetSent())))
+		sb.WriteString(" packets sent, ")
+		sb.WriteString(strconv.Itoa(int(rsp.GetReceived())))
+		sb.WriteString(" packets received, ")
+		sb.WriteString(fmt.Sprintf("%.2f%% packet loss\n", ((1 - (float32(rsp.GetReceived()) / float32(rsp.GetSent()))) * 100)))
+		// line3
+		if numAddress > 1 {
+			sb.WriteString("[")
+			sb.WriteString(name)
+			sb.WriteString("] ")
+		}
+		sb.WriteString("round-trip min/avg/max/stddev = ")
+		sb.WriteString(formatDurationMS(rsp.GetMinTime()))
+		sb.WriteString("/")
+		sb.WriteString(formatDurationMS(rsp.GetAvgTime()))
+		sb.WriteString("/")
+		sb.WriteString(formatDurationMS(rsp.GetMaxTime()))
+		sb.WriteString("/")
+		sb.WriteString(formatDurationMS(rsp.GetStdDev()))
+		sb.WriteString(" ms")
+		fmt.Println(sb.String())
+		return
 	}
+}
+
+func formatDurationMS(d int64) string {
+	return fmt.Sprintf("%.3f", float64(d)/float64(time.Millisecond))
 }
