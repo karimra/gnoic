@@ -1,23 +1,37 @@
 # Install
 
-### Description
+## Description
 
 Install will put a new Certificate on the target by creating a new CSR
 request and placing the new Certificate based on the CSR on the target.
 
-The new Certificate will be associated with a new Certificate Id on the target.
+The new Certificate will be associated with a new Certificate ID on the target.
 
 If the target has a pre existing Certificate with the given Certificate Id,
-the operation should fail.
+the operation fails.
 
-Currently `gNOIc` relies on the target to generate the CSR.
+`gNOIc` supports [*target generated CSR*](https://github.com/openconfig/gnoi/blob/master/cert/cert.proto#L108)
+as well as [*client side generated CSR*](https://github.com/openconfig/gnoi/blob/master/cert/cert.proto#L124).
 
-The `install` command acts as the client side of the [Cert Install RPC](https://github.com/openconfig/gnoi/blob/master/cert/cert.proto#L138) and effectively install a new certificate in 4 steps:
+- If the flag `--gen-csr` is present, `gNOIc` generates the certificate locally instead of relying on the Target.
 
-- Start a bi-directional gRPC stream.
-- Request a CSR from the target.
-- Sign the Certificate using the provided CA.
-- Send the certificate to the target.
+- In the opposite case, `gNOIc` will check if the target supports CSR generation, using the [CanGenerateCSR RPC](https://github.com/openconfig/gnoi/blob/master/cert/cert.proto#L164).
+If the target can generate a CSR, `gNOIc` will rely on the target to generate a CSR. Otherwise it generates the CSR and certificate locally.
+
+The `--gen-csr` flag allows testing both message flows for a target that supports CSR generation.
+
+The `install` command acts as the client side of the [Cert Install RPC](https://github.com/openconfig/gnoi/blob/master/cert/cert.proto#L138) and effectively installs a new certificate in 3 or 4 steps, depending on the CSR generation method:
+
+- Target Generated CSR:
+    - Start a bi-directional gRPC stream.
+    - Request a CSR from the target.
+    - Sign the Certificate using the provided CA.
+    - Load the certificate into the target.
+
+- Client Generated CSR:
+    - Start a bi-directional gRPC stream.
+    - Generate and Sign the Certificate using the provided CA.
+    - Load the certificate into the target.
 
 ### Usage
 
@@ -46,6 +60,14 @@ The `--country` sets the `Country` part of the certificate DN (Distinguished Nam
 #### email-id
 
 The `--email-id` sets the `EmailID` part of the certificate DN (Distinguished Name)
+
+#### gen-csr
+
+The `--gen-csr` flag allows the running the install command with a locally generated certificate,
+
+as opposed to using the [GenerateCSR](https://github.com/openconfig/gnoi/blob/master/cert/cert.proto#L190)
+
+to generate a CSR on the Target side.
 
 #### ip-address
 
