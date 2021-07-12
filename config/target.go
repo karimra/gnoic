@@ -108,21 +108,21 @@ func (c *Config) parseAddress(tc *TargetConfig, addr string) error {
 		tc.CommonName = h
 		resolvedIP, err := net.ResolveIPAddr("ip", h)
 		if err != nil {
-			c.logger.Infof("%q could not resolve %q: %v", addr, h, err)
-		} else {
-			tc.ResolvedIP = resolvedIP.String()
+			c.logger.Warnf("%q could not resolve %q: %v", addr, h, err)
+			return nil
 		}
-	} else {
-		// address is IPAddress
-		tc.ResolvedIP = ip.String()
-		names, err := net.LookupAddr(tc.ResolvedIP)
-		if err != nil {
-			c.logger.Warnf("%q could not lookup hostname: %v", addr, err)
-		}
-		c.logger.Debugf("%q resolved names: %v", addr, names)
-		if len(names) > 0 {
-			tc.CommonName = names[0]
-		}
+		tc.ResolvedIP = resolvedIP.String()
+		return nil
+	}
+	// address is IPAddress
+	tc.ResolvedIP = ip.String()
+	names, err := net.LookupAddr(tc.ResolvedIP)
+	if err != nil {
+		c.logger.Warnf("%q could not lookup hostname: %v", addr, err)
+	}
+	c.logger.Debugf("%q resolved names: %v", addr, names)
+	if len(names) > 0 {
+		tc.CommonName = names[0]
 	}
 	return nil
 }

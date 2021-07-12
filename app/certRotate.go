@@ -107,8 +107,8 @@ func (a *App) CertRotate(ctx context.Context, t *Target) error {
 	if err != nil {
 		return fmt.Errorf("%q failed creating Rotate gRPC stream: %v", t.Config.Address, err)
 	}
-	var commonName = a.Config.CertInstallCommonName
-	var ipAddr = a.Config.CertInstallIPAddress
+	var commonName = a.Config.CertRotateCommonName
+	var ipAddr = a.Config.CertRotateIPAddress
 	if commonName == "" {
 		commonName = t.Config.CommonName
 	}
