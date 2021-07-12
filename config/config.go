@@ -101,6 +101,7 @@ type LocalFlags struct {
 	CertInstallEmailID         string        `json:"cert-install-email-id,omitempty" mapstructure:"cert-install-email-id,omitempty" yaml:"cert-install-email-id,omitempty"`
 	CertInstallValidity        time.Duration `json:"cert-install-validity,omitempty" mapstructure:"cert-install-validity,omitempty" yaml:"cert-install-validity,omitempty"`
 	CertInstallPrintCSR        bool          `json:"cert-install-print-csr,omitempty" mapstructure:"cert-install-print-csr,omitempty" yaml:"cert-install-print-csr,omitempty"`
+	CertInstallGenCSR          bool          `json:"cert-install-gen-csr,omitempty" mapstructure:"cert-install-gen-csr,omitempty" yaml:"cert-install-gen-csr,omitempty"`
 	// Cert GenerateCSR
 	CertGenerateCSRCertificateID   string `json:"cert-generate-csr-certificate-id,omitempty" mapstructure:"cert-generate-csr-certificate-id,omitempty" yaml:"cert-generate-csr-certificate-id,omitempty"`
 	CertGenerateCSRKeyType         string `json:"cert-generate-csr-key-type,omitempty" mapstructure:"cert-generate-csr-key-type,omitempty" yaml:"cert-generate-csr-key-type,omitempty"`
@@ -112,7 +113,7 @@ type LocalFlags struct {
 	CertGenerateCSRCity            string `json:"cert-generate-csr-city,omitempty" mapstructure:"cert-generate-csr-city,omitempty" yaml:"cert-generate-csr-city,omitempty"`
 	CertGenerateCSROrg             string `json:"cert-generate-csr-org,omitempty" mapstructure:"cert-generate-csr-org,omitempty" yaml:"cert-generate-csr-org,omitempty"`
 	CertGenerateCSROrgUnit         string `json:"cert-generate-csr-org-unit,omitempty" mapstructure:"cert-generate-csr-org-unit,omitempty" yaml:"cert-generate-csr-org-unit,omitempty"`
-	CertGenerateCSRIPAddress       string `json:"cert-generate-csrip-address,omitempty" mapstructure:"cert-generate-csrip-address,omitempty" yaml:"cert-generate-csrip-address,omitempty"`
+	CertGenerateCSRIPAddress       string `json:"cert-generate-csr-ip-address,omitempty" mapstructure:"cert-generate-csr-ip-address,omitempty" yaml:"cert-generate-cs-rip-address,omitempty"`
 	CertGenerateCSREmailID         string `json:"cert-generate-csr-email-id,omitempty" mapstructure:"cert-generate-csr-email-id,omitempty" yaml:"cert-generate-csr-email-id,omitempty"`
 	// Cert CanGenerateCSR
 	CertCanGenerateCSRKeyType         string `json:"cert-can-generate-csr-key-type,omitempty" mapstructure:"cert-can-generate-csr-key-type,omitempty" yaml:"cert-can-generate-csr-key-type,omitempty"`
