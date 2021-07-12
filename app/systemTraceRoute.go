@@ -2,9 +2,11 @@ package app
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 	"time"
 
@@ -131,7 +133,95 @@ func (a *App) SystemTraceRoute(ctx context.Context, t *Target) error {
 			a.Logger.Errorf("rcv System Traceroute stream failed: %v", err)
 			return err
 		}
-		fmt.Print(prototext.Format(rsp))
+		a.printTracerouteResponse(t.Config.Name, rsp)
 	}
 	return nil
+}
+
+func (a *App) printTracerouteResponse(name string, rsp *system.TracerouteResponse) {
+	switch a.Config.Format {
+	case "json":
+		tRsp := targetResponse{
+			Target:   name,
+			Response: rsp,
+		}
+		b, err := json.MarshalIndent(tRsp, "", "  ")
+		if err != nil {
+			a.Logger.Errorf("failed to marshal traceroute response from %q: %v", name, err)
+			return
+		}
+		fmt.Println(string(b))
+	default:
+		sb := strings.Builder{}
+		if len(a.Config.Address) > 1 {
+			sb.WriteString("[")
+			sb.WriteString(name)
+			sb.WriteString("] ")
+		}
+		// Fist msg
+		if rsp.DestinationAddress != "" {
+			sb.WriteString("Traceroute to ")
+			sb.WriteString(rsp.DestinationName)
+			sb.WriteString(" (")
+			sb.WriteString(rsp.DestinationAddress)
+			sb.WriteString("), ")
+			sb.WriteString(strconv.Itoa(int(rsp.GetHops())))
+			sb.WriteString(" max hops, ")
+			sb.WriteString(strconv.Itoa(int(rsp.GetPacketSize())))
+			sb.WriteString(" byte packet size")
+			fmt.Println(sb.String())
+			return
+		}
+		// rest of messages
+		// Hop index
+		sb.WriteString(strconv.Itoa(int(rsp.Hop)))
+		sb.WriteString(" ")
+		switch rsp.State {
+		case system.TracerouteResponse_DEFAULT:
+			// hostname
+			sb.WriteString(rsp.Name)
+			sb.WriteString(" ")
+			// IP Address
+			sb.WriteString("(")
+			sb.WriteString(rsp.Address)
+			sb.WriteString(") ")
+			// AS path
+			numAsPath := len(rsp.AsPath)
+			if numAsPath > 0 {
+				sb.WriteString("[")
+				for i := range rsp.AsPath {
+					if i+1 == numAsPath {
+						sb.WriteString("AS")
+						sb.WriteString(strconv.Itoa(int(rsp.AsPath[i])))
+						continue
+					}
+					sb.WriteString("AS")
+					sb.WriteString(strconv.Itoa(int(rsp.AsPath[i])))
+					sb.WriteString(" ")
+				}
+				sb.WriteString("] ")
+			}
+			// MPLS
+			if len(rsp.Mpls) > 0 {
+				sb.WriteString(fmt.Sprintf("<MPLS:L=%s,E=%s,S=%s,T=%s> ", rsp.Mpls["Label"], rsp.Mpls["E"], rsp.Mpls["S"], rsp.Mpls["TTL"]))
+			}
+			// RTT
+			sb.WriteString(time.Duration(rsp.Rtt).String())
+		case system.TracerouteResponse_ICMP:
+			sb.WriteString(system.TracerouteResponse_State_name[int32(rsp.State)])
+			sb.WriteString(" ")
+			sb.WriteString("code=")
+			sb.WriteString(strconv.Itoa(int(rsp.GetIcmpCode())))
+		case system.TracerouteResponse_NONE:
+			sb.WriteString("No Response")
+		default:
+			if state, ok := system.TracerouteResponse_State_name[int32(rsp.State)]; ok {
+				sb.WriteString(state)
+			} else {
+				sb.WriteString("unexpected state value ")
+				sb.WriteString(rsp.State.String())
+			}
+		}
+		fmt.Println(sb.String())
+	}
 }
