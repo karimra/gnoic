@@ -1,18 +1,31 @@
 # Cert Rotate
 
-### Description
+## Description
 
 There is sometimes a need to renew existing certificates on a target, the [gNOI Cert Rotate RPC](https://github.com/openconfig/gnoi/blob/master/cert/cert.proto#L93) does exactly that.
 
-Currently `gNOIc` relies on the target to generate the CSR.
+`gNOIc` supports [*target generated CSR*](https://github.com/openconfig/gnoi/blob/master/cert/cert.proto#L108)
+as well as [*client side generated CSR*](https://github.com/openconfig/gnoi/blob/master/cert/cert.proto#L124).
 
-The `rotate` command acts as the client side of the `gNOI Cert Rotate RPC` and effectively renews a previously installed certificate in 5 steps:
+- If the flag `--gen-csr` is present, `gNOIc` generates the certificate locally instead of relying on the Target.
 
-- Start a bi-directional gRPC stream.
-- Request a CSR from the target.
-- Sign the Certificate using the provided CA.
-- Send the certificate to the target.
-- Finalize the procedure with a [FinalizeRequest](https://github.com/openconfig/gnoi/blob/master/cert/cert.proto#L332)
+- In the opposite case, `gNOIc` will check if the target supports CSR generation, using the [CanGenerateCSR RPC](https://github.com/openconfig/gnoi/blob/master/cert/cert.proto#L164).
+If the target can generate a CSR, `gNOIc` will rely on the target to generate a CSR. Otherwise it generates the CSR and certificate locally.
+
+The `--gen-csr` flag allows testing both message flows for a target that supports CSR generation.
+
+The `rotate` command acts as the client side of the `gNOI Cert Rotate RPC` and effectively renews a previously installed certificate in 3 or 4 steps, depending on the CSR generation method:
+
+- Target Generated CSR:
+    - Start a bi-directional gRPC stream.
+    - Request a CSR from the target.
+    - Sign the Certificate using the provided CA.
+    - Load the certificate into the target.
+
+- Client Generated CSR:
+    - Start a bi-directional gRPC stream.
+    - Generate and Sign the Certificate using the provided CA.
+    - Load the certificate into the target.
 
 ### Usage
 
@@ -41,6 +54,14 @@ The `--country` sets the `Country` part of the certificate DN (Distinguished Nam
 #### email-id
 
 The `--email-id` sets the `EmailID` part of the certificate DN (Distinguished Name)
+
+#### gen-csr
+
+The `--gen-csr` flag allows the running the rotate command with a locally generated certificate,
+
+as opposed to using the [GenerateCSR](https://github.com/openconfig/gnoi/blob/master/cert/cert.proto#L190)
+
+to generate a CSR on the Target side.
 
 #### ip-address
 
