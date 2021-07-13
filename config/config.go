@@ -86,6 +86,7 @@ type LocalFlags struct {
 	CertRotateEmailID         string        `json:"cert-rotate-email-id,omitempty" mapstructure:"cert-rotate-email-id,omitempty" yaml:"cert-rotate-email-id,omitempty"`
 	CertRotateValidity        time.Duration `json:"cert-rotate-validity,omitempty" mapstructure:"cert-rotate-validity,omitempty" yaml:"cert-rotate-validity,omitempty"`
 	CertRotatePrintCSR        bool          `json:"cert-rotate-print-csr,omitempty" mapstructure:"cert-rotate-print-csr,omitempty" yaml:"cert-rotate-print-csr,omitempty"`
+	CertRotateGenCSR          bool          `json:"cert-rotate-gen-csr,omitempty" mapstructure:"cert-rotate-gen-csr,omitempty" yaml:"cert-rotate-gen-csr,omitempty"`
 	// Cert Install
 	CertInstallCertificateID   string        `json:"cert-install-certificate-id,omitempty" mapstructure:"cert-install-certificate-id,omitempty" yaml:"cert-install-certificate-id,omitempty"`
 	CertInstallKeyType         string        `json:"cert-install-key-type,omitempty" mapstructure:"cert-install-key-type,omitempty" yaml:"cert-install-key-type,omitempty"`
