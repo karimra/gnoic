@@ -160,7 +160,7 @@ func (a *App) CertRotate(ctx context.Context, t *Target) error {
 		return fmt.Errorf("failed toPEM: %v", err)
 	}
 	a.Logger.Infof("%q rotating certificate id=%s %q", t.Config.Address, a.Config.CertRotateCertificateID, certificate.Subject.String())
-	if a.Config.CertInstallGenCSR {
+	if a.Config.CertRotateGenCSR {
 		err = stream.Send(&cert.RotateCertificateRequest{
 			RotateRequest: &cert.RotateCertificateRequest_LoadCertificate{
 				LoadCertificate: &cert.LoadCertificateRequest{
