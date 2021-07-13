@@ -23,11 +23,9 @@ func (a *App) InitSystemTracerouteFlags(cmd *cobra.Command) {
 	//
 	cmd.Flags().StringVar(&a.Config.SystemTracerouteDestination, "destination", "", "Destination address to traceroute")
 	cmd.Flags().StringVar(&a.Config.SystemTracerouteSource, "source", "", "Source address to traceroute from")
-	cmd.Flags().DurationVar(&a.Config.SystemTracerouteInterval, "interval", time.Second, "Duration between requests")
 	cmd.Flags().DurationVar(&a.Config.SystemTracerouteWait, "wait", 0, "Duration to wait for a response")
 	cmd.Flags().Uint32Var(&a.Config.SystemTracerouteInitialTTL, "initial-ttl", 0, "Initial TTL. (default=1)")
 	cmd.Flags().Int32Var(&a.Config.SystemTracerouteMaxTTL, "max-ttl", 0, "Maximum number of hops. (default=30)")
-	cmd.Flags().Int32Var(&a.Config.SystemTracerouteSize, "size", 0, "Size of request packet. (excluding ICMP header)")
 	cmd.Flags().BoolVar(&a.Config.SystemTracerouteDoNotFragment, "do-not-fragment", false, "Set the do not fragment bit. (IPv4 destinations)")
 	cmd.Flags().BoolVar(&a.Config.SystemTracerouteDoNotResolve, "do-not-resolve", false, "Do not try resolve the address returned")
 	cmd.Flags().StringVarP(&a.Config.SystemTracerouteL3Protocol, "l3protocol", "3", "V4", "Layer3 protocol requested for the traceroute, IPv4 or IPv6")
