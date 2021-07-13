@@ -27,7 +27,7 @@ func (a *App) InitCertInstallFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&a.Config.CertInstallCertificateID, "id", "", "Certificate ID")
 	cmd.Flags().StringVar(&a.Config.CertInstallKeyType, "key-type", "KT_RSA", "Key Type")
 	cmd.Flags().StringVar(&a.Config.CertInstallCertificateType, "cert-type", "CT_X509", "Certificate Type")
-	cmd.Flags().Uint32Var(&a.Config.CertInstallMinKeySize, "min-key-size", 2048, "Minimum Key Size")
+	cmd.Flags().Uint32Var(&a.Config.CertInstallMinKeySize, "min-key-size", 1024, "Minimum Key Size")
 	cmd.Flags().StringVar(&a.Config.CertInstallCommonName, "common-name", "", "CSR common name")
 	cmd.Flags().StringVar(&a.Config.CertInstallCountry, "country", "", "CSR country")
 	cmd.Flags().StringVar(&a.Config.CertInstallState, "state", "", "CSR state")
