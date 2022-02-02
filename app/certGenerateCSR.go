@@ -3,6 +3,8 @@ package app
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/openconfig/gnoi/cert"
 	"github.com/spf13/cobra"
@@ -88,9 +90,11 @@ func (a *App) RunEGenerateCSR(cmd *cobra.Command, args []string) error {
 		}
 		result = append(result, rsp)
 	}
-	err = saveCSRs(result)
-	if err != nil {
-		errs = append(errs, err)
+	for _, rsp := range result {
+		err = a.saveCSR(rsp)
+		if err != nil {
+			errs = append(errs, err)
+		}
 	}
 	return a.handleErrs(errs)
 }
@@ -120,7 +124,26 @@ func (a *App) CertGenerateCSR(ctx context.Context, t *Target) (*cert.GenerateCSR
 	return resp, nil
 }
 
-func saveCSRs(result []*certGenCSRResponse) error {
-	// TODO
+func (a *App) saveCSR(rsp *certGenCSRResponse) error {
+	certId := a.Config.CertGenerateCSRCertificateID
+
+	if rsp.rsp == nil || rsp.rsp.GetCsr().GetCsr() == nil {
+		return fmt.Errorf("%q cert=%q failed to get CSR from response", rsp.TargetName, certId)
+	}
+	_, err := os.Stat(rsp.TargetName)
+	if os.IsNotExist(err) {
+		os.MkdirAll(rsp.TargetName, 0755)
+	}
+	f, err := os.Create(filepath.Join(rsp.TargetName, certId+".csr"))
+	defer f.Close()
+	if err != nil {
+		a.Logger.Warnf("%q cert=%q failed to create file: %v", rsp.TargetName, certId, err)
+		return err
+	}
+	_, err = f.Write(rsp.rsp.GetCsr().GetCsr())
+	if err != nil {
+		a.Logger.Warnf("%q cert=%q failed to write certificate file: %v", rsp.TargetName, certId, err)
+		return err
+	}
 	return nil
 }
