@@ -123,6 +123,7 @@ type LocalFlags struct {
 	// Cert LoadCertificate
 	CertLoadCertificateCertificateID   string   `json:"cert-load-certificate-certificate-id,omitempty" mapstructure:"cert-load-certificate-certificate-id,omitempty" yaml:"cert-load-certificate-certificate-id,omitempty"`
 	CertLoadCertificateCertificateType string   `json:"cert-load-certificate-certificate-type,omitempty" mapstructure:"cert-load-certificate-certificate-type,omitempty" yaml:"cert-load-certificate-certificate-type,omitempty"`
+	CertLoadCertificateCertificate     string   `json:"cert-load-certificate-certificate,omitempty" mapstructure:"cert-load-certificate-certificate,omitempty" yaml:"cert-load-certificate-certificate,omitempty"`
 	CertLoadCertificatePrivateKey      string   `json:"cert-load-certificate-private-key,omitempty" mapstructure:"cert-load-certificate-private-key,omitempty" yaml:"cert-load-certificate-private-key,omitempty"`
 	CertLoadCertificatePublicKey       string   `json:"cert-load-certificate-public-key,omitempty" mapstructure:"cert-load-certificate-public-key,omitempty" yaml:"cert-load-certificate-public-key,omitempty"`
 	CertLoadCertificateCaCertificates  []string `json:"cert-load-certificate-ca-certificates,omitempty" mapstructure:"cert-load-certificate-ca-certificates,omitempty" yaml:"cert-load-certificate-ca-certificates,omitempty"`
