@@ -71,7 +71,7 @@ func (a *App) RunELoadCerts(cmd *cobra.Command, args []string) error {
 	close(responseChan)
 
 	errs := make([]error, 0, numTargets)
-	result := make([]*certLoadCert, 0, numTargets)
+	// result := make([]*certLoadCert, 0, numTargets)
 
 	for rsp := range responseChan {
 		if rsp.Err != nil {
@@ -80,8 +80,9 @@ func (a *App) RunELoadCerts(cmd *cobra.Command, args []string) error {
 			errs = append(errs, wErr)
 			continue
 		}
-		result = append(result, rsp)
+		// result = append(result, rsp)
 	}
+
 	return a.handleErrs(errs)
 }
 
@@ -96,7 +97,7 @@ func (a *App) CertLoadCertificate(ctx context.Context, t *Target) (*cert.LoadCer
 	if a.Config.CertLoadCertificateCertificate != "" {
 		b, err := ioutil.ReadFile(a.Config.CertLoadCertificateCertificate)
 		if err != nil {
-			return nil, fmt.Errorf("Error reading certificate from file %q: %v",
+			return nil, fmt.Errorf("error reading certificate from file %q: %v",
 				a.Config.CertLoadCertificateCertificate, err)
 		}
 		req.Certificate = &cert.Certificate{
@@ -108,7 +109,7 @@ func (a *App) CertLoadCertificate(ctx context.Context, t *Target) (*cert.LoadCer
 	if a.Config.CertLoadCertificatePublicKey != "" {
 		k, err := ioutil.ReadFile(a.Config.CertLoadCertificatePublicKey)
 		if err != nil {
-			return nil, fmt.Errorf("Error reading public key from %q: %v", a.Config.CertLoadCertificatePublicKey, err)
+			return nil, fmt.Errorf("error reading public key from %q: %v", a.Config.CertLoadCertificatePublicKey, err)
 		}
 		req.KeyPair.PublicKey = k
 	}
@@ -116,7 +117,7 @@ func (a *App) CertLoadCertificate(ctx context.Context, t *Target) (*cert.LoadCer
 	if a.Config.CertLoadCertificatePrivateKey != "" {
 		k, err := ioutil.ReadFile(a.Config.CertLoadCertificatePrivateKey)
 		if err != nil {
-			return nil, fmt.Errorf("Error reading private key from %q: %v", a.Config.CertLoadCertificatePrivateKey, err)
+			return nil, fmt.Errorf("error reading private key from %q: %v", a.Config.CertLoadCertificatePrivateKey, err)
 		}
 		req.KeyPair.PrivateKey = k
 	}
@@ -126,7 +127,7 @@ func (a *App) CertLoadCertificate(ctx context.Context, t *Target) (*cert.LoadCer
 		for i, certFilename := range a.Config.CertLoadCertificateCaCertificates {
 			b, err := ioutil.ReadFile(certFilename)
 			if err != nil {
-				return nil, fmt.Errorf("Error reading certificate from file %q: %v",
+				return nil, fmt.Errorf("error reading certificate from file %q: %v",
 					certFilename, err)
 			}
 			req.CaCertificates[i] = &cert.Certificate{

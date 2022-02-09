@@ -135,11 +135,11 @@ func (a *App) saveCSR(rsp *certGenCSRResponse) error {
 		os.MkdirAll(rsp.TargetName, 0755)
 	}
 	f, err := os.Create(filepath.Join(rsp.TargetName, certId+".csr"))
-	defer f.Close()
 	if err != nil {
 		a.Logger.Warnf("%q cert=%q failed to create file: %v", rsp.TargetName, certId, err)
 		return err
 	}
+	defer f.Close()
 	_, err = f.Write(rsp.rsp.GetCsr().GetCsr())
 	if err != nil {
 		a.Logger.Warnf("%q cert=%q failed to write certificate file: %v", rsp.TargetName, certId, err)
