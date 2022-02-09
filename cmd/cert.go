@@ -159,7 +159,7 @@ func newCertCanGenerateCSRCmd() *cobra.Command {
 	return cmd
 }
 
-// newCertGenCSRCmd represents the cert CanGenerateCSR command
+// newCertGenCSRCmd represents the cert create-ca command
 func newCertCreateCaCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create-ca",

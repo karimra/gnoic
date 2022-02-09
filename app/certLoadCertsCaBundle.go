@@ -66,16 +66,16 @@ func (a *App) RunELoadCertsCaBundle(cmd *cobra.Command, args []string) error {
 	close(responseChan)
 
 	errs := make([]error, 0, numTargets)
-	result := make([]*certLoadCABundle, 0, numTargets)
+	// result := make([]*certLoadCABundle, 0, numTargets)
 
 	for rsp := range responseChan {
 		if rsp.Err != nil {
-			wErr := fmt.Errorf("%q Cert LoadCertificate failed: %v", rsp.TargetName, rsp.Err)
+			wErr := fmt.Errorf("%q Cert LoadCA Bundle failed: %v", rsp.TargetName, rsp.Err)
 			a.Logger.Error(wErr)
 			errs = append(errs, wErr)
 			continue
 		}
-		result = append(result, rsp)
+		// result = append(result, rsp)
 	}
 	return a.handleErrs(errs)
 }
@@ -91,7 +91,7 @@ func (a *App) CertLoadCABundle(ctx context.Context, t *Target) (*cert.LoadCertif
 		for i, certFilename := range a.Config.CertLoadCertificateCaBundleCaCertificates {
 			b, err := ioutil.ReadFile(certFilename)
 			if err != nil {
-				return nil, fmt.Errorf("Error reading certificate from file %q: %v",
+				return nil, fmt.Errorf("error reading certificate from file %q: %v",
 					certFilename, err)
 			}
 			req.CaCertificates[i] = &cert.Certificate{
