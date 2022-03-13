@@ -1,4 +1,4 @@
-FROM scratch
+FROM alpine
 
 LABEL maintainer="Karim Radhouani <medkarimrdi@gmail.com>"
 LABEL documentation="https://gnoic.kmrd.dev"
