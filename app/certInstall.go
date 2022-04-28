@@ -198,7 +198,8 @@ func (a *App) CertInstall(ctx context.Context, t *Target) error {
 						Type:        cert.CertificateType(cert.CertificateType_value[a.Config.CertInstallCertificateType]),
 						Certificate: b,
 					},
-					CertificateId: a.Config.CertInstallCertificateID,
+					// do not include certificate_id if a GenerateCSRRequest was previously sent on the stream
+					// CertificateId: a.Config.CertInstallCertificateID,
 				},
 			},
 		})
