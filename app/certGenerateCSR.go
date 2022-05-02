@@ -10,7 +10,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"google.golang.org/grpc/metadata"
-	"google.golang.org/protobuf/encoding/prototext"
 )
 
 type certGenCSRResponse struct {
@@ -101,7 +100,7 @@ func (a *App) RunEGenerateCSR(cmd *cobra.Command, args []string) error {
 
 func (a *App) CertGenerateCSR(ctx context.Context, t *Target) (*cert.GenerateCSRResponse, error) {
 	certClient := cert.NewCertificateManagementClient(t.client)
-	resp, err := certClient.GenerateCSR(ctx, &cert.GenerateCSRRequest{
+	req := &cert.GenerateCSRRequest{
 		CsrParams: &cert.CSRParams{
 			Type:               cert.CertificateType(cert.CertificateType_value[a.Config.CertGenerateCSRCertificateType]),
 			MinKeySize:         a.Config.CertGenerateCSRMinKeySize,
@@ -116,11 +115,15 @@ func (a *App) CertGenerateCSR(ctx context.Context, t *Target) (*cert.GenerateCSR
 			EmailId:            a.Config.CertGenerateCSREmailID,
 		},
 		CertificateId: a.Config.CertGenerateCSRCertificateID,
-	})
+	}
+
+	a.printMsg(t.Config.Name, req)
+	resp, err := certClient.GenerateCSR(ctx, req)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(prototext.Format(resp))
+
+	a.printMsg(t.Config.Name, resp)
 	return resp, nil
 }
 

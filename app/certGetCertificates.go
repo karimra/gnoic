@@ -181,7 +181,13 @@ func (a *App) certTable(rsps []*getCertificatesResponse) (string, error) {
 }
 
 func (a *App) CertGetCertificates(ctx context.Context, t *Target) (*cert.GetCertificatesResponse, error) {
-	return cert.NewCertificateManagementClient(t.client).GetCertificates(ctx, new(cert.GetCertificatesRequest))
+	resp, err := cert.NewCertificateManagementClient(t.client).GetCertificates(ctx, new(cert.GetCertificatesRequest))
+	if err != nil {
+		return nil, err
+	}
+
+	a.printMsg(t.Config.Name, resp)
+	return resp, nil
 }
 
 func (a *App) saveCerts(rsp *getCertificatesResponse) {

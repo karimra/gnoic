@@ -85,16 +85,19 @@ func (a *App) Revoke(ctx context.Context, t *Target) error {
 		}
 	}
 	//
-	rsp, err := certClient.RevokeCertificates(ctx, &cert.RevokeCertificatesRequest{
+	req := &cert.RevokeCertificatesRequest{
 		CertificateId: certificatesID,
-	})
+	}
+	a.printMsg(t.Config.Name, req)
+	resp, err := certClient.RevokeCertificates(ctx, req)
 	if err != nil {
 		return err
 	}
-	for _, revokeErr := range rsp.CertificateRevocationError {
+	a.printMsg(t.Config.Name, resp)
+	for _, revokeErr := range resp.CertificateRevocationError {
 		a.Logger.Errorf("%q certificateID=%s revoke failed: %v\n", t.Config.Address, revokeErr.GetCertificateId(), revokeErr.GetErrorMessage())
 	}
-	for _, revoked := range rsp.RevokedCertificateId {
+	for _, revoked := range resp.RevokedCertificateId {
 		a.Logger.Infof("%q certificateID=%s revoked successfully\n", t.Config.Address, revoked)
 	}
 

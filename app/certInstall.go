@@ -300,7 +300,7 @@ func (a *App) createRemoteCSRInstall(stream cert.CertificateManagement_InstallCl
 	if ipAddr == "" {
 		ipAddr = t.Config.ResolvedIP
 	}
-	err := stream.Send(&cert.InstallCertificateRequest{
+	req := &cert.InstallCertificateRequest{
 		InstallRequest: &cert.InstallCertificateRequest_GenerateCsr{
 			GenerateCsr: &cert.GenerateCSRRequest{
 				CsrParams: &cert.CSRParams{
@@ -319,7 +319,11 @@ func (a *App) createRemoteCSRInstall(stream cert.CertificateManagement_InstallCl
 				CertificateId: a.Config.CertInstallCertificateID,
 			},
 		},
-	})
+	}
+
+	a.printMsg(t.Config.Name, req)
+
+	err := stream.Send(req)
 	if err != nil {
 		return nil, fmt.Errorf("%q failed send Install RPC: GenCSR: %v", err, t.Config.Address)
 	}
@@ -330,10 +334,12 @@ func (a *App) createRemoteCSRInstall(stream cert.CertificateManagement_InstallCl
 	if resp == nil {
 		return nil, fmt.Errorf("%q returned a <nil> CSR response", t.Config.Address)
 	}
+	if !a.Config.CertInstallPrintCSR {
+		a.printMsg(t.Config.Name, resp)
+	}
 	if a.Config.CertInstallPrintCSR {
 		fmt.Printf("%q genCSR response:\n %s\n", t.Config.Address, prototext.Format(resp))
 	}
-	a.Logger.Debugf("%q genCSR response:\n %s\n", t.Config.Address, prototext.Format(resp))
 
 	p, rest := pem.Decode(resp.GetGeneratedCsr().GetCsr().GetCsr())
 	if p == nil || len(rest) > 0 {
