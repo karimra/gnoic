@@ -9,7 +9,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"google.golang.org/grpc/metadata"
-	"google.golang.org/protobuf/encoding/prototext"
 )
 
 type certLoadCABundle struct {
@@ -84,7 +83,7 @@ func (a *App) CertLoadCABundle(ctx context.Context, t *Target) (*cert.LoadCertif
 	var err error
 
 	certClient := cert.NewCertificateManagementClient(t.client)
-	req := cert.LoadCertificateAuthorityBundleRequest{}
+	req := &cert.LoadCertificateAuthorityBundleRequest{}
 
 	if n := len(a.Config.CertLoadCertificateCaBundleCaCertificates); n != 0 {
 		req.CaCertificates = make([]*cert.Certificate, n)
@@ -100,11 +99,11 @@ func (a *App) CertLoadCABundle(ctx context.Context, t *Target) (*cert.LoadCertif
 			}
 		}
 	}
-
-	resp, err := certClient.LoadCertificateAuthorityBundle(ctx, &req)
+	a.printMsg(t.Config.Name, req)
+	resp, err := certClient.LoadCertificateAuthorityBundle(ctx, req)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(prototext.Format(resp))
+	a.printMsg(t.Config.Name, resp)
 	return resp, nil
 }

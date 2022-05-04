@@ -88,15 +88,20 @@ func (a *App) RunECertCanGenerateCSR(cmd *cobra.Command, args []string) error {
 
 func (a *App) CertCanGenerateCSR(ctx context.Context, t *Target) (bool, error) {
 	certClient := cert.NewCertificateManagementClient(t.client)
-	resp, err := certClient.CanGenerateCSR(ctx,
-		&cert.CanGenerateCSRRequest{
-			KeyType:         cert.KeyType(cert.KeyType_value[a.Config.CertCanGenerateCSRKeyType]),
-			CertificateType: cert.CertificateType(cert.CertificateType_value[a.Config.CertCanGenerateCSRCertificateType]),
-			KeySize:         a.Config.CertCanGenerateCSRKeySize,
-		})
+	req := &cert.CanGenerateCSRRequest{
+		KeyType:         cert.KeyType(cert.KeyType_value[a.Config.CertCanGenerateCSRKeyType]),
+		CertificateType: cert.CertificateType(cert.CertificateType_value[a.Config.CertCanGenerateCSRCertificateType]),
+		KeySize:         a.Config.CertCanGenerateCSRKeySize,
+	}
+
+	a.printMsg(t.Config.Name, req)
+
+	resp, err := certClient.CanGenerateCSR(ctx, req)
 	if err != nil {
 		return false, err
 	}
+
+	a.printMsg(t.Config.Name, resp)
 	a.Logger.Infof("%q key-type=%s, cert-type=%s, key-size=%d: can_generate: %v",
 		t.Config.Address,
 		a.Config.CertCanGenerateCSRKeyType,

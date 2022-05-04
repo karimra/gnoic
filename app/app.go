@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"os"
 	"sync"
 	"time"
 
@@ -13,6 +14,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/encoding/gzip"
 	"google.golang.org/grpc/grpclog"
+	"google.golang.org/protobuf/encoding/prototext"
+	"google.golang.org/protobuf/proto"
 )
 
 type App struct {
@@ -25,6 +28,8 @@ type App struct {
 	m       *sync.Mutex
 	Targets map[string]*Target
 	Logger  *log.Entry
+	// print mutex
+	pm *sync.Mutex
 }
 
 func New() *App {
@@ -39,6 +44,7 @@ func New() *App {
 		m:       new(sync.Mutex),
 		Targets: make(map[string]*Target),
 		Logger:  log.NewEntry(logger),
+		pm:      new(sync.Mutex),
 	}
 	return a
 }
@@ -62,7 +68,7 @@ func (a *App) InitGlobalFlags() {
 	a.RootCmd.PersistentFlags().StringVarP(&a.Config.GlobalFlags.Format, "format", "", "text", "output format, one of: text, json")
 	// a.RootCmd.PersistentFlags().StringVarP(&a.Config.GlobalFlags.LogFile, "log-file", "", "", "log file path")
 	// a.RootCmd.PersistentFlags().BoolVarP(&a.Config.GlobalFlags.Log, "log", "", false, "write log messages to stderr")
-	a.RootCmd.PersistentFlags().BoolVarP(&a.Config.GlobalFlags.PrintRequest, "print-request", "", false, "print request as well as the response(s)")
+	a.RootCmd.PersistentFlags().BoolVarP(&a.Config.GlobalFlags.PrintProto, "print-proto", "", false, "print request(s)/responses(s) in prototext format")
 	// a.RootCmd.PersistentFlags().DurationVarP(&a.Config.GlobalFlags.Retry, "retry", "", defaultRetryTimer, "retry timer for RPCs")
 	a.RootCmd.PersistentFlags().StringVarP(&a.Config.GlobalFlags.TLSMinVersion, "tls-min-version", "", "", fmt.Sprintf("minimum TLS supported version, one of %q", tlsVersions))
 	a.RootCmd.PersistentFlags().StringVarP(&a.Config.GlobalFlags.TLSMaxVersion, "tls-max-version", "", "", fmt.Sprintf("maximum TLS supported version, one of %q", tlsVersions))
@@ -109,4 +115,16 @@ func (a *App) createBaseDialOpts() []grpc.DialOption {
 		opts = append(opts, grpc.WithDefaultCallOptions(grpc.UseCompressor(gzip.Name)))
 	}
 	return opts
+}
+
+func (a *App) printMsg(targetName string, m proto.Message) {
+	if !a.Config.PrintProto {
+		return
+	}
+	a.pm.Lock()
+	defer a.pm.Unlock()
+	fmt.Fprintf(os.Stdout, "%q:\n%s\n%s\n",
+		targetName,
+		m.ProtoReflect().Descriptor().FullName(),
+		prototext.Format(m))
 }

@@ -9,7 +9,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"google.golang.org/grpc/metadata"
-	"google.golang.org/protobuf/encoding/prototext"
 )
 
 type certLoadCert struct {
@@ -90,7 +89,7 @@ func (a *App) CertLoadCertificate(ctx context.Context, t *Target) (*cert.LoadCer
 	var err error
 
 	certClient := cert.NewCertificateManagementClient(t.client)
-	req := cert.LoadCertificateRequest{
+	req := &cert.LoadCertificateRequest{
 		CertificateId: a.Config.CertLoadCertificateCertificateID,
 	}
 
@@ -137,10 +136,13 @@ func (a *App) CertLoadCertificate(ctx context.Context, t *Target) (*cert.LoadCer
 		}
 	}
 
-	resp, err := certClient.LoadCertificate(ctx, &req)
+	a.printMsg(t.Config.Name, req)
+
+	resp, err := certClient.LoadCertificate(ctx, req)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(prototext.Format(resp))
+
+	a.printMsg(t.Config.Name, resp)
 	return resp, nil
 }

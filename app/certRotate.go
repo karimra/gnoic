@@ -11,6 +11,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"time"
 
@@ -161,7 +162,7 @@ func (a *App) CertRotate(ctx context.Context, t *Target) error {
 	}
 	a.Logger.Infof("%q rotating certificate id=%s %q", t.Config.Address, a.Config.CertRotateCertificateID, certificate.Subject.String())
 	if a.Config.CertRotateGenCSR {
-		err = stream.Send(&cert.RotateCertificateRequest{
+		req := &cert.RotateCertificateRequest{
 			RotateRequest: &cert.RotateCertificateRequest_LoadCertificate{
 				LoadCertificate: &cert.LoadCertificateRequest{
 					Certificate: &cert.Certificate{
@@ -172,9 +173,11 @@ func (a *App) CertRotate(ctx context.Context, t *Target) error {
 					CertificateId: a.Config.CertRotateCertificateID,
 				},
 			},
-		})
+		}
+		a.printMsg(t.Config.Name, req)
+		err = stream.Send(req)
 	} else {
-		err = stream.Send(&cert.RotateCertificateRequest{
+		req := &cert.RotateCertificateRequest{
 			RotateRequest: &cert.RotateCertificateRequest_LoadCertificate{
 				LoadCertificate: &cert.LoadCertificateRequest{
 					Certificate: &cert.Certificate{
@@ -184,23 +187,33 @@ func (a *App) CertRotate(ctx context.Context, t *Target) error {
 					CertificateId: a.Config.CertRotateCertificateID,
 				},
 			},
-		})
+		}
+		a.printMsg(t.Config.Name, req)
+		err = stream.Send(req)
 	}
 	if err != nil {
 		return fmt.Errorf("%q failed sending RotateRequest: %v", t.Config.Address, err)
 	}
-	_, err = stream.Recv()
+	resp, err := stream.Recv()
 	if err != nil {
 		return fmt.Errorf("%q RotateRequest LoadCertificate RPC failed: %v", t.Config.Address, err)
 	}
-	err = stream.Send(&cert.RotateCertificateRequest{
+	a.printMsg(t.Config.Name, resp)
+	finalizeReq := &cert.RotateCertificateRequest{
 		RotateRequest: &cert.RotateCertificateRequest_FinalizeRotation{
 			FinalizeRotation: &cert.FinalizeRequest{},
 		},
-	})
+	}
+	a.printMsg(t.Config.Name, finalizeReq)
+	err = stream.Send(finalizeReq)
 	if err != nil {
 		return fmt.Errorf("%q RotateRequest FinalizeRequest RPC failed: %v", t.Config.Address, err)
 	}
+	resp, err = stream.Recv()
+	if err != nil && !errors.Is(err, io.EOF) {
+		return err
+	}
+	a.printMsg(t.Config.Name, resp)
 	a.Logger.Infof("%q Rotate RPC successful", t.Config.Address)
 	return nil
 }
@@ -290,7 +303,7 @@ func (a *App) createRemoteCSRRotate(stream cert.CertificateManagement_RotateClie
 	if ipAddr == "" {
 		ipAddr = t.Config.ResolvedIP
 	}
-	err := stream.Send(&cert.RotateCertificateRequest{
+	req := &cert.RotateCertificateRequest{
 		RotateRequest: &cert.RotateCertificateRequest_GenerateCsr{
 			GenerateCsr: &cert.GenerateCSRRequest{
 				CsrParams: &cert.CSRParams{
@@ -309,7 +322,9 @@ func (a *App) createRemoteCSRRotate(stream cert.CertificateManagement_RotateClie
 				CertificateId: a.Config.CertRotateCertificateID,
 			},
 		},
-	})
+	}
+	a.printMsg(t.Config.Name, req)
+	err := stream.Send(req)
 	if err != nil {
 		return nil, fmt.Errorf("%q failed send Rotate RPC: GenCSR: %v", err, t.Config.Address)
 	}
@@ -320,10 +335,10 @@ func (a *App) createRemoteCSRRotate(stream cert.CertificateManagement_RotateClie
 	if resp == nil {
 		return nil, fmt.Errorf("%q returned a <nil> CSR response", t.Config.Address)
 	}
+	a.printMsg(t.Config.Name, resp)
 	if a.Config.CertRotatePrintCSR {
 		fmt.Printf("%q genCSR response:\n %s\n", t.Config.Address, prototext.Format(resp))
 	}
-	a.Logger.Debugf("%q genCSR response:\n %s\n", t.Config.Address, prototext.Format(resp))
 
 	p, rest := pem.Decode(resp.GetGeneratedCsr().GetCsr().GetCsr())
 	if p == nil || len(rest) > 0 {
