@@ -153,6 +153,10 @@ type LocalFlags struct {
 	FilePutHashMethod  string   `json:"file-put-hash-method,omitempty" mapstructure:"file-put-hash-method,omitempty" yaml:"file-put-hash-method,omitempty"`
 	// File Remove
 	FileRemovePath []string `json:"file-remove-path,omitempty" mapstructure:"file-remove-path,omitempty" yaml:"file-remove-path,omitempty"`
+	// File Transfer
+	FileTransferRemote        string `json:"file-transfer-remote,omitempty" mapstructure:"file-transfer-remote,omitempty" yaml:"file-transfer-remote,omitempty"`
+	FileTransferLocal         string `json:"file-transfer-local,omitempty" mapstructure:"file-transfer-local,omitempty" yaml:"file-transfer-local,omitempty"`
+	FileTransferSourceAddress string `json:"file-transfer-source-address,omitempty" mapstructure:"file-transfer-source-address,omitempty" yaml:"file-transfer-source-address,omitempty"`
 	// System
 	// System Ping
 	SystemPingDestination   string        `json:"system-ping-destination,omitempty" mapstructure:"system-ping-destination,omitempty" yaml:"system-ping-destination,omitempty"`

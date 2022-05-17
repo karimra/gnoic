@@ -1,6 +1,10 @@
 package cmd
 
-import "github.com/spf13/cobra"
+import (
+	"errors"
+
+	"github.com/spf13/cobra"
+)
 
 // newFileCmd represents the file command
 func newFileCmd() *cobra.Command {
@@ -35,8 +39,15 @@ func newFileTransferCmd() *cobra.Command {
 		Use:     "transfer",
 		Short:   "run file Transfer gNOI RPC",
 		Aliases: []string{"trans", "tr"},
-		PreRun: func(cmd *cobra.Command, args []string) {
+		PreRunE: func(cmd *cobra.Command, args []string) error {
 			gApp.Config.SetLocalFlagsFromFile(cmd)
+			if gApp.Config.FileTransferLocal == "" {
+				return errors.New("missing local file path, set with --local")
+			}
+			if gApp.Config.FileTransferRemote == "" {
+				return errors.New("missing remote file path, set with --remote")
+			}
+			return nil
 		},
 		RunE:         gApp.RunEFileTransfer,
 		SilenceUsage: true,
