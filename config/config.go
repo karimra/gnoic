@@ -200,6 +200,8 @@ type LocalFlags struct {
 	SystemSetPackageRemoteFile  string `json:"system-set-package-remote-file,omitempty" mapstructure:"system-set-package-remote-file,omitempty" yaml:"system-set-package-remote-file,omitempty"`
 	SystemSetPackageCredentials string `json:"system-set-package-credentials,omitempty" mapstructure:"system-set-package-credentials,omitempty" yaml:"system-set-package-credentials,omitempty"`
 	SystemSetPackageChunkSize   uint64 `json:"system-set-package-chunk-size,omitempty" mapstructure:"system-set-package-chunk-size,omitempty" yaml:"system-set-package-chunk-size,omitempty"`
+	//
+	HealthzGetPath string `json:"healthz-get-path,omitempty" mapstructure:"healthz-get-path,omitempty" yaml:"healthz-get-path,omitempty"`
 }
 
 func New() *Config {
