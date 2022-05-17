@@ -29,167 +29,6 @@ func apply(m proto.Message, opts ...CertOption) error {
 	return nil
 }
 
-func NewCertCanGenerateCSRRequest(opts ...CertOption) (*cert.CanGenerateCSRRequest, error) {
-	m := new(cert.CanGenerateCSRRequest)
-	err := apply(m, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func NewCertCanGenerateCSRResponse(opts ...CertOption) (*cert.CanGenerateCSRResponse, error) {
-	m := new(cert.CanGenerateCSRResponse)
-	err := apply(m, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func NewCertInstallRequest(opts ...CertOption) (*cert.InstallCertificateRequest, error) {
-	m := new(cert.InstallCertificateRequest)
-	err := apply(m, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func NewCertInstallResponse(opts ...CertOption) (*cert.InstallCertificateResponse, error) {
-	m := new(cert.InstallCertificateResponse)
-	err := apply(m, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func NewCertRotateRequest(opts ...CertOption) (*cert.RotateCertificateRequest, error) {
-	m := new(cert.RotateCertificateRequest)
-	err := apply(m, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func NewCertRotateResponse(opts ...CertOption) (*cert.RotateCertificateResponse, error) {
-	m := new(cert.RotateCertificateResponse)
-	err := apply(m, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func NewCertGenerateCSRRequest(opts ...CertOption) (*cert.GenerateCSRRequest, error) {
-	m := new(cert.GenerateCSRRequest)
-	err := apply(m, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func NewCertGenerateCSRResponse(opts ...CertOption) (*cert.GenerateCSRResponse, error) {
-	m := new(cert.GenerateCSRResponse)
-	err := apply(m, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func NewCertLoadCertificateRequest(opts ...CertOption) (*cert.LoadCertificateRequest, error) {
-	m := new(cert.LoadCertificateRequest)
-	err := apply(m, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func NewCertLoadCertificateResponse(opts ...CertOption) (*cert.LoadCertificateResponse, error) {
-	m := new(cert.LoadCertificateResponse)
-	err := apply(m, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func NewCertLoadCertificateAuthorityBundleRequest(opts ...CertOption) (*cert.LoadCertificateAuthorityBundleRequest, error) {
-	m := new(cert.LoadCertificateAuthorityBundleRequest)
-	err := apply(m, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func NewCertLoadCertificateAuthorityBundleResponse(opts ...CertOption) (*cert.LoadCertificateAuthorityBundleResponse, error) {
-	m := new(cert.LoadCertificateAuthorityBundleResponse)
-	err := apply(m, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func NewCertGetCertificatesRequest(opts ...CertOption) (*cert.GetCertificatesRequest, error) {
-	m := new(cert.GetCertificatesRequest)
-	err := apply(m, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func NewCertGetCertificatesResponse(opts ...CertOption) (*cert.GetCertificatesResponse, error) {
-	m := new(cert.GetCertificatesResponse)
-	err := apply(m, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func NewCertRevokeCertificatesRequest(opts ...CertOption) (*cert.RevokeCertificatesRequest, error) {
-	m := new(cert.RevokeCertificatesRequest)
-	err := apply(m, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func NewCertRevokeCertificatesResponse(opts ...CertOption) (*cert.RevokeCertificatesResponse, error) {
-	m := new(cert.RevokeCertificatesResponse)
-	err := apply(m, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func KeyType(kt string) func(msg proto.Message) error {
-	return func(msg proto.Message) error {
-		if msg == nil {
-			return ErrInvalidMsgType
-		}
-		switch msg := msg.ProtoReflect().Interface().(type) {
-		case *cert.CanGenerateCSRRequest:
-			ktv, ok := cert.KeyType_value[strings.ToUpper(kt)]
-			if !ok {
-				return ErrInvalidValue
-			}
-			msg.KeyType = cert.KeyType(ktv)
-		}
-		return nil
-	}
-}
-
 func CertificateType(ct string) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
@@ -213,6 +52,161 @@ func CertificateType(ct string) func(msg proto.Message) error {
 	}
 }
 
+func CertificateInfo(opts ...CertOption) func(msg proto.Message) error {
+	return func(msg proto.Message) error {
+		if msg == nil {
+			return ErrInvalidMsgType
+		}
+		switch msg := msg.ProtoReflect().Interface().(type) {
+		case *cert.GetCertificatesResponse:
+			m := new(cert.CertificateInfo)
+			err := apply(m, opts...)
+			if err != nil {
+				return err
+			}
+			if len(msg.CertificateInfo) == 0 {
+				msg.CertificateInfo = make([]*cert.CertificateInfo, 0, 1)
+			}
+			msg.CertificateInfo = append(msg.CertificateInfo, m)
+		}
+		return nil
+	}
+}
+
+func Certificate(opts ...CertOption) func(msg proto.Message) error {
+	return func(msg proto.Message) error {
+		if msg == nil {
+			return ErrInvalidMsgType
+		}
+		switch msg := msg.ProtoReflect().Interface().(type) {
+		case *cert.LoadCertificateRequest:
+			m := new(cert.Certificate)
+			err := apply(m, opts...)
+			if err != nil {
+				return err
+			}
+			msg.Certificate = m
+		case *cert.CertificateInfo:
+			m := new(cert.Certificate)
+			err := apply(m, opts...)
+			if err != nil {
+				return err
+			}
+			msg.Certificate = m
+		}
+		return nil
+	}
+}
+
+func CertificateID(id string) func(msg proto.Message) error {
+	return func(msg proto.Message) error {
+		if msg == nil {
+			return ErrInvalidMsgType
+		}
+		switch msg := msg.ProtoReflect().Interface().(type) {
+		case *cert.GenerateCSRRequest:
+			msg.CertificateId = id
+		case *cert.LoadCertificateRequest:
+			msg.CertificateId = id
+		case *cert.CertificateInfo:
+			msg.CertificateId = id
+		case *cert.RevokeCertificatesRequest:
+			if msg.CertificateId == nil {
+				msg.CertificateId = make([]string, 0, 1)
+			}
+			msg.CertificateId = append(msg.CertificateId, id)
+		case *cert.RevokeCertificatesResponse:
+			if msg.RevokedCertificateId == nil {
+				msg.RevokedCertificateId = make([]string, 0, 1)
+			}
+			msg.RevokedCertificateId = append(msg.RevokedCertificateId, id)
+		case *cert.CertificateRevocationError:
+			msg.CertificateId = id
+		}
+		return nil
+	}
+}
+
+func CaCertificate(opts ...CertOption) func(msg proto.Message) error {
+	return func(msg proto.Message) error {
+		if msg == nil {
+			return ErrInvalidMsgType
+		}
+		switch msg := msg.ProtoReflect().Interface().(type) {
+		case *cert.LoadCertificateRequest:
+			m := new(cert.Certificate)
+			err := apply(m, opts...)
+			if err != nil {
+				return err
+			}
+			if len(msg.CaCertificates) == 0 {
+				msg.CaCertificates = make([]*cert.Certificate, 0, 1)
+			}
+			msg.CaCertificates = append(msg.CaCertificates, m)
+		case *cert.LoadCertificateAuthorityBundleRequest:
+			m := new(cert.Certificate)
+			err := apply(m, opts...)
+			if err != nil {
+				return err
+			}
+			if len(msg.CaCertificates) == 0 {
+				msg.CaCertificates = make([]*cert.Certificate, 0)
+			}
+			msg.CaCertificates = append(msg.CaCertificates, m)
+		}
+		return nil
+	}
+}
+
+func ErrorMsg(s string) func(msg proto.Message) error {
+	return func(msg proto.Message) error {
+		if msg == nil {
+			return ErrInvalidMsgType
+		}
+		switch msg := msg.ProtoReflect().Interface().(type) {
+		case *cert.CertificateRevocationError:
+			msg.ErrorMessage = s
+		}
+		return nil
+	}
+}
+
+func CSRParams(opts ...CertOption) func(msg proto.Message) error {
+	return func(msg proto.Message) error {
+		if msg == nil {
+			return ErrInvalidMsgType
+		}
+		switch msg := msg.ProtoReflect().Interface().(type) {
+		case *cert.GenerateCSRRequest:
+			m := new(cert.CSRParams)
+			err := apply(m, opts...)
+			if err != nil {
+				return err
+			}
+			msg.CsrParams = m
+		}
+		return nil
+	}
+}
+
+func CSR(opts ...CertOption) func(msg proto.Message) error {
+	return func(msg proto.Message) error {
+		if msg == nil {
+			return ErrInvalidMsgType
+		}
+		switch msg := msg.ProtoReflect().Interface().(type) {
+		case *cert.GenerateCSRResponse:
+			m := new(cert.CSR)
+			err := apply(m, opts...)
+			if err != nil {
+				return err
+			}
+			msg.Csr = m
+		}
+		return nil
+	}
+}
+
 func KeySize(ks uint32) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
@@ -230,4 +224,157 @@ func KeySize(ks uint32) func(msg proto.Message) error {
 
 func MinKeySize(ks uint32) func(msg proto.Message) error {
 	return KeySize(ks)
+}
+
+func KeyType(kt string) func(msg proto.Message) error {
+	return func(msg proto.Message) error {
+		if msg == nil {
+			return ErrInvalidMsgType
+		}
+		switch msg := msg.ProtoReflect().Interface().(type) {
+		case *cert.CanGenerateCSRRequest:
+			ktv, ok := cert.KeyType_value[strings.ToUpper(kt)]
+			if !ok {
+				return ErrInvalidValue
+			}
+			msg.KeyType = cert.KeyType(ktv)
+		}
+		return nil
+	}
+}
+
+func CommonName(cn string) func(msg proto.Message) error {
+	return func(msg proto.Message) error {
+		if msg == nil {
+			return ErrInvalidMsgType
+		}
+		switch msg := msg.ProtoReflect().Interface().(type) {
+		case *cert.CSRParams:
+			msg.CommonName = cn
+		}
+		return nil
+	}
+}
+
+func Country(c string) func(msg proto.Message) error {
+	return func(msg proto.Message) error {
+		if msg == nil {
+			return ErrInvalidMsgType
+		}
+		switch msg := msg.ProtoReflect().Interface().(type) {
+		case *cert.CSRParams:
+			msg.Country = c
+		}
+		return nil
+	}
+}
+
+func State(s string) func(msg proto.Message) error {
+	return func(msg proto.Message) error {
+		if msg == nil {
+			return ErrInvalidMsgType
+		}
+		switch msg := msg.ProtoReflect().Interface().(type) {
+		case *cert.CSRParams:
+			msg.State = s
+		}
+		return nil
+	}
+}
+
+func City(s string) func(msg proto.Message) error {
+	return func(msg proto.Message) error {
+		if msg == nil {
+			return ErrInvalidMsgType
+		}
+		switch msg := msg.ProtoReflect().Interface().(type) {
+		case *cert.CSRParams:
+			msg.City = s
+		}
+		return nil
+	}
+}
+
+func Org(s string) func(msg proto.Message) error {
+	return func(msg proto.Message) error {
+		if msg == nil {
+			return ErrInvalidMsgType
+		}
+		switch msg := msg.ProtoReflect().Interface().(type) {
+		case *cert.CSRParams:
+			msg.Organization = s
+		}
+		return nil
+	}
+}
+
+func OrgUnit(s string) func(msg proto.Message) error {
+	return func(msg proto.Message) error {
+		if msg == nil {
+			return ErrInvalidMsgType
+		}
+		switch msg := msg.ProtoReflect().Interface().(type) {
+		case *cert.CSRParams:
+			msg.OrganizationalUnit = s
+		}
+		return nil
+	}
+}
+
+func IPAddress(ipAddr string) func(msg proto.Message) error {
+	return func(msg proto.Message) error {
+		if msg == nil {
+			return ErrInvalidMsgType
+		}
+		switch msg := msg.ProtoReflect().Interface().(type) {
+		case *cert.CSRParams:
+			msg.IpAddress = ipAddr
+		}
+		return nil
+	}
+}
+
+func EmailID(s string) func(msg proto.Message) error {
+	return func(msg proto.Message) error {
+		if msg == nil {
+			return ErrInvalidMsgType
+		}
+		switch msg := msg.ProtoReflect().Interface().(type) {
+		case *cert.CSRParams:
+			msg.EmailId = s
+		}
+		return nil
+	}
+}
+
+func Endpoint(typ cert.Endpoint_Type, endp string) func(msg proto.Message) error {
+	return func(msg proto.Message) error {
+		if msg == nil {
+			return ErrInvalidMsgType
+		}
+		switch msg := msg.ProtoReflect().Interface().(type) {
+		case *cert.CertificateInfo:
+			if msg.Endpoints == nil {
+				msg.Endpoints = make([]*cert.Endpoint, 0, 1)
+			}
+			msg.Endpoints = append(msg.Endpoints, &cert.Endpoint{
+				Type:     typ,
+				Endpoint: endp,
+			})
+		}
+		return nil
+	}
+}
+
+func ModificationTime(mt int64) func(msg proto.Message) error {
+	return func(msg proto.Message) error {
+		if msg == nil {
+			return ErrInvalidMsgType
+		}
+		switch msg := msg.ProtoReflect().Interface().(type) {
+		case *cert.CertificateInfo:
+			msg.ModificationTime = mt
+		}
+		return nil
+	}
 }
