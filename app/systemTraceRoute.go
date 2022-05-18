@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/openconfig/gnoi/system"
-	"github.com/openconfig/gnoi/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"google.golang.org/grpc/metadata"
@@ -28,7 +27,7 @@ func (a *App) InitSystemTracerouteFlags(cmd *cobra.Command) {
 	cmd.Flags().Int32Var(&a.Config.SystemTracerouteMaxTTL, "max-ttl", 0, "Maximum number of hops. (default=30)")
 	cmd.Flags().BoolVar(&a.Config.SystemTracerouteDoNotFragment, "do-not-fragment", false, "Set the do not fragment bit. (IPv4 destinations)")
 	cmd.Flags().BoolVar(&a.Config.SystemTracerouteDoNotResolve, "do-not-resolve", false, "Do not try resolve the address returned")
-	cmd.Flags().StringVarP(&a.Config.SystemTracerouteL3Protocol, "l3protocol", "3", "V4", "Layer3 protocol requested for the traceroute, IPv4 or IPv6")
+	cmd.Flags().StringVarP(&a.Config.SystemTracerouteL3Protocol, "l3protocol", "3", "", "Layer3 protocol requested for the traceroute, v4 or v6, defaults to UNSPECIFIED")
 	cmd.Flags().StringVarP(&a.Config.SystemTracerouteL4Protocol, "l4protocol", "4", "ICMP", "Layer4 protocol requested for the traceroute, ICMP, UDP or TCP")
 	//
 	cmd.Flags().VisitAll(func(flag *pflag.Flag) {
@@ -40,9 +39,8 @@ func (a *App) PreRunESystemTraceRoute(cmd *cobra.Command, args []string) error {
 	if a.Config.SystemTracerouteDestination == "" {
 		return errors.New("flag --destination is required")
 	}
-	a.Config.SystemTracerouteL3Protocol = "IP" + strings.ToUpper(a.Config.SystemTracerouteL3Protocol)
-	switch a.Config.SystemTracerouteL3Protocol {
-	case "IPV4", "IPV6":
+	switch strings.ToUpper(a.Config.SystemTracerouteL3Protocol) {
+	case "V4", "V6", "":
 	default:
 		return fmt.Errorf("unknown L3 protocol %q", a.Config.SystemTracerouteL3Protocol)
 	}
@@ -112,10 +110,11 @@ func (a *App) SystemTraceRoute(ctx context.Context, t *Target) error {
 		Wait:          a.Config.SystemTracerouteWait.Nanoseconds(),
 		DoNotFragment: a.Config.SystemTracerouteDoNotFragment,
 		DoNotResolve:  a.Config.SystemTracerouteDoNotResolve,
-		L3Protocol:    types.L3Protocol(types.L3Protocol_value[a.Config.SystemTracerouteL3Protocol]),
+		L3Protocol:    getL3Protocol(a.Config.SystemTracerouteL3Protocol),
 		L4Protocol:    system.TracerouteRequest_L4Protocol(system.TracerouteRequest_L4Protocol_value[a.Config.SystemTracerouteL4Protocol]),
 	}
 	a.Logger.Debug(prototext.Format(req))
+	a.printMsg(t.Config.Name, req)
 	stream, err := systemClient.Traceroute(ctx, req)
 	if err != nil {
 		a.Logger.Errorf("creating System Traceroute stream failed: %v", err)
@@ -131,6 +130,8 @@ func (a *App) SystemTraceRoute(ctx context.Context, t *Target) error {
 			a.Logger.Errorf("rcv System Traceroute stream failed: %v", err)
 			return err
 		}
+		a.Logger.Debugf("traceroute response %s:\n%s", t.Config.Name, prototext.Format(rsp))
+		a.printMsg(t.Config.Name, req)
 		a.printTracerouteResponse(t.Config.Name, rsp)
 	}
 	return nil

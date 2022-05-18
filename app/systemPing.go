@@ -34,7 +34,7 @@ func (a *App) InitSystemPingFlags(cmd *cobra.Command) {
 	cmd.Flags().Int32Var(&a.Config.SystemPingSize, "size", 0, "Size of request packet. (excluding ICMP header)")
 	cmd.Flags().BoolVar(&a.Config.SystemPingDoNotFragment, "do-not-fragment", false, "Set the do not fragment bit. (IPv4 destinations)")
 	cmd.Flags().BoolVar(&a.Config.SystemPingDoNotResolve, "do-not-resolve", false, "Do not try resolve the address returned")
-	cmd.Flags().StringVar(&a.Config.SystemPingProtocol, "protocol", "V4", "Layer3 protocol requested for the ping, V4 or V6")
+	cmd.Flags().StringVar(&a.Config.SystemPingProtocol, "protocol", "", "Layer3 protocol requested for the ping, V4 or V6, defaults to UNSPECIFIED")
 	//
 	cmd.Flags().VisitAll(func(flag *pflag.Flag) {
 		a.Config.FileConfig.BindPFlag(fmt.Sprintf("%s-%s", cmd.Name(), flag.Name), flag)
@@ -46,9 +46,8 @@ func (a *App) PreRunESystemPing(cmd *cobra.Command, args []string) error {
 	if a.Config.SystemPingDestination == "" {
 		return errors.New("flag --destination is required")
 	}
-	a.Config.SystemPingProtocol = "IP" + strings.ToUpper(a.Config.SystemPingProtocol)
-	switch a.Config.SystemPingProtocol {
-	case "IPV4", "IPV6":
+	switch strings.ToUpper(a.Config.SystemPingProtocol) {
+	case "V4", "V6", "":
 	default:
 		return fmt.Errorf("unknown protocol %s", a.Config.SystemPingProtocol)
 	}
@@ -113,9 +112,10 @@ func (a *App) SystemPing(ctx context.Context, t *Target) error {
 		Size:          a.Config.SystemPingSize,
 		DoNotFragment: a.Config.SystemPingDoNotFragment,
 		DoNotResolve:  a.Config.SystemPingDoNotResolve,
-		L3Protocol:    types.L3Protocol(types.L3Protocol_value[a.Config.SystemPingProtocol]),
+		L3Protocol:    getL3Protocol(a.Config.SystemPingProtocol),
 	}
 	a.Logger.Debugf("ping request:\n%s", prototext.Format(req))
+	a.printMsg(t.Config.Name, req)
 	stream, err := systemClient.Ping(ctx, req)
 	if err != nil {
 		a.Logger.Errorf("%q creating System Ping stream failed: %v", t.Config.Address, err)
@@ -132,6 +132,7 @@ func (a *App) SystemPing(ctx context.Context, t *Target) error {
 			return err
 		}
 		a.Logger.Debugf("ping response %s:\n%s", t.Config.Name, prototext.Format(rsp))
+		a.printMsg(t.Config.Name, rsp)
 		a.printPingResponse(t.Config.Name, rsp)
 	}
 	return nil
@@ -214,4 +215,14 @@ func (a *App) printPingResponse(name string, rsp *system.PingResponse) {
 
 func formatDurationMS(d int64) string {
 	return fmt.Sprintf("%.3f", float64(d)/float64(time.Millisecond))
+}
+
+func getL3Protocol(s string) types.L3Protocol {
+	switch strings.ToUpper(s) {
+	case "V4":
+		return types.L3Protocol_IPV4
+	case "V6":
+		return types.L3Protocol_IPV6
+	}
+	return types.L3Protocol_UNSPECIFIED
 }
