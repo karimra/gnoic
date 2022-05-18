@@ -110,13 +110,14 @@ func (a *App) FileStat(ctx context.Context, t *Target) ([]*fileStatInfo, error) 
 }
 
 func (a *App) fileStat(ctx context.Context, t *Target, fileClient file.FileClient, path string) ([]*fileStatInfo, error) {
-	r, err := fileClient.Stat(ctx, &file.StatRequest{
-		Path: path,
-	})
+	req := &file.StatRequest{Path: path}
+	a.printMsg(t.Config.Name, req)
+	r, err := fileClient.Stat(ctx, req)
 	if err != nil {
 		return nil, fmt.Errorf("%q file %q stat err: %v", t.Config.Address, path, err)
 	}
 	a.Logger.Debugf("%q File Stat Response:\n%s", t.Config.Address, prototext.Format(r))
+	a.printMsg(t.Config.Name, r)
 	rsps := make([]*fileStatInfo, 0, len(r.Stats))
 	for _, si := range r.Stats {
 		isDir, err := a.isDir(ctx, fileClient, si.Path)
