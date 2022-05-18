@@ -1,22 +1,14 @@
 package cert
 
 import (
-	"errors"
 	"strings"
 
+	"github.com/karimra/gnoic/api"
 	"github.com/openconfig/gnoi/cert"
 	"google.golang.org/protobuf/proto"
 )
 
 type CertOption func(proto.Message) error
-
-// ErrInvalidMsgType is returned by a CertOption in case the Option is supplied
-// an unexpected proto.Message
-var ErrInvalidMsgType = errors.New("invalid message type")
-
-// ErrInvalidValue is returned by a CertOption in case the Option is supplied
-// an unexpected value.
-var ErrInvalidValue = errors.New("invalid value")
 
 // apply is a helper function that simply applies the options to the proto.Message.
 // It returns an error if any of the options fails.
@@ -32,11 +24,11 @@ func apply(m proto.Message, opts ...CertOption) error {
 func CertificateType(ct string) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return ErrInvalidMsgType
+			return api.ErrInvalidMsgType
 		}
 		ctv, ok := cert.CertificateType_value[strings.ToUpper(ct)]
 		if !ok {
-			return ErrInvalidValue
+			return api.ErrInvalidValue
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *cert.CanGenerateCSRRequest:
@@ -55,7 +47,7 @@ func CertificateType(ct string) func(msg proto.Message) error {
 func CertificateInfo(opts ...CertOption) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return ErrInvalidMsgType
+			return api.ErrInvalidMsgType
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *cert.GetCertificatesResponse:
@@ -76,7 +68,7 @@ func CertificateInfo(opts ...CertOption) func(msg proto.Message) error {
 func Certificate(opts ...CertOption) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return ErrInvalidMsgType
+			return api.ErrInvalidMsgType
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *cert.LoadCertificateRequest:
@@ -101,7 +93,7 @@ func Certificate(opts ...CertOption) func(msg proto.Message) error {
 func CertificateID(id string) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return ErrInvalidMsgType
+			return api.ErrInvalidMsgType
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *cert.GenerateCSRRequest:
@@ -130,7 +122,7 @@ func CertificateID(id string) func(msg proto.Message) error {
 func CaCertificate(opts ...CertOption) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return ErrInvalidMsgType
+			return api.ErrInvalidMsgType
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *cert.LoadCertificateRequest:
@@ -161,7 +153,7 @@ func CaCertificate(opts ...CertOption) func(msg proto.Message) error {
 func ErrorMsg(s string) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return ErrInvalidMsgType
+			return api.ErrInvalidMsgType
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *cert.CertificateRevocationError:
@@ -174,7 +166,7 @@ func ErrorMsg(s string) func(msg proto.Message) error {
 func CSRParams(opts ...CertOption) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return ErrInvalidMsgType
+			return api.ErrInvalidMsgType
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *cert.GenerateCSRRequest:
@@ -192,7 +184,7 @@ func CSRParams(opts ...CertOption) func(msg proto.Message) error {
 func CSR(opts ...CertOption) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return ErrInvalidMsgType
+			return api.ErrInvalidMsgType
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *cert.GenerateCSRResponse:
@@ -210,7 +202,7 @@ func CSR(opts ...CertOption) func(msg proto.Message) error {
 func KeySize(ks uint32) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return ErrInvalidMsgType
+			return api.ErrInvalidMsgType
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *cert.CanGenerateCSRRequest:
@@ -229,13 +221,13 @@ func MinKeySize(ks uint32) func(msg proto.Message) error {
 func KeyType(kt string) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return ErrInvalidMsgType
+			return api.ErrInvalidMsgType
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *cert.CanGenerateCSRRequest:
 			ktv, ok := cert.KeyType_value[strings.ToUpper(kt)]
 			if !ok {
-				return ErrInvalidValue
+				return api.ErrInvalidValue
 			}
 			msg.KeyType = cert.KeyType(ktv)
 		}
@@ -246,7 +238,7 @@ func KeyType(kt string) func(msg proto.Message) error {
 func CommonName(cn string) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return ErrInvalidMsgType
+			return api.ErrInvalidMsgType
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *cert.CSRParams:
@@ -259,7 +251,7 @@ func CommonName(cn string) func(msg proto.Message) error {
 func Country(c string) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return ErrInvalidMsgType
+			return api.ErrInvalidMsgType
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *cert.CSRParams:
@@ -272,7 +264,7 @@ func Country(c string) func(msg proto.Message) error {
 func State(s string) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return ErrInvalidMsgType
+			return api.ErrInvalidMsgType
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *cert.CSRParams:
@@ -285,7 +277,7 @@ func State(s string) func(msg proto.Message) error {
 func City(s string) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return ErrInvalidMsgType
+			return api.ErrInvalidMsgType
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *cert.CSRParams:
@@ -298,7 +290,7 @@ func City(s string) func(msg proto.Message) error {
 func Org(s string) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return ErrInvalidMsgType
+			return api.ErrInvalidMsgType
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *cert.CSRParams:
@@ -311,7 +303,7 @@ func Org(s string) func(msg proto.Message) error {
 func OrgUnit(s string) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return ErrInvalidMsgType
+			return api.ErrInvalidMsgType
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *cert.CSRParams:
@@ -324,7 +316,7 @@ func OrgUnit(s string) func(msg proto.Message) error {
 func IPAddress(ipAddr string) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return ErrInvalidMsgType
+			return api.ErrInvalidMsgType
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *cert.CSRParams:
@@ -337,7 +329,7 @@ func IPAddress(ipAddr string) func(msg proto.Message) error {
 func EmailID(s string) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return ErrInvalidMsgType
+			return api.ErrInvalidMsgType
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *cert.CSRParams:
@@ -350,7 +342,7 @@ func EmailID(s string) func(msg proto.Message) error {
 func Endpoint(typ cert.Endpoint_Type, endp string) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return ErrInvalidMsgType
+			return api.ErrInvalidMsgType
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *cert.CertificateInfo:
@@ -369,7 +361,7 @@ func Endpoint(typ cert.Endpoint_Type, endp string) func(msg proto.Message) error
 func ModificationTime(mt int64) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return ErrInvalidMsgType
+			return api.ErrInvalidMsgType
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *cert.CertificateInfo:
