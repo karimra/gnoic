@@ -55,7 +55,7 @@ func Description(s string) func(msg proto.Message) error {
 	}
 }
 
-func StandbySupervisor() func(msg proto.Message) error {
+func StandbySupervisor(b bool) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
 			return api.ErrInvalidMsgType
@@ -63,15 +63,15 @@ func StandbySupervisor() func(msg proto.Message) error {
 
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *gnoios.TransferRequest:
-			msg.StandbySupervisor = true
+			msg.StandbySupervisor = b
 		case *gnoios.ActivateRequest:
-			msg.StandbySupervisor = true
+			msg.StandbySupervisor = b
 		}
 		return nil
 	}
 }
 
-func NoReboot() func(msg proto.Message) error {
+func NoReboot(b bool) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
 			return api.ErrInvalidMsgType
@@ -79,7 +79,7 @@ func NoReboot() func(msg proto.Message) error {
 
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *gnoios.ActivateRequest:
-			msg.NoReboot = true
+			msg.NoReboot = b
 		}
 		return nil
 	}
@@ -147,7 +147,7 @@ func BytesReceived(i uint64) func(msg proto.Message) error {
 	}
 }
 
-func PercentageTransfered(i uint32) func(msg proto.Message) error {
+func PercentageTransferred(i uint32) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
 			return api.ErrInvalidMsgType

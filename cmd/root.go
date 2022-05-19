@@ -65,12 +65,18 @@ func newRootCmd() *cobra.Command {
 	healthzCmd := newHealthzCmd()
 	healthzCmd.AddCommand(newHealthzGetmd())
 	//
+	osCmd := newOSCmd()
+	osCmd.AddCommand(newOSInstallCmd())
+	osCmd.AddCommand(newOSActivateCmd())
+	osCmd.AddCommand(newOSVerifyCmd())
+	//
 	gApp.RootCmd.AddCommand(certCmd)
 	gApp.RootCmd.AddCommand(fileCmd)
 	gApp.RootCmd.AddCommand(systemCmd)
 	gApp.RootCmd.AddCommand(newTreeCmd())
 	gApp.RootCmd.AddCommand(newVersionCmd())
 	gApp.RootCmd.AddCommand(healthzCmd)
+	gApp.RootCmd.AddCommand(osCmd)
 	return gApp.RootCmd
 }
 
