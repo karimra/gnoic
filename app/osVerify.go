@@ -3,6 +3,7 @@ package app
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"sort"
 
@@ -79,10 +80,24 @@ func (a *App) RunEOSVerify(cmd *cobra.Command, args []string) error {
 		result = append(result, rsp)
 		a.printMsg(rsp.TargetName, rsp.rsp)
 	}
-	a.osVerifyTable(result)
-	// for _, r := range result {
-	// 	a.Logger.Infof("target %q verify response %q", r.TargetName, r.rsp)
-	// }
+	switch a.Config.Format {
+	default:
+		fmt.Println(a.osVerifyTable(result))
+	case "json":
+		for _, r := range result {
+			tRsp := targetResponse{
+				Target:   r.TargetName,
+				Response: r.rsp,
+			}
+			b, err := json.MarshalIndent(tRsp, "", "  ")
+			if err != nil {
+				a.Logger.Errorf("failed to marshal os verify response from %q: %v", r.TargetName, err)
+				continue
+			}
+			fmt.Println(string(b))
+		}
+	}
+
 	return a.handleErrs(errs)
 }
 

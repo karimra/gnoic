@@ -3,6 +3,7 @@ package app
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"sort"
@@ -24,8 +25,8 @@ type fileStatResponse struct {
 }
 
 type fileStatInfo struct {
-	si    *file.StatInfo
-	isDir bool
+	StatInfo *file.StatInfo `json:"stat-info,omitempty"`
+	IsDir    bool           `json:"is-dir,omitempty"`
 }
 
 func (a *App) InitFileStatFlags(cmd *cobra.Command) {
@@ -91,8 +92,24 @@ func (a *App) RunEFileStat(cmd *cobra.Command, args []string) error {
 		}
 		result = append(result, rsp)
 	}
+	switch a.Config.Format {
+	case "json":
+		for _, r := range result {
+			tRsp := targetResponse{
+				Target:   r.TargetName,
+				Response: r.rsp,
+			}
+			b, err := json.MarshalIndent(tRsp, "", "  ")
+			if err != nil {
+				a.Logger.Errorf("failed to marshal file state response from %q: %v", r.TargetName, err)
+				continue
+			}
+			fmt.Println(string(b))
+		}
+	default:
+		fmt.Print(a.statTable(result))
+	}
 
-	fmt.Print(a.statTable(result))
 	return a.handleErrs(errs)
 }
 
@@ -127,8 +144,8 @@ func (a *App) fileStat(ctx context.Context, t *Target, fileClient file.FileClien
 		}
 
 		rsps = append(rsps, &fileStatInfo{
-			si:    si,
-			isDir: isDir,
+			StatInfo: si,
+			IsDir:    isDir,
 		})
 
 		if isDir && a.Config.FileStatRecursive {
@@ -138,7 +155,7 @@ func (a *App) fileStat(ctx context.Context, t *Target, fileClient file.FileClien
 				continue
 			}
 			for _, fs := range fsi {
-				a.Logger.Debugf("%q adding file %q", t.Config.Address, fs.si.Path)
+				a.Logger.Debugf("%q adding file %q", t.Config.Address, fs.StatInfo.Path)
 				rsps = append(rsps, fs)
 			}
 		}
@@ -151,18 +168,18 @@ func (a *App) statTable(r []*fileStatResponse) string {
 	targetTabData := make(map[string][][]string)
 	for _, rsps := range r {
 		for _, fsi := range rsps.rsp {
-			perms := os.FileMode(fsi.si.GetPermissions() & fsi.si.GetUmask()).String()
-			if fsi.isDir {
+			perms := os.FileMode(fsi.StatInfo.GetPermissions() & fsi.StatInfo.GetUmask()).String()
+			if fsi.IsDir {
 				perms = "d" + perms[1:]
 			}
 			var lastMod string
 			var size string
 			if a.Config.FileStatHumanize {
-				lastMod = humanize.Time(time.Unix(0, int64(fsi.si.GetLastModified())))
-				size = humanize.Bytes(fsi.si.GetSize())
+				lastMod = humanize.Time(time.Unix(0, int64(fsi.StatInfo.GetLastModified())))
+				size = humanize.Bytes(fsi.StatInfo.GetSize())
 			} else {
-				lastMod = time.Unix(0, int64(fsi.si.GetLastModified())).Format(time.RFC3339)
-				size = strconv.Itoa(int((fsi.si.GetSize())))
+				lastMod = time.Unix(0, int64(fsi.StatInfo.GetLastModified())).Format(time.RFC3339)
+				size = strconv.Itoa(int((fsi.StatInfo.GetSize())))
 			}
 			if _, ok := targetTabData[rsps.TargetName]; !ok {
 				targetTabData[rsps.TargetName] = make([][]string, 0)
@@ -171,10 +188,10 @@ func (a *App) statTable(r []*fileStatResponse) string {
 
 			targetTabData[rsps.TargetName] = append(targetTabData[rsps.TargetName], []string{
 				rsps.TargetName,
-				fsi.si.GetPath(),
+				fsi.StatInfo.GetPath(),
 				lastMod,
 				perms,
-				os.FileMode(fsi.si.GetUmask()).String(),
+				os.FileMode(fsi.StatInfo.GetUmask()).String(),
 				size,
 			})
 		}
