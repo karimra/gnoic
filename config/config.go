@@ -200,8 +200,19 @@ type LocalFlags struct {
 	SystemSetPackageRemoteFile  string `json:"system-set-package-remote-file,omitempty" mapstructure:"system-set-package-remote-file,omitempty" yaml:"system-set-package-remote-file,omitempty"`
 	SystemSetPackageCredentials string `json:"system-set-package-credentials,omitempty" mapstructure:"system-set-package-credentials,omitempty" yaml:"system-set-package-credentials,omitempty"`
 	SystemSetPackageChunkSize   uint64 `json:"system-set-package-chunk-size,omitempty" mapstructure:"system-set-package-chunk-size,omitempty" yaml:"system-set-package-chunk-size,omitempty"`
-	//
+	// Healthz
+	// Healthz Get
 	HealthzGetPath string `json:"healthz-get-path,omitempty" mapstructure:"healthz-get-path,omitempty" yaml:"healthz-get-path,omitempty"`
+	// OS
+	// OS Install
+	OsInstallVersion           string `json:"os-install-version,omitempty" mapstructure:"os-install-version,omitempty" yaml:"os-install-version,omitempty"`
+	OsInstallStandbySupervisor bool   `json:"os-install-standby-supervisor,omitempty" mapstructure:"os-install-standby-supervisor,omitempty" yaml:"os-install-standby-supervisor,omitempty"`
+	OsInstallPackage           string `json:"os-install-package,omitempty" mapstructure:"os-install-package,omitempty" yaml:"os-install-package,omitempty"`
+	OsInstallContentSize       uint64 `json:"os-install-content-size,omitempty" mapstructure:"os-install-content-size,omitempty" yaml:"os-install-content-size,omitempty"`
+	// OS Activate
+	OsActivateVersion           string `json:"os-activate-version,omitempty" mapstructure:"os-activate-version,omitempty" yaml:"os-activate-version,omitempty"`
+	OsActivateStandbySupervisor bool   `json:"os-activate-standby-supervisor,omitempty" mapstructure:"os-activate-standby-supervisor,omitempty" yaml:"os-activate-standby-supervisor,omitempty"`
+	OsActivateNoReboot          bool   `json:"os-activate-no-reboot,omitempty" mapstructure:"os-activate-no-reboot,omitempty" yaml:"os-activate-no-reboot,omitempty"`
 }
 
 func New() *Config {
