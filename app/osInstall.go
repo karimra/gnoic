@@ -119,7 +119,7 @@ RCV:
 		a.Logger.Debugf("target %q: OS Install stream rcv err: %v", t.Config.Name, err)
 		return err
 	}
-	a.Logger.Debugf("target %q: OS Install stream got: %+v", rsp)
+	a.Logger.Debugf("target %q: OS Install stream got: %+v", t.Config.Name, rsp)
 	a.printMsg(t.Config.Name, rsp)
 	switch rsp := rsp.GetResponse().(type) {
 	case *gnoios.InstallResponse_TransferReady:
@@ -199,7 +199,7 @@ OUTER:
 				close(doneCh)
 				return err
 			}
-			a.Logger.Debugf("target %q: read %d bytes from file: %d, %v", t.Config.Name, n, err)
+			a.Logger.Debugf("target %q: read %d bytes from file", t.Config.Name, n)
 			buf = buf[:n]
 			a.Logger.Debugf("target %q: sending %d bytes", t.Config.Name, n)
 			err = osic.Send(&gnoios.InstallRequest{
