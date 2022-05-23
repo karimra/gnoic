@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/karimra/gnoic/api"
 	"github.com/openconfig/gnoi/file"
 	"github.com/openconfig/gnoi/types"
 	"github.com/spf13/cobra"
@@ -48,13 +49,13 @@ func (a *App) RunEFileGet(cmd *cobra.Command, args []string) error {
 
 	a.wg.Add(numTargets)
 	for _, t := range targets {
-		go func(t *Target) {
+		go func(t *api.Target) {
 			defer a.wg.Done()
 			ctx, cancel := context.WithCancel(a.ctx)
 			defer cancel()
 			ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
 
-			err = a.CreateGrpcClient(ctx, t, a.createBaseDialOpts()...)
+			err = t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
 			if err != nil {
 				responseChan <- &fileGetResponse{
 					TargetError: TargetError{
@@ -64,6 +65,7 @@ func (a *App) RunEFileGet(cmd *cobra.Command, args []string) error {
 				}
 				return
 			}
+			defer t.Close()
 			filename, err := a.FileGet(ctx, t)
 			responseChan <- &fileGetResponse{
 				TargetError: TargetError{
@@ -97,8 +99,8 @@ func (a *App) RunEFileGet(cmd *cobra.Command, args []string) error {
 	return a.handleErrs(errs)
 }
 
-func (a *App) FileGet(ctx context.Context, t *Target) ([]string, error) {
-	fileClient := file.NewFileClient(t.client)
+func (a *App) FileGet(ctx context.Context, t *api.Target) ([]string, error) {
+	fileClient := t.FileClient()
 	numFiles := len(a.Config.FileGetFile)
 	files := make([]string, 0, numFiles)
 	errs := make([]error, 0, numFiles)
@@ -120,7 +122,7 @@ func (a *App) FileGet(ctx context.Context, t *Target) ([]string, error) {
 	return files, nil
 }
 
-func (a *App) fileGet(ctx context.Context, t *Target, fileClient file.FileClient, path string) ([]string, error) {
+func (a *App) fileGet(ctx context.Context, t *api.Target, fileClient file.FileClient, path string) ([]string, error) {
 	files := make([]string, 0)
 	isDir, err := a.isDir(ctx, fileClient, path)
 	if err != nil {

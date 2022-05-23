@@ -6,8 +6,9 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/karimra/gnoic/api"
+	gcert "github.com/karimra/gnoic/api/cert"
 	"github.com/olekukonko/tablewriter"
-	"github.com/openconfig/gnoi/cert"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"google.golang.org/grpc/metadata"
@@ -41,13 +42,13 @@ func (a *App) RunECertCanGenerateCSR(cmd *cobra.Command, args []string) error {
 
 	a.wg.Add(numTargets)
 	for _, t := range targets {
-		go func(t *Target) {
+		go func(t *api.Target) {
 			defer a.wg.Done()
 			ctx, cancel := context.WithCancel(a.ctx)
 			defer cancel()
 			ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
 
-			err = a.CreateGrpcClient(ctx, t, a.createBaseDialOpts()...)
+			err = t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
 			if err != nil {
 				responseChan <- &certCGCSRResponse{
 					TargetError: TargetError{
@@ -57,7 +58,7 @@ func (a *App) RunECertCanGenerateCSR(cmd *cobra.Command, args []string) error {
 				}
 				return
 			}
-
+			defer t.Close()
 			can, err := a.CertCanGenerateCSR(ctx, t)
 			responseChan <- &certCGCSRResponse{
 				TargetError: TargetError{
@@ -86,16 +87,18 @@ func (a *App) RunECertCanGenerateCSR(cmd *cobra.Command, args []string) error {
 	return a.handleErrs(errs)
 }
 
-func (a *App) CertCanGenerateCSR(ctx context.Context, t *Target) (bool, error) {
-	certClient := cert.NewCertificateManagementClient(t.client)
-	req := &cert.CanGenerateCSRRequest{
-		KeyType:         cert.KeyType(cert.KeyType_value[a.Config.CertCanGenerateCSRKeyType]),
-		CertificateType: cert.CertificateType(cert.CertificateType_value[a.Config.CertCanGenerateCSRCertificateType]),
-		KeySize:         a.Config.CertCanGenerateCSRKeySize,
+func (a *App) CertCanGenerateCSR(ctx context.Context, t *api.Target) (bool, error) {
+	req, err := gcert.NewCertCanGenerateCSRRequest(
+		gcert.CertificateType(a.Config.CertCanGenerateCSRCertificateType),
+		gcert.KeyType(a.Config.CertCanGenerateCSRKeyType),
+		gcert.KeySize(a.Config.CertCanGenerateCSRKeySize),
+	)
+	if err != nil {
+		return false, err
 	}
 
 	a.printMsg(t.Config.Name, req)
-
+	certClient := t.CertClient()
 	resp, err := certClient.CanGenerateCSR(ctx, req)
 	if err != nil {
 		return false, err

@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/karimra/gnoic/api"
 	"github.com/karimra/gnoic/config"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -26,7 +27,7 @@ type App struct {
 	wg      *sync.WaitGroup
 	Config  *config.Config
 	m       *sync.Mutex
-	Targets map[string]*Target
+	Targets map[string]*api.Target
 	Logger  *log.Entry
 	// print mutex
 	pm *sync.Mutex
@@ -42,7 +43,7 @@ func New() *App {
 		wg:      new(sync.WaitGroup),
 		Config:  config.New(),
 		m:       new(sync.Mutex),
-		Targets: make(map[string]*Target),
+		Targets: make(map[string]*api.Target),
 		Logger:  log.NewEntry(logger),
 		pm:      new(sync.Mutex),
 	}
@@ -89,21 +90,6 @@ func (a *App) PreRun(cmd *cobra.Command, args []string) error {
 	}
 	a.Config.SetPersistantFlagsFromFile(a.RootCmd)
 	return nil
-}
-
-func (a *App) CreateGrpcClient(ctx context.Context, t *Target, opts ...grpc.DialOption) error {
-	tOpts := make([]grpc.DialOption, 0, len(opts)+1)
-	tOpts = append(tOpts, opts...)
-
-	nOpts, err := t.Config.DialOpts()
-	if err != nil {
-		return err
-	}
-	tOpts = append(tOpts, nOpts...)
-	timeoutCtx, cancel := context.WithTimeout(ctx, t.Config.Timeout)
-	defer cancel()
-	t.client, err = grpc.DialContext(timeoutCtx, t.Config.Address, tOpts...)
-	return err
 }
 
 func (a *App) createBaseDialOpts() []grpc.DialOption {

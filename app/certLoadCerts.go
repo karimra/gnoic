@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"github.com/karimra/gnoic/api"
+	gcert "github.com/karimra/gnoic/api/cert"
 	"github.com/openconfig/gnoi/cert"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -41,12 +43,12 @@ func (a *App) RunELoadCerts(cmd *cobra.Command, args []string) error {
 	responseChan := make(chan *certLoadCert, numTargets)
 	a.wg.Add(numTargets)
 	for _, t := range targets {
-		go func(t *Target) {
+		go func(t *api.Target) {
 			defer a.wg.Done()
 			ctx, cancel := context.WithCancel(a.ctx)
 			defer cancel()
 			ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
-			err = a.CreateGrpcClient(ctx, t, a.createBaseDialOpts()...)
+			err = t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
 			if err != nil {
 				responseChan <- &certLoadCert{
 					TargetError: TargetError{
@@ -56,6 +58,7 @@ func (a *App) RunELoadCerts(cmd *cobra.Command, args []string) error {
 				}
 				return
 			}
+			defer t.Close()
 			rsp, err := a.CertLoadCertificate(ctx, t)
 			responseChan <- &certLoadCert{
 				TargetError: TargetError{
@@ -85,13 +88,12 @@ func (a *App) RunELoadCerts(cmd *cobra.Command, args []string) error {
 	return a.handleErrs(errs)
 }
 
-func (a *App) CertLoadCertificate(ctx context.Context, t *Target) (*cert.LoadCertificateResponse, error) {
+func (a *App) CertLoadCertificate(ctx context.Context, t *api.Target) (*cert.LoadCertificateResponse, error) {
 	var err error
-
-	certClient := cert.NewCertificateManagementClient(t.client)
-	req := &cert.LoadCertificateRequest{
-		CertificateId: a.Config.CertLoadCertificateCertificateID,
+	opts := []gcert.CertOption{
+		gcert.CertificateType(a.Config.CertLoadCertificateCertificateID),
 	}
+	// certClient := t.CertClient()
 
 	if a.Config.CertLoadCertificateCertificate != "" {
 		b, err := ioutil.ReadFile(a.Config.CertLoadCertificateCertificate)
@@ -99,10 +101,11 @@ func (a *App) CertLoadCertificate(ctx context.Context, t *Target) (*cert.LoadCer
 			return nil, fmt.Errorf("error reading certificate from file %q: %v",
 				a.Config.CertLoadCertificateCertificate, err)
 		}
-		req.Certificate = &cert.Certificate{
-			Certificate: b,
-			Type:        cert.CertificateType(cert.CertificateType_value[a.Config.CertLoadCertificateCertificateType]),
-		}
+		opts = append(opts,
+			gcert.Certificate(
+				gcert.CertificateType(a.Config.CertLoadCertificateCertificateType),
+				gcert.CertificateBytes(b),
+			))
 	}
 
 	if a.Config.CertLoadCertificatePublicKey != "" {
@@ -110,7 +113,7 @@ func (a *App) CertLoadCertificate(ctx context.Context, t *Target) (*cert.LoadCer
 		if err != nil {
 			return nil, fmt.Errorf("error reading public key from %q: %v", a.Config.CertLoadCertificatePublicKey, err)
 		}
-		req.KeyPair.PublicKey = k
+		opts = append(opts, gcert.PublicKey(k))
 	}
 
 	if a.Config.CertLoadCertificatePrivateKey != "" {
@@ -118,27 +121,32 @@ func (a *App) CertLoadCertificate(ctx context.Context, t *Target) (*cert.LoadCer
 		if err != nil {
 			return nil, fmt.Errorf("error reading private key from %q: %v", a.Config.CertLoadCertificatePrivateKey, err)
 		}
-		req.KeyPair.PrivateKey = k
+		opts = append(opts, gcert.PrivateKey(k))
 	}
 
 	if n := len(a.Config.CertLoadCertificateCaCertificates); n != 0 {
-		req.CaCertificates = make([]*cert.Certificate, n)
-		for i, certFilename := range a.Config.CertLoadCertificateCaCertificates {
+		for _, certFilename := range a.Config.CertLoadCertificateCaCertificates {
 			b, err := ioutil.ReadFile(certFilename)
 			if err != nil {
 				return nil, fmt.Errorf("error reading certificate from file %q: %v",
 					certFilename, err)
 			}
-			req.CaCertificates[i] = &cert.Certificate{
-				Certificate: b,
-				Type:        cert.CertificateType(cert.CertificateType_value[a.Config.CertLoadCertificateCertificateType]),
-			}
+			opts = append(opts,
+				gcert.CaCertificate(
+					gcert.CertificateType(a.Config.CertLoadCertificateCertificateType),
+					gcert.CertificateBytes(b),
+				),
+			)
 		}
 	}
 
+	req, err := gcert.NewCertLoadCertificateRequest(opts...)
+	if err != nil {
+		return nil, err
+	}
 	a.printMsg(t.Config.Name, req)
 
-	resp, err := certClient.LoadCertificate(ctx, req)
+	resp, err := t.CertClient().LoadCertificate(ctx, req)
 	if err != nil {
 		return nil, err
 	}

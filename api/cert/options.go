@@ -44,6 +44,19 @@ func CertificateType(ct string) func(msg proto.Message) error {
 	}
 }
 
+func CertificateBytes(b []byte) func(msg proto.Message) error {
+	return func(msg proto.Message) error {
+		if msg == nil {
+			return api.ErrInvalidMsgType
+		}
+		switch msg := msg.ProtoReflect().Interface().(type) {
+		case *cert.Certificate:
+			msg.Certificate = b
+		}
+		return nil
+	}
+}
+
 func CertificateInfo(opts ...CertOption) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
@@ -142,7 +155,7 @@ func CaCertificate(opts ...CertOption) func(msg proto.Message) error {
 				return err
 			}
 			if len(msg.CaCertificates) == 0 {
-				msg.CaCertificates = make([]*cert.Certificate, 0)
+				msg.CaCertificates = make([]*cert.Certificate, 0, 1)
 			}
 			msg.CaCertificates = append(msg.CaCertificates, m)
 		}
@@ -223,13 +236,63 @@ func KeyType(kt string) func(msg proto.Message) error {
 		if msg == nil {
 			return api.ErrInvalidMsgType
 		}
+		ktv, ok := cert.KeyType_value[strings.ToUpper(kt)]
+		if !ok {
+			return api.ErrInvalidValue
+		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *cert.CanGenerateCSRRequest:
-			ktv, ok := cert.KeyType_value[strings.ToUpper(kt)]
-			if !ok {
-				return api.ErrInvalidValue
-			}
 			msg.KeyType = cert.KeyType(ktv)
+		case *cert.CSRParams:
+			msg.KeyType = cert.KeyType(ktv)
+		}
+		return nil
+	}
+}
+
+func KeyPair(pubKey, privKey []byte) func(msg proto.Message) error {
+	return func(msg proto.Message) error {
+		if msg == nil {
+			return api.ErrInvalidMsgType
+		}
+		switch msg := msg.ProtoReflect().Interface().(type) {
+		case *cert.LoadCertificateRequest:
+			msg.KeyPair = &cert.KeyPair{
+				PrivateKey: privKey,
+				PublicKey:  pubKey,
+			}
+		}
+		return nil
+	}
+}
+
+func PublicKey(pubKey []byte) func(msg proto.Message) error {
+	return func(msg proto.Message) error {
+		if msg == nil {
+			return api.ErrInvalidMsgType
+		}
+		switch msg := msg.ProtoReflect().Interface().(type) {
+		case *cert.LoadCertificateRequest:
+			if msg.KeyPair == nil {
+				msg.KeyPair = new(cert.KeyPair)
+			}
+			msg.KeyPair.PublicKey = pubKey
+		}
+		return nil
+	}
+}
+
+func PrivateKey(privKey []byte) func(msg proto.Message) error {
+	return func(msg proto.Message) error {
+		if msg == nil {
+			return api.ErrInvalidMsgType
+		}
+		switch msg := msg.ProtoReflect().Interface().(type) {
+		case *cert.LoadCertificateRequest:
+			if msg.KeyPair == nil {
+				msg.KeyPair = new(cert.KeyPair)
+			}
+			msg.KeyPair.PrivateKey = privKey
 		}
 		return nil
 	}

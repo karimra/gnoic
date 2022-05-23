@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/karimra/gnoic/api"
+	gcert "github.com/karimra/gnoic/api/cert"
 	"github.com/openconfig/gnoi/cert"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -49,12 +51,12 @@ func (a *App) RunEGenerateCSR(cmd *cobra.Command, args []string) error {
 	responseChan := make(chan *certGenCSRResponse, numTargets)
 	a.wg.Add(numTargets)
 	for _, t := range targets {
-		go func(t *Target) {
+		go func(t *api.Target) {
 			defer a.wg.Done()
 			ctx, cancel := context.WithCancel(a.ctx)
 			defer cancel()
 			ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
-			err = a.CreateGrpcClient(ctx, t, a.createBaseDialOpts()...)
+			err = t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
 			if err != nil {
 				responseChan <- &certGenCSRResponse{
 					TargetError: TargetError{
@@ -64,6 +66,7 @@ func (a *App) RunEGenerateCSR(cmd *cobra.Command, args []string) error {
 				}
 				return
 			}
+			defer t.Close()
 			rsp, err := a.CertGenerateCSR(ctx, t)
 			responseChan <- &certGenCSRResponse{
 				TargetError: TargetError{
@@ -98,31 +101,32 @@ func (a *App) RunEGenerateCSR(cmd *cobra.Command, args []string) error {
 	return a.handleErrs(errs)
 }
 
-func (a *App) CertGenerateCSR(ctx context.Context, t *Target) (*cert.GenerateCSRResponse, error) {
-	certClient := cert.NewCertificateManagementClient(t.client)
-	req := &cert.GenerateCSRRequest{
-		CsrParams: &cert.CSRParams{
-			Type:               cert.CertificateType(cert.CertificateType_value[a.Config.CertGenerateCSRCertificateType]),
-			MinKeySize:         a.Config.CertGenerateCSRMinKeySize,
-			KeyType:            cert.KeyType(cert.KeyType_value[a.Config.CertGenerateCSRKeyType]),
-			CommonName:         a.Config.CertGenerateCSRCommonName,
-			Country:            a.Config.CertGenerateCSRCountry,
-			State:              a.Config.CertGenerateCSRState,
-			City:               a.Config.CertGenerateCSRCity,
-			Organization:       a.Config.CertGenerateCSROrg,
-			OrganizationalUnit: a.Config.CertGenerateCSROrgUnit,
-			IpAddress:          a.Config.CertGenerateCSRIPAddress,
-			EmailId:            a.Config.CertGenerateCSREmailID,
-		},
-		CertificateId: a.Config.CertGenerateCSRCertificateID,
+func (a *App) CertGenerateCSR(ctx context.Context, t *api.Target) (*cert.GenerateCSRResponse, error) {
+	req, err := gcert.NewCertGenerateCSRRequest(
+		gcert.CertificateID(a.Config.CertGenerateCSRCertificateID),
+		gcert.CSRParams(
+			gcert.CertificateType(a.Config.CertGenerateCSRCertificateType),
+			gcert.MinKeySize(a.Config.CertGenerateCSRMinKeySize),
+			gcert.KeyType(a.Config.CertGenerateCSRKeyType),
+			gcert.CommonName(a.Config.CertGenerateCSRCommonName),
+			gcert.Country(a.Config.CertGenerateCSRCountry),
+			gcert.State(a.Config.CertGenerateCSRState),
+			gcert.City(a.Config.CertGenerateCSRCity),
+			gcert.Org(a.Config.CertGenerateCSROrg),
+			gcert.OrgUnit(a.Config.CertGenerateCSROrgUnit),
+			gcert.IPAddress(a.Config.CertGenerateCSRIPAddress),
+			gcert.EmailID(a.Config.CertGenerateCSREmailID),
+		),
+	)
+	if err != nil {
+		return nil, err
 	}
-
 	a.printMsg(t.Config.Name, req)
+	certClient := t.CertClient()
 	resp, err := certClient.GenerateCSR(ctx, req)
 	if err != nil {
 		return nil, err
 	}
-
 	a.printMsg(t.Config.Name, resp)
 	return resp, nil
 }

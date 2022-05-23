@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/karimra/gnoic/api"
 	"github.com/openconfig/gnoi/system"
 	"github.com/openconfig/gnoi/types"
 	"github.com/spf13/cobra"
@@ -65,13 +66,13 @@ func (a *App) RunESystemPing(cmd *cobra.Command, args []string) error {
 
 	a.wg.Add(numTargets)
 	for _, t := range targets {
-		go func(t *Target) {
+		go func(t *api.Target) {
 			defer a.wg.Done()
 			ctx, cancel := context.WithCancel(a.ctx)
 			defer cancel()
 			ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
 
-			err = a.CreateGrpcClient(ctx, t, a.createBaseDialOpts()...)
+			err = t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
 			if err != nil {
 				responseChan <- &TargetError{
 					TargetName: t.Config.Address,
@@ -79,6 +80,7 @@ func (a *App) RunESystemPing(cmd *cobra.Command, args []string) error {
 				}
 				return
 			}
+			defer t.Close()
 			err := a.SystemPing(ctx, t)
 			responseChan <- &TargetError{
 				TargetName: t.Config.Address,
@@ -101,8 +103,8 @@ func (a *App) RunESystemPing(cmd *cobra.Command, args []string) error {
 	return a.handleErrs(errs)
 }
 
-func (a *App) SystemPing(ctx context.Context, t *Target) error {
-	systemClient := system.NewSystemClient(t.client)
+func (a *App) SystemPing(ctx context.Context, t *api.Target) error {
+	systemClient := system.NewSystemClient(t.Conn())
 	req := &system.PingRequest{
 		Destination:   a.Config.SystemPingDestination,
 		Source:        a.Config.SystemPingSource,

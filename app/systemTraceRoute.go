@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/karimra/gnoic/api"
 	"github.com/openconfig/gnoi/system"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -64,13 +65,13 @@ func (a *App) RunESystemTraceRoute(cmd *cobra.Command, args []string) error {
 
 	a.wg.Add(numTargets)
 	for _, t := range targets {
-		go func(t *Target) {
+		go func(t *api.Target) {
 			defer a.wg.Done()
 			ctx, cancel := context.WithCancel(a.ctx)
 			defer cancel()
 			ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
 
-			err = a.CreateGrpcClient(ctx, t, a.createBaseDialOpts()...)
+			err = t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
 			if err != nil {
 				responseChan <- &TargetError{
 					TargetName: t.Config.Address,
@@ -78,6 +79,7 @@ func (a *App) RunESystemTraceRoute(cmd *cobra.Command, args []string) error {
 				}
 				return
 			}
+			defer t.Close()
 			err := a.SystemTraceRoute(ctx, t)
 			responseChan <- &TargetError{
 				TargetName: t.Config.Address,
@@ -100,8 +102,8 @@ func (a *App) RunESystemTraceRoute(cmd *cobra.Command, args []string) error {
 	return a.handleErrs(errs)
 }
 
-func (a *App) SystemTraceRoute(ctx context.Context, t *Target) error {
-	systemClient := system.NewSystemClient(t.client)
+func (a *App) SystemTraceRoute(ctx context.Context, t *api.Target) error {
+	systemClient := system.NewSystemClient(t.Conn())
 	req := &system.TracerouteRequest{
 		Destination:   a.Config.SystemTracerouteDestination,
 		Source:        a.Config.SystemTracerouteSource,

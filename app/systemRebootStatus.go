@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/karimra/gnoic/api"
 	"github.com/olekukonko/tablewriter"
 	"github.com/openconfig/gnoi/system"
 	"github.com/openconfig/gnoi/types"
@@ -48,13 +49,13 @@ func (a *App) RunESystemRebootStatus(cmd *cobra.Command, args []string) error {
 	responseChan := make(chan *systemRebootStatusResponse, numTargets)
 	a.wg.Add(numTargets)
 	for _, t := range targets {
-		go func(t *Target, subcomponents []*types.Path) {
+		go func(t *api.Target, subcomponents []*types.Path) {
 			defer a.wg.Done()
 			ctx, cancel := context.WithCancel(a.ctx)
 			defer cancel()
 			ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
 
-			err = a.CreateGrpcClient(ctx, t, a.createBaseDialOpts()...)
+			err = t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
 			if err != nil {
 				responseChan <- &systemRebootStatusResponse{
 					TargetError: TargetError{
@@ -64,6 +65,7 @@ func (a *App) RunESystemRebootStatus(cmd *cobra.Command, args []string) error {
 				}
 				return
 			}
+			defer t.Close()
 			rsp, err := a.SystemRebootStatus(ctx, t, subcomponents)
 			responseChan <- &systemRebootStatusResponse{
 				TargetError: TargetError{
@@ -97,8 +99,8 @@ func (a *App) RunESystemRebootStatus(cmd *cobra.Command, args []string) error {
 	return a.handleErrs(errs)
 }
 
-func (a *App) SystemRebootStatus(ctx context.Context, t *Target, subcomponents []*types.Path) (*system.RebootStatusResponse, error) {
-	systemClient := system.NewSystemClient(t.client)
+func (a *App) SystemRebootStatus(ctx context.Context, t *api.Target, subcomponents []*types.Path) (*system.RebootStatusResponse, error) {
+	systemClient := system.NewSystemClient(t.Conn())
 	req := &system.RebootStatusRequest{
 		Subcomponents: subcomponents,
 	}

@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/karimra/gnoic/api"
 	"github.com/olekukonko/tablewriter"
 	"github.com/openconfig/gnoi/cert"
 	"github.com/spf13/cobra"
@@ -48,13 +49,13 @@ func (a *App) RunECertGetCertificates(cmd *cobra.Command, args []string) error {
 
 	a.wg.Add(numTargets)
 	for _, t := range targets {
-		go func(t *Target) {
+		go func(t *api.Target) {
 			defer a.wg.Done()
 			ctx, cancel := context.WithCancel(a.ctx)
 			defer cancel()
 			ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
 
-			err = a.CreateGrpcClient(ctx, t, a.createBaseDialOpts()...)
+			err = t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
 			if err != nil {
 				responseChan <- &getCertificatesResponse{
 					TargetError: TargetError{
@@ -64,6 +65,7 @@ func (a *App) RunECertGetCertificates(cmd *cobra.Command, args []string) error {
 				}
 				return
 			}
+			defer t.Close()
 			a.Logger.Debugf("%q gRPC client created", t.Config.Address)
 			rsp, err := a.CertGetCertificates(ctx, t)
 			responseChan <- &getCertificatesResponse{
@@ -180,8 +182,8 @@ func (a *App) certTable(rsps []*getCertificatesResponse) (string, error) {
 	return b.String(), nil
 }
 
-func (a *App) CertGetCertificates(ctx context.Context, t *Target) (*cert.GetCertificatesResponse, error) {
-	resp, err := cert.NewCertificateManagementClient(t.client).GetCertificates(ctx, new(cert.GetCertificatesRequest))
+func (a *App) CertGetCertificates(ctx context.Context, t *api.Target) (*cert.GetCertificatesResponse, error) {
+	resp, err := t.CertClient().GetCertificates(ctx, new(cert.GetCertificatesRequest))
 	if err != nil {
 		return nil, err
 	}

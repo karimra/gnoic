@@ -8,7 +8,7 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mitchellh/mapstructure v1.4.3
 	github.com/olekukonko/tablewriter v0.0.5
-	github.com/openconfig/gnoi v0.0.0-20220131192435-7dd3a95a4f1e
+	github.com/openconfig/gnoi v0.0.0-20220520163705-1ce1557b7a76
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.4.0
 	github.com/spf13/pflag v1.0.5
@@ -18,6 +18,7 @@ require (
 )
 
 require (
+	github.com/AlekSi/pointer v1.2.0
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect

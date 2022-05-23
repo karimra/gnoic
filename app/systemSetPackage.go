@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/karimra/gnoic/api"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -22,6 +23,6 @@ func (a *App) RunESystemSetPackage(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func (a *App) SystemSetPackage(ctx context.Context, t *Target) error {
+func (a *App) SystemSetPackage(ctx context.Context, t *api.Target) error {
 	return nil
 }
