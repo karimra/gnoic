@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/karimra/gnoic/api"
+	gsystem "github.com/karimra/gnoic/api/system"
 	"github.com/olekukonko/tablewriter"
 	"github.com/openconfig/gnoi/system"
 	"github.com/spf13/cobra"
@@ -57,7 +58,7 @@ func (a *App) RunESystemTime(cmd *cobra.Command, args []string) error {
 				return
 			}
 			defer t.Close()
-			rsp, err := a.SystemTime(ctx, t)
+			rsp, err := t.SystemClient().Time(ctx, gsystem.NewSystemTimeRequest())
 			responseChan <- &systemTimeResponse{
 				TargetError: TargetError{
 					TargetName: t.Config.Address,
@@ -87,11 +88,6 @@ func (a *App) RunESystemTime(cmd *cobra.Command, args []string) error {
 	}
 	fmt.Print(s)
 	return a.handleErrs(errs)
-}
-
-func (a *App) SystemTime(ctx context.Context, t *api.Target) (*system.TimeResponse, error) {
-	systemClient := system.NewSystemClient(t.Conn())
-	return systemClient.Time(ctx, new(system.TimeRequest))
 }
 
 func systemTimeTable(rsps []*systemTimeResponse) (string, error) {

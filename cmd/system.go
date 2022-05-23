@@ -58,8 +58,8 @@ func newSystemTimeCmd() *cobra.Command {
 	return cmd
 }
 
-// newSystemSetPackageeCmd represents the system set-package command
-func newSystemSetPackageeCmd() *cobra.Command {
+// newSystemSetPackageCmd represents the system set-package command
+func newSystemSetPackageCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "set-package",
 		Short: "run System SetPackage gNOI RPC",

@@ -97,7 +97,7 @@ func (t *Target) NewOsClient() gnoios.OSClient {
 	return gnoios.NewOSClient(t.client)
 }
 
-func (t *Target) NewSystemClient() system.SystemClient {
+func (t *Target) SystemClient() system.SystemClient {
 	return system.NewSystemClient(t.client)
 }
 
