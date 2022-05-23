@@ -28,13 +28,24 @@ gnoic
  │    ├─── load-ca
  │    ├─── revoke
  │    └─── rotate
+ ├─── completion
+ │    ├─── bash
+ │    ├─── fish
+ │    ├─── powershell
+ │    └─── zsh
  ├─── file
  │    ├─── get
  │    ├─── put
  │    ├─── remove
  │    ├─── stat
  │    └─── transfer
+ ├─── healthz
+ │    └─── get
  ├─── help [command]
+ ├─── os
+ │    ├─── activate
+ │    ├─── install
+ │    └─── verify
  ├─── system
  │    ├─── cancel-reboot
  │    ├─── ping
