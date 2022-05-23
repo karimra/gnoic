@@ -193,7 +193,10 @@ func (a *App) CertInstall(ctx context.Context, t *api.Target) error {
 	if a.Config.CertInstallGenCSR {
 		// if the csr was generated locally, add the key pair and cert ID
 		opts = append(opts,
-			gcert.KeyPair(keyPair.GetPublicKey(), keyPair.GetPrivateKey()),
+			gcert.KeyPair(
+				gcert.PublicKey(keyPair.GetPublicKey()),
+				gcert.PrivateKey(keyPair.GetPrivateKey()),
+			),
 			gcert.CertificateID(a.Config.CertInstallCertificateID),
 		)
 	}
