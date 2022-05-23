@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/karimra/gnoic/api"
+	gsystem "github.com/karimra/gnoic/api/system"
 	"github.com/openconfig/gnoi/system"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -30,6 +31,7 @@ func (a *App) InitSystemTracerouteFlags(cmd *cobra.Command) {
 	cmd.Flags().BoolVar(&a.Config.SystemTracerouteDoNotResolve, "do-not-resolve", false, "Do not try resolve the address returned")
 	cmd.Flags().StringVarP(&a.Config.SystemTracerouteL3Protocol, "l3protocol", "3", "", "Layer3 protocol requested for the traceroute, v4 or v6, defaults to UNSPECIFIED")
 	cmd.Flags().StringVarP(&a.Config.SystemTracerouteL4Protocol, "l4protocol", "4", "ICMP", "Layer4 protocol requested for the traceroute, ICMP, UDP or TCP")
+	cmd.Flags().BoolVar(&a.Config.SystemTracerouteDoNotLookupAsn, "do-not-lookup-asn", false, "Do not try to lookup ASN")
 	//
 	cmd.Flags().VisitAll(func(flag *pflag.Flag) {
 		a.Config.FileConfig.BindPFlag(fmt.Sprintf("%s-%s", cmd.Name(), flag.Name), flag)
@@ -103,21 +105,24 @@ func (a *App) RunESystemTraceRoute(cmd *cobra.Command, args []string) error {
 }
 
 func (a *App) SystemTraceRoute(ctx context.Context, t *api.Target) error {
-	systemClient := system.NewSystemClient(t.Conn())
-	req := &system.TracerouteRequest{
-		Destination:   a.Config.SystemTracerouteDestination,
-		Source:        a.Config.SystemTracerouteSource,
-		InitialTtl:    a.Config.SystemTracerouteInitialTTL,
-		MaxTtl:        a.Config.SystemTracerouteMaxTTL,
-		Wait:          a.Config.SystemTracerouteWait.Nanoseconds(),
-		DoNotFragment: a.Config.SystemTracerouteDoNotFragment,
-		DoNotResolve:  a.Config.SystemTracerouteDoNotResolve,
-		L3Protocol:    getL3Protocol(a.Config.SystemTracerouteL3Protocol),
-		L4Protocol:    system.TracerouteRequest_L4Protocol(system.TracerouteRequest_L4Protocol_value[a.Config.SystemTracerouteL4Protocol]),
+	req, err := gsystem.NewSystemTracerouteRequest(
+		gsystem.Destination(a.Config.SystemTracerouteDestination),
+		gsystem.Source(a.Config.SystemTracerouteSource),
+		gsystem.InitialTTL(a.Config.SystemTracerouteInitialTTL),
+		gsystem.TTL(a.Config.SystemTracerouteMaxTTL),
+		gsystem.Wait(a.Config.SystemTracerouteWait.Nanoseconds()),
+		gsystem.DoNotFragment(a.Config.SystemTracerouteDoNotFragment),
+		gsystem.DoNotResolve(a.Config.SystemTracerouteDoNotResolve),
+		gsystem.L3Protocol(a.Config.SystemTracerouteL3Protocol),
+		gsystem.L4Protocol(a.Config.SystemTracerouteL4Protocol),
+		gsystem.DoNotLookupAsn(a.Config.SystemTracerouteDoNotLookupAsn),
+	)
+	if err != nil {
+		return err
 	}
 	a.Logger.Debug(prototext.Format(req))
 	a.printMsg(t.Config.Name, req)
-	stream, err := systemClient.Traceroute(ctx, req)
+	stream, err := t.SystemClient().Traceroute(ctx, req)
 	if err != nil {
 		a.Logger.Errorf("creating System Traceroute stream failed: %v", err)
 		return err

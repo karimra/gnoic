@@ -169,17 +169,18 @@ type LocalFlags struct {
 	SystemPingDoNotResolve  bool          `json:"system-ping-do-not-resolve,omitempty" mapstructure:"system-ping-do-not-resolve,omitempty" yaml:"system-ping-do-not-resolve,omitempty"`
 	SystemPingProtocol      string        `json:"system-ping-protocol,omitempty" mapstructure:"system-ping-protocol,omitempty" yaml:"system-ping-protocol,omitempty"`
 	// System Traceroute
-	SystemTracerouteDestination   string        `json:"system-traceroute-destination,omitempty" mapstructure:"system-traceroute-destination,omitempty" yaml:"system-traceroute-destination,omitempty"`
-	SystemTracerouteSource        string        `json:"system-traceroute-source,omitempty" mapstructure:"system-traceroute-source,omitempty" yaml:"system-traceroute-source,omitempty"`
-	SystemTracerouteInterval      time.Duration `json:"system-traceroute-interval,omitempty" mapstructure:"system-traceroute-interval,omitempty" yaml:"system-traceroute-interval,omitempty"`
-	SystemTracerouteWait          time.Duration `json:"system-traceroute-wait,omitempty" mapstructure:"system-traceroute-wait,omitempty" yaml:"system-traceroute-wait,omitempty"`
-	SystemTracerouteInitialTTL    uint32        `json:"system-traceroute-initial-ttl,omitempty" mapstructure:"system-traceroute-initial-ttl,omitempty" yaml:"system-traceroute-initial-ttl,omitempty"`
-	SystemTracerouteMaxTTL        int32         `json:"system-traceroute-max-ttl,omitempty" mapstructure:"system-traceroute-max-ttl,omitempty" yaml:"system-traceroute-max-ttl,omitempty"`
-	SystemTracerouteSize          int32         `json:"system-traceroute-size,omitempty" mapstructure:"system-traceroute-size,omitempty" yaml:"system-traceroute-size,omitempty"`
-	SystemTracerouteDoNotFragment bool          `json:"system-traceroute-do-not-fragment,omitempty" mapstructure:"system-traceroute-do-not-fragment,omitempty" yaml:"system-traceroute-do-not-fragment,omitempty"`
-	SystemTracerouteDoNotResolve  bool          `json:"system-traceroute-do-not-resolve,omitempty" mapstructure:"system-traceroute-do-not-resolve,omitempty" yaml:"system-traceroute-do-not-resolve,omitempty"`
-	SystemTracerouteL3Protocol    string        `json:"system-traceroute-l3-protocol,omitempty" mapstructure:"system-traceroute-l3-protocol,omitempty" yaml:"system-traceroute-l3-protocol,omitempty"`
-	SystemTracerouteL4Protocol    string        `json:"system-traceroute-l4-protocol,omitempty" mapstructure:"system-traceroute-l4-protocol,omitempty" yaml:"system-traceroute-l4-protocol,omitempty"`
+	SystemTracerouteDestination    string        `json:"system-traceroute-destination,omitempty" mapstructure:"system-traceroute-destination,omitempty" yaml:"system-traceroute-destination,omitempty"`
+	SystemTracerouteSource         string        `json:"system-traceroute-source,omitempty" mapstructure:"system-traceroute-source,omitempty" yaml:"system-traceroute-source,omitempty"`
+	SystemTracerouteInterval       time.Duration `json:"system-traceroute-interval,omitempty" mapstructure:"system-traceroute-interval,omitempty" yaml:"system-traceroute-interval,omitempty"`
+	SystemTracerouteWait           time.Duration `json:"system-traceroute-wait,omitempty" mapstructure:"system-traceroute-wait,omitempty" yaml:"system-traceroute-wait,omitempty"`
+	SystemTracerouteInitialTTL     uint32        `json:"system-traceroute-initial-ttl,omitempty" mapstructure:"system-traceroute-initial-ttl,omitempty" yaml:"system-traceroute-initial-ttl,omitempty"`
+	SystemTracerouteMaxTTL         int32         `json:"system-traceroute-max-ttl,omitempty" mapstructure:"system-traceroute-max-ttl,omitempty" yaml:"system-traceroute-max-ttl,omitempty"`
+	SystemTracerouteSize           int32         `json:"system-traceroute-size,omitempty" mapstructure:"system-traceroute-size,omitempty" yaml:"system-traceroute-size,omitempty"`
+	SystemTracerouteDoNotFragment  bool          `json:"system-traceroute-do-not-fragment,omitempty" mapstructure:"system-traceroute-do-not-fragment,omitempty" yaml:"system-traceroute-do-not-fragment,omitempty"`
+	SystemTracerouteDoNotResolve   bool          `json:"system-traceroute-do-not-resolve,omitempty" mapstructure:"system-traceroute-do-not-resolve,omitempty" yaml:"system-traceroute-do-not-resolve,omitempty"`
+	SystemTracerouteL3Protocol     string        `json:"system-traceroute-l3-protocol,omitempty" mapstructure:"system-traceroute-l3-protocol,omitempty" yaml:"system-traceroute-l3-protocol,omitempty"`
+	SystemTracerouteL4Protocol     string        `json:"system-traceroute-l4-protocol,omitempty" mapstructure:"system-traceroute-l4-protocol,omitempty" yaml:"system-traceroute-l4-protocol,omitempty"`
+	SystemTracerouteDoNotLookupAsn bool          `json:"system-traceroute-do-not-lookup-asn,omitempty" mapstructure:"system-traceroute-do-not-lookup-asn,omitempty" yaml:"system-traceroute-do-not-lookup-asn,omitempty"`
 	// System Reboot
 	SystemRebootMethod         string        `json:"system-reboot-method,omitempty" mapstructure:"system-reboot-method,omitempty" yaml:"system-reboot-method,omitempty"`
 	SystemRebootDelay          time.Duration `json:"system-reboot-delay,omitempty" mapstructure:"system-reboot-delay,omitempty" yaml:"system-reboot-delay,omitempty"`

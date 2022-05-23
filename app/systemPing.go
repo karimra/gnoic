@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/karimra/gnoic/api"
+	gsystem "github.com/karimra/gnoic/api/system"
 	"github.com/openconfig/gnoi/system"
-	"github.com/openconfig/gnoi/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"google.golang.org/grpc/metadata"
@@ -47,8 +47,11 @@ func (a *App) PreRunESystemPing(cmd *cobra.Command, args []string) error {
 	if a.Config.SystemPingDestination == "" {
 		return errors.New("flag --destination is required")
 	}
-	switch strings.ToUpper(a.Config.SystemPingProtocol) {
-	case "V4", "V6", "":
+	switch v := strings.ToUpper(a.Config.SystemPingProtocol); v {
+	case "V4", "V6":
+		a.Config.SystemPingProtocol = "IP" + v
+	case "":
+		a.Config.SystemPingProtocol = "UNSPECIFIED"
 	default:
 		return fmt.Errorf("unknown protocol %s", a.Config.SystemPingProtocol)
 	}
@@ -104,21 +107,23 @@ func (a *App) RunESystemPing(cmd *cobra.Command, args []string) error {
 }
 
 func (a *App) SystemPing(ctx context.Context, t *api.Target) error {
-	systemClient := system.NewSystemClient(t.Conn())
-	req := &system.PingRequest{
-		Destination:   a.Config.SystemPingDestination,
-		Source:        a.Config.SystemPingSource,
-		Count:         a.Config.SystemPingCount,
-		Interval:      a.Config.SystemPingInterval.Nanoseconds(),
-		Wait:          a.Config.SystemPingWait.Nanoseconds(),
-		Size:          a.Config.SystemPingSize,
-		DoNotFragment: a.Config.SystemPingDoNotFragment,
-		DoNotResolve:  a.Config.SystemPingDoNotResolve,
-		L3Protocol:    getL3Protocol(a.Config.SystemPingProtocol),
+	req, err := gsystem.NewSystemPingRequest(
+		gsystem.Destination(a.Config.SystemPingDestination),
+		gsystem.Source(a.Config.SystemPingSource),
+		gsystem.Count(a.Config.SystemPingCount),
+		gsystem.Interval(a.Config.SystemPingInterval.Nanoseconds()),
+		gsystem.Wait(a.Config.SystemPingWait.Nanoseconds()),
+		gsystem.Size(a.Config.SystemPingSize),
+		gsystem.DoNotFragment(a.Config.SystemPingDoNotFragment),
+		gsystem.DoNotResolve(a.Config.SystemPingDoNotResolve),
+		gsystem.L3Protocol(a.Config.SystemPingProtocol),
+	)
+	if err != nil {
+		return err
 	}
 	a.Logger.Debugf("ping request:\n%s", prototext.Format(req))
 	a.printMsg(t.Config.Name, req)
-	stream, err := systemClient.Ping(ctx, req)
+	stream, err := t.SystemClient().Ping(ctx, req)
 	if err != nil {
 		a.Logger.Errorf("%q creating System Ping stream failed: %v", t.Config.Address, err)
 		return err
@@ -217,14 +222,4 @@ func (a *App) printPingResponse(name string, rsp *system.PingResponse) {
 
 func formatDurationMS(d int64) string {
 	return fmt.Sprintf("%.3f", float64(d)/float64(time.Millisecond))
-}
-
-func getL3Protocol(s string) types.L3Protocol {
-	switch strings.ToUpper(s) {
-	case "V4":
-		return types.L3Protocol_IPV4
-	case "V6":
-		return types.L3Protocol_IPV6
-	}
-	return types.L3Protocol_UNSPECIFIED
 }
