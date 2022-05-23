@@ -4,7 +4,7 @@
 
 The `file get` command allows to retrieve a file from multiple Target(s) and store it in the local system.
 
-It uses the [gNOI File Get RPC](https://github.com/openconfig/gnoi/blob/master/file/file.proto#L34), which is a server streaming gRPC. After receiving the request, the Target streams the file to the client in chunks of maximum 64KB and finishes with a message containing the Hash of the file.
+It uses the [gNOI File Get RPC](https://github.com/openconfig/gnoi/blob/master/file/file.proto#L34), which is a server streaming RPC. After receiving the request, the Target streams the file to the client in chunks of maximum 64KB and finishes with a message containing the Hash of the file.
 At which point, the client should verify the Hash and save the file locally
 
 The `file get` command supports 3 flags:

@@ -33,6 +33,11 @@ nav:
          - switch-control-processor: command_reference/system/switch-control-processor.md
          - time: command_reference/system/time.md
          - traceroute: command_reference/system/traceroute.md
+      - OS:
+         - activate: command_reference/os/activate.md
+         - install: command_reference/os/install.md
+         - verify: command_reference/os/verify.md
+         
       - Tree: command_reference/tree/tree.md
       
 site_author: Karim Radhouani

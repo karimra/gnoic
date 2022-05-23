@@ -4,7 +4,7 @@
 
 The `file put` command allows to push a file from the local system to multiple Target(s).
 
-It uses the [gNOI File Put RPC](https://github.com/openconfig/gnoi/blob/master/file/file.proto#L52), which is a client streaming gRPC.
+It uses the [gNOI File Put RPC](https://github.com/openconfig/gnoi/blob/master/file/file.proto#L52), which is a client streaming RPC.
 
 The client start with `open` message containing the remote file name (must be an absolute path) as well as the permissions intended for the file.
 
