@@ -1,6 +1,7 @@
 package cert
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/karimra/gnoic/api"
@@ -24,11 +25,11 @@ func apply(m proto.Message, opts ...CertOption) error {
 func CertificateType(ct string) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option CertificateType: %w", api.ErrInvalidMsgType)
 		}
 		ctv, ok := cert.CertificateType_value[strings.ToUpper(ct)]
 		if !ok {
-			return api.ErrInvalidValue
+			return fmt.Errorf("option CertificateType: %w", api.ErrInvalidValue)
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *cert.CanGenerateCSRRequest:
@@ -39,6 +40,8 @@ func CertificateType(ct string) func(msg proto.Message) error {
 			msg.Type = cert.CertificateType(ctv)
 		case *cert.CSRParams:
 			msg.Type = cert.CertificateType(ctv)
+		default:
+			return fmt.Errorf("option CertificateType: %w", api.ErrInvalidMsgType)
 		}
 		return nil
 	}
@@ -47,11 +50,13 @@ func CertificateType(ct string) func(msg proto.Message) error {
 func CertificateBytes(b []byte) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option CertificateBytes: %w", api.ErrInvalidMsgType)
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *cert.Certificate:
 			msg.Certificate = b
+		default:
+			return fmt.Errorf("option CertificateBytes: %w", api.ErrInvalidMsgType)
 		}
 		return nil
 	}
@@ -60,7 +65,7 @@ func CertificateBytes(b []byte) func(msg proto.Message) error {
 func CertificateInfo(opts ...CertOption) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option CertificateInfo: %w", api.ErrInvalidMsgType)
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *cert.GetCertificatesResponse:
@@ -73,6 +78,8 @@ func CertificateInfo(opts ...CertOption) func(msg proto.Message) error {
 				msg.CertificateInfo = make([]*cert.CertificateInfo, 0, 1)
 			}
 			msg.CertificateInfo = append(msg.CertificateInfo, m)
+		default:
+			return fmt.Errorf("option CertificateInfo: %w", api.ErrInvalidMsgType)
 		}
 		return nil
 	}
@@ -81,7 +88,7 @@ func CertificateInfo(opts ...CertOption) func(msg proto.Message) error {
 func Certificate(opts ...CertOption) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option Certificate: %w", api.ErrInvalidMsgType)
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *cert.LoadCertificateRequest:
@@ -98,6 +105,8 @@ func Certificate(opts ...CertOption) func(msg proto.Message) error {
 				return err
 			}
 			msg.Certificate = m
+		default:
+			return fmt.Errorf("option Certificate: %w", api.ErrInvalidMsgType)
 		}
 		return nil
 	}
@@ -106,7 +115,7 @@ func Certificate(opts ...CertOption) func(msg proto.Message) error {
 func CertificateID(id string) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option CertificateID: %w", api.ErrInvalidMsgType)
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *cert.GenerateCSRRequest:
@@ -127,6 +136,8 @@ func CertificateID(id string) func(msg proto.Message) error {
 			msg.RevokedCertificateId = append(msg.RevokedCertificateId, id)
 		case *cert.CertificateRevocationError:
 			msg.CertificateId = id
+		default:
+			return fmt.Errorf("option CertificateID: %w", api.ErrInvalidMsgType)
 		}
 		return nil
 	}
@@ -135,7 +146,7 @@ func CertificateID(id string) func(msg proto.Message) error {
 func CaCertificate(opts ...CertOption) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option CaCertificate: %w", api.ErrInvalidMsgType)
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *cert.LoadCertificateRequest:
@@ -158,6 +169,8 @@ func CaCertificate(opts ...CertOption) func(msg proto.Message) error {
 				msg.CaCertificates = make([]*cert.Certificate, 0, 1)
 			}
 			msg.CaCertificates = append(msg.CaCertificates, m)
+		default:
+			return fmt.Errorf("option CaCertificate: %w", api.ErrInvalidMsgType)
 		}
 		return nil
 	}
@@ -166,11 +179,13 @@ func CaCertificate(opts ...CertOption) func(msg proto.Message) error {
 func ErrorMsg(s string) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option ErrorMsg: %w", api.ErrInvalidMsgType)
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *cert.CertificateRevocationError:
 			msg.ErrorMessage = s
+		default:
+			return fmt.Errorf("option ErrorMsg: %w", api.ErrInvalidMsgType)
 		}
 		return nil
 	}
@@ -179,7 +194,7 @@ func ErrorMsg(s string) func(msg proto.Message) error {
 func CSRParams(opts ...CertOption) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option CSRParams: %w", api.ErrInvalidMsgType)
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *cert.GenerateCSRRequest:
@@ -189,6 +204,8 @@ func CSRParams(opts ...CertOption) func(msg proto.Message) error {
 				return err
 			}
 			msg.CsrParams = m
+		default:
+			return fmt.Errorf("option CSRParams: %w", api.ErrInvalidMsgType)
 		}
 		return nil
 	}
@@ -197,7 +214,7 @@ func CSRParams(opts ...CertOption) func(msg proto.Message) error {
 func CSR(opts ...CertOption) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option CSR: %w", api.ErrInvalidMsgType)
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *cert.GenerateCSRResponse:
@@ -207,6 +224,8 @@ func CSR(opts ...CertOption) func(msg proto.Message) error {
 				return err
 			}
 			msg.Csr = m
+		default:
+			return fmt.Errorf("option CSR: %w", api.ErrInvalidMsgType)
 		}
 		return nil
 	}
@@ -215,13 +234,15 @@ func CSR(opts ...CertOption) func(msg proto.Message) error {
 func KeySize(ks uint32) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option KeySize: %w", api.ErrInvalidMsgType)
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *cert.CanGenerateCSRRequest:
 			msg.KeySize = ks
 		case *cert.CSRParams:
 			msg.MinKeySize = ks
+		default:
+			return fmt.Errorf("option KeySize: %w", api.ErrInvalidMsgType)
 		}
 		return nil
 	}
@@ -234,7 +255,7 @@ func MinKeySize(ks uint32) func(msg proto.Message) error {
 func KeyType(kt string) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option KeyType: %w", api.ErrInvalidMsgType)
 		}
 		ktv, ok := cert.KeyType_value[strings.ToUpper(kt)]
 		if !ok {
@@ -245,22 +266,28 @@ func KeyType(kt string) func(msg proto.Message) error {
 			msg.KeyType = cert.KeyType(ktv)
 		case *cert.CSRParams:
 			msg.KeyType = cert.KeyType(ktv)
+		default:
+			return fmt.Errorf("option KeyType: %w", api.ErrInvalidMsgType)
 		}
 		return nil
 	}
 }
 
-func KeyPair(pubKey, privKey []byte) func(msg proto.Message) error {
+func KeyPair(opts ...CertOption) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option KeyPair: %w", api.ErrInvalidMsgType)
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *cert.LoadCertificateRequest:
-			msg.KeyPair = &cert.KeyPair{
-				PrivateKey: privKey,
-				PublicKey:  pubKey,
+			m := new(cert.KeyPair)
+			err := apply(m, opts...)
+			if err != nil {
+				return err
 			}
+			msg.KeyPair = m
+		default:
+			return fmt.Errorf("option KeyPair: %w", api.ErrInvalidMsgType)
 		}
 		return nil
 	}
@@ -269,14 +296,13 @@ func KeyPair(pubKey, privKey []byte) func(msg proto.Message) error {
 func PublicKey(pubKey []byte) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option PublicKey: %w", api.ErrInvalidMsgType)
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
-		case *cert.LoadCertificateRequest:
-			if msg.KeyPair == nil {
-				msg.KeyPair = new(cert.KeyPair)
-			}
-			msg.KeyPair.PublicKey = pubKey
+		case *cert.KeyPair:
+			msg.PublicKey = pubKey
+		default:
+			return fmt.Errorf("option PublicKey: %w", api.ErrInvalidMsgType)
 		}
 		return nil
 	}
@@ -285,14 +311,13 @@ func PublicKey(pubKey []byte) func(msg proto.Message) error {
 func PrivateKey(privKey []byte) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option PrivateKey: %w", api.ErrInvalidMsgType)
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
-		case *cert.LoadCertificateRequest:
-			if msg.KeyPair == nil {
-				msg.KeyPair = new(cert.KeyPair)
-			}
-			msg.KeyPair.PrivateKey = privKey
+		case *cert.KeyPair:
+			msg.PrivateKey = privKey
+		default:
+			return fmt.Errorf("option PrivateKey: %w", api.ErrInvalidMsgType)
 		}
 		return nil
 	}
@@ -301,11 +326,13 @@ func PrivateKey(privKey []byte) func(msg proto.Message) error {
 func CommonName(cn string) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option CommonName: %w", api.ErrInvalidMsgType)
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *cert.CSRParams:
 			msg.CommonName = cn
+		default:
+			return fmt.Errorf("option CommonName: %w", api.ErrInvalidMsgType)
 		}
 		return nil
 	}
@@ -314,11 +341,13 @@ func CommonName(cn string) func(msg proto.Message) error {
 func Country(c string) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option Country: %w", api.ErrInvalidMsgType)
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *cert.CSRParams:
 			msg.Country = c
+		default:
+			return fmt.Errorf("option Country: %w", api.ErrInvalidMsgType)
 		}
 		return nil
 	}
@@ -327,11 +356,13 @@ func Country(c string) func(msg proto.Message) error {
 func State(s string) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option State: %w", api.ErrInvalidMsgType)
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *cert.CSRParams:
 			msg.State = s
+		default:
+			return fmt.Errorf("option State: %w", api.ErrInvalidMsgType)
 		}
 		return nil
 	}
@@ -340,11 +371,13 @@ func State(s string) func(msg proto.Message) error {
 func City(s string) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option City: %w", api.ErrInvalidMsgType)
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *cert.CSRParams:
 			msg.City = s
+		default:
+			return fmt.Errorf("option City: %w", api.ErrInvalidMsgType)
 		}
 		return nil
 	}
@@ -353,11 +386,13 @@ func City(s string) func(msg proto.Message) error {
 func Org(s string) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option Org: %w", api.ErrInvalidMsgType)
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *cert.CSRParams:
 			msg.Organization = s
+		default:
+			return fmt.Errorf("option Org: %w", api.ErrInvalidMsgType)
 		}
 		return nil
 	}
@@ -366,11 +401,13 @@ func Org(s string) func(msg proto.Message) error {
 func OrgUnit(s string) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option OrgUnit: %w", api.ErrInvalidMsgType)
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *cert.CSRParams:
 			msg.OrganizationalUnit = s
+		default:
+			return fmt.Errorf("option OrgUnit: %w", api.ErrInvalidMsgType)
 		}
 		return nil
 	}
@@ -379,11 +416,13 @@ func OrgUnit(s string) func(msg proto.Message) error {
 func IPAddress(ipAddr string) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option IPAddress: %w", api.ErrInvalidMsgType)
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *cert.CSRParams:
 			msg.IpAddress = ipAddr
+		default:
+			return fmt.Errorf("option IPAddress: %w", api.ErrInvalidMsgType)
 		}
 		return nil
 	}
@@ -392,11 +431,13 @@ func IPAddress(ipAddr string) func(msg proto.Message) error {
 func EmailID(s string) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option EmailID: %w", api.ErrInvalidMsgType)
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *cert.CSRParams:
 			msg.EmailId = s
+		default:
+			return fmt.Errorf("option EmailID: %w", api.ErrInvalidMsgType)
 		}
 		return nil
 	}
@@ -405,7 +446,7 @@ func EmailID(s string) func(msg proto.Message) error {
 func Endpoint(typ cert.Endpoint_Type, endp string) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option Endpoint: %w", api.ErrInvalidMsgType)
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *cert.CertificateInfo:
@@ -416,6 +457,8 @@ func Endpoint(typ cert.Endpoint_Type, endp string) func(msg proto.Message) error
 				Type:     typ,
 				Endpoint: endp,
 			})
+		default:
+			return fmt.Errorf("option Endpoint: %w", api.ErrInvalidMsgType)
 		}
 		return nil
 	}
@@ -424,11 +467,13 @@ func Endpoint(typ cert.Endpoint_Type, endp string) func(msg proto.Message) error
 func ModificationTime(mt int64) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option ModificationTime: %w", api.ErrInvalidMsgType)
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *cert.CertificateInfo:
 			msg.ModificationTime = mt
+		default:
+			return fmt.Errorf("option ModificationTime: %w", api.ErrInvalidMsgType)
 		}
 		return nil
 	}

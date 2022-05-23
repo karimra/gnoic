@@ -1,6 +1,8 @@
 package os
 
 import (
+	"fmt"
+
 	"github.com/karimra/gnoic/api"
 	gnoios "github.com/openconfig/gnoi/os"
 	"google.golang.org/protobuf/proto"
@@ -22,7 +24,7 @@ func apply(m proto.Message, opts ...OsOption) error {
 func Version(s string) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option Version: %w", api.ErrInvalidMsgType)
 		}
 
 		switch msg := msg.ProtoReflect().Interface().(type) {
@@ -36,6 +38,8 @@ func Version(s string) func(msg proto.Message) error {
 			msg.Version = s
 		case *gnoios.Validated:
 			msg.Version = s
+		default:
+			return fmt.Errorf("option Version: %w", api.ErrInvalidMsgType)
 		}
 		return nil
 	}
@@ -44,12 +48,13 @@ func Version(s string) func(msg proto.Message) error {
 func Description(s string) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option Description: %w", api.ErrInvalidMsgType)
 		}
-
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *gnoios.Validated:
 			msg.Description = s
+		default:
+			return fmt.Errorf("option Description: %w", api.ErrInvalidMsgType)
 		}
 		return nil
 	}
@@ -58,14 +63,15 @@ func Description(s string) func(msg proto.Message) error {
 func StandbySupervisor(b bool) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option StandbySupervisor: %w", api.ErrInvalidMsgType)
 		}
-
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *gnoios.TransferRequest:
 			msg.StandbySupervisor = b
 		case *gnoios.ActivateRequest:
 			msg.StandbySupervisor = b
+		default:
+			return fmt.Errorf("option StandbySupervisor: %w", api.ErrInvalidMsgType)
 		}
 		return nil
 	}
@@ -74,12 +80,13 @@ func StandbySupervisor(b bool) func(msg proto.Message) error {
 func NoReboot(b bool) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option NoReboot: %w", api.ErrInvalidMsgType)
 		}
-
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *gnoios.ActivateRequest:
 			msg.NoReboot = b
+		default:
+			return fmt.Errorf("option NoReboot: %w", api.ErrInvalidMsgType)
 		}
 		return nil
 	}
@@ -88,14 +95,15 @@ func NoReboot(b bool) func(msg proto.Message) error {
 func ErrorType(e int32) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option ErrorType: %w", api.ErrInvalidMsgType)
 		}
-
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *gnoios.ActivateError:
 			msg.Type = gnoios.ActivateError_Type(e)
 		case *gnoios.InstallError:
 			msg.Type = gnoios.InstallError_Type(e)
+		default:
+			return fmt.Errorf("option ErrorType: %w", api.ErrInvalidMsgType)
 		}
 		return nil
 	}
@@ -104,7 +112,7 @@ func ErrorType(e int32) func(msg proto.Message) error {
 func ErrorDetail(d string) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option ErrorDetail: %w", api.ErrInvalidMsgType)
 		}
 
 		switch msg := msg.ProtoReflect().Interface().(type) {
@@ -112,6 +120,8 @@ func ErrorDetail(d string) func(msg proto.Message) error {
 			msg.Detail = d
 		case *gnoios.InstallError:
 			msg.Detail = d
+		default:
+			return fmt.Errorf("option ErrorDetail: %w", api.ErrInvalidMsgType)
 		}
 		return nil
 	}
@@ -136,12 +146,14 @@ func ActivationFailMsg(s string) func(msg proto.Message) error {
 func BytesReceived(i uint64) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option BytesReceived: %w", api.ErrInvalidMsgType)
 		}
 
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *gnoios.TransferProgress:
 			msg.BytesReceived = i
+		default:
+			return fmt.Errorf("option BytesReceived: %w", api.ErrInvalidMsgType)
 		}
 		return nil
 	}
@@ -150,12 +162,13 @@ func BytesReceived(i uint64) func(msg proto.Message) error {
 func PercentageTransferred(i uint32) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option PercentageTransferred: %w", api.ErrInvalidMsgType)
 		}
-
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *gnoios.SyncProgress:
 			msg.PercentageTransferred = i
+		default:
+			return fmt.Errorf("option PercentageTransferred: %w", api.ErrInvalidMsgType)
 		}
 		return nil
 	}

@@ -1,6 +1,7 @@
 package file
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/karimra/gnoic/api"
@@ -26,9 +27,8 @@ func apply(m proto.Message, opts ...FileOption) error {
 func FileName(s string) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option FileName: %w", api.ErrInvalidMsgType)
 		}
-
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *gnoifile.GetRequest:
 			msg.RemoteFile = s
@@ -43,6 +43,8 @@ func FileName(s string) func(msg proto.Message) error {
 			}
 		case *gnoifile.TransferToRemoteRequest:
 			msg.LocalPath = s
+		default:
+			return fmt.Errorf("option FileName: %w", api.ErrInvalidMsgType)
 		}
 		return nil
 	}
@@ -51,7 +53,7 @@ func FileName(s string) func(msg proto.Message) error {
 func Content(b []byte) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option Content: %w", api.ErrInvalidMsgType)
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *gnoifile.GetResponse:
@@ -59,15 +61,17 @@ func Content(b []byte) func(msg proto.Message) error {
 			case *gnoifile.GetResponse_Contents:
 				m.Contents = b
 			default:
-				return api.ErrInvalidMsgType
+				return fmt.Errorf("option Content: %w", api.ErrInvalidMsgType)
 			}
 		case *gnoifile.PutRequest:
 			switch m := msg.GetRequest().(type) {
 			case *gnoifile.PutRequest_Contents:
 				m.Contents = b
 			default:
-				return api.ErrInvalidMsgType
+				return fmt.Errorf("option Content: %w", api.ErrInvalidMsgType)
 			}
+		default:
+			return fmt.Errorf("option Content: %w", api.ErrInvalidMsgType)
 		}
 		return nil
 	}
@@ -76,7 +80,7 @@ func Content(b []byte) func(msg proto.Message) error {
 func Hash(method string, b []byte) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option Hash: %w", api.ErrInvalidMsgType)
 		}
 		ht, ok := types.HashType_HashMethod_value[strings.ToUpper(method)]
 		if !ok {
@@ -91,7 +95,7 @@ func Hash(method string, b []byte) func(msg proto.Message) error {
 					Hash:   b,
 				}
 			default:
-				return api.ErrInvalidMsgType
+				return fmt.Errorf("option Hash: %w", api.ErrInvalidMsgType)
 			}
 		case *gnoifile.PutRequest:
 			switch m := msg.GetRequest().(type) {
@@ -101,7 +105,7 @@ func Hash(method string, b []byte) func(msg proto.Message) error {
 					Hash:   b,
 				}
 			default:
-				return api.ErrInvalidMsgType
+				return fmt.Errorf("option Hash: %w", api.ErrInvalidMsgType)
 			}
 		case *types.Credentials:
 			msg.Password = &types.Credentials_Hashed{
@@ -115,6 +119,8 @@ func Hash(method string, b []byte) func(msg proto.Message) error {
 				Method: types.HashType_HashMethod(ht),
 				Hash:   b,
 			}
+		default:
+			return fmt.Errorf("option Hash: %w", api.ErrInvalidMsgType)
 		}
 		return nil
 	}
@@ -139,7 +145,7 @@ func HashUNSPECIFIED(b []byte) func(msg proto.Message) error {
 func StatInfo(opts ...FileOption) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option StatInfo: %w", api.ErrInvalidMsgType)
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *gnoifile.StatResponse:
@@ -152,6 +158,8 @@ func StatInfo(opts ...FileOption) func(msg proto.Message) error {
 				return err
 			}
 			msg.Stats = append(msg.Stats, m)
+		default:
+			return fmt.Errorf("option StatInfo: %w", api.ErrInvalidMsgType)
 		}
 		return nil
 	}
@@ -160,7 +168,7 @@ func StatInfo(opts ...FileOption) func(msg proto.Message) error {
 func Path(p string) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option Path: %w", api.ErrInvalidMsgType)
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *gnoifile.StatRequest:
@@ -169,6 +177,8 @@ func Path(p string) func(msg proto.Message) error {
 			msg.Path = p
 		case *common.RemoteDownload:
 			msg.Path = p
+		default:
+			return fmt.Errorf("option Path: %w", api.ErrInvalidMsgType)
 		}
 		return nil
 	}
@@ -177,11 +187,13 @@ func Path(p string) func(msg proto.Message) error {
 func LastModified(i uint64) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option LastModified: %w", api.ErrInvalidMsgType)
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *gnoifile.StatInfo:
 			msg.LastModified = i
+		default:
+			return fmt.Errorf("option LastModified: %w", api.ErrInvalidMsgType)
 		}
 		return nil
 	}
@@ -190,7 +202,7 @@ func LastModified(i uint64) func(msg proto.Message) error {
 func Permissions(i uint32) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option Permissions: %w", api.ErrInvalidMsgType)
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *gnoifile.StatInfo:
@@ -200,8 +212,10 @@ func Permissions(i uint32) func(msg proto.Message) error {
 			case *gnoifile.PutRequest_Open:
 				rsp.Open.Permissions = i
 			default:
-				return api.ErrInvalidMsgType
+				return fmt.Errorf("option Permissions: %w", api.ErrInvalidMsgType)
 			}
+		default:
+			return fmt.Errorf("option Permissions: %w", api.ErrInvalidMsgType)
 		}
 		return nil
 	}
@@ -210,11 +224,13 @@ func Permissions(i uint32) func(msg proto.Message) error {
 func Size(i uint64) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option Size: %w", api.ErrInvalidMsgType)
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *gnoifile.StatInfo:
 			msg.Size = i
+		default:
+			return fmt.Errorf("option Size: %w", api.ErrInvalidMsgType)
 		}
 		return nil
 	}
@@ -223,11 +239,13 @@ func Size(i uint64) func(msg proto.Message) error {
 func Umask(i uint32) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option Umask: %w", api.ErrInvalidMsgType)
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *gnoifile.StatInfo:
 			msg.Umask = i
+		default:
+			return fmt.Errorf("option Umask: %w", api.ErrInvalidMsgType)
 		}
 		return nil
 	}
@@ -236,7 +254,7 @@ func Umask(i uint32) func(msg proto.Message) error {
 func RemoteDownloadProtocol(p string) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option RemoteDownloadProtocol: %w", api.ErrInvalidMsgType)
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *common.RemoteDownload:
@@ -246,7 +264,7 @@ func RemoteDownloadProtocol(p string) func(msg proto.Message) error {
 			}
 			msg.Protocol = common.RemoteDownload_Protocol(v)
 		default:
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option RemoteDownloadProtocol: %w", api.ErrInvalidMsgType)
 		}
 		return nil
 	}
@@ -271,13 +289,13 @@ func RemoteDownloadProtocolSCP() func(msg proto.Message) error {
 func RemoteDownloadProtocolCustom(i uint32) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option RemoteDownloadProtocolCustom: %w", api.ErrInvalidMsgType)
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *common.RemoteDownload:
 			msg.Protocol = common.RemoteDownload_Protocol(i)
 		default:
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option RemoteDownloadProtocolCustom: %w", api.ErrInvalidMsgType)
 		}
 		return nil
 	}
@@ -286,14 +304,14 @@ func RemoteDownloadProtocolCustom(i uint32) func(msg proto.Message) error {
 func Credentials(opts ...FileOption) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option Credentials: %w", api.ErrInvalidMsgType)
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *common.RemoteDownload:
 			msg.Credentials = new(types.Credentials)
 			return apply(msg.Credentials, opts...)
 		default:
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option Credentials: %w", api.ErrInvalidMsgType)
 		}
 	}
 }
@@ -301,13 +319,13 @@ func Credentials(opts ...FileOption) func(msg proto.Message) error {
 func Username(uname string) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option Username: %w", api.ErrInvalidMsgType)
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *types.Credentials:
 			msg.Username = uname
 		default:
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option Username: %w", api.ErrInvalidMsgType)
 		}
 		return nil
 	}
@@ -316,7 +334,7 @@ func Username(uname string) func(msg proto.Message) error {
 func Password(password string) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option Password: %w", api.ErrInvalidMsgType)
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *types.Credentials:
@@ -324,7 +342,7 @@ func Password(password string) func(msg proto.Message) error {
 				Cleartext: password,
 			}
 		default:
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option Password: %w", api.ErrInvalidMsgType)
 		}
 		return nil
 	}
@@ -333,13 +351,13 @@ func Password(password string) func(msg proto.Message) error {
 func SourceAddress(saddr string) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option SourceAddress: %w", api.ErrInvalidMsgType)
 		}
 		switch msg := msg.ProtoReflect().Interface().(type) {
 		case *common.RemoteDownload:
 			msg.SourceAddress = saddr
 		default:
-			return api.ErrInvalidMsgType
+			return fmt.Errorf("option SourceAddress: %w", api.ErrInvalidMsgType)
 		}
 		return nil
 	}

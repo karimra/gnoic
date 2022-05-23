@@ -11,7 +11,6 @@ import (
 	"github.com/karimra/gnoic/api"
 	"github.com/olekukonko/tablewriter"
 	"github.com/openconfig/gnoi/system"
-	"github.com/openconfig/gnoi/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"google.golang.org/grpc/metadata"
@@ -96,14 +95,19 @@ func (a *App) RunESystemSwitchControlProcessor(cmd *cobra.Command, args []string
 }
 
 func (a *App) SystemSwitchControlProcessor(ctx context.Context, t *api.Target) (*system.SwitchControlProcessorResponse, error) {
-	systemClient := system.NewSystemClient(t.Conn())
-	req := &system.SwitchControlProcessorRequest{
-		ControlProcessor: &types.Path{},
-	}
-	rsp, err := systemClient.SwitchControlProcessor(ctx, req)
+	p, err := ParsePath(a.Config.SystemSwitchControlProcessorPath)
 	if err != nil {
 		return nil, err
 	}
+	req := &system.SwitchControlProcessorRequest{
+		ControlProcessor: p,
+	}
+	a.printMsg(t.Config.Name, req)
+	rsp, err := t.SystemClient().SwitchControlProcessor(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	a.printMsg(t.Config.Name, rsp)
 	a.Logger.Infof("%q System SwitchControlProcessor Request successful", t.Config.Address)
 	return rsp, nil
 }
