@@ -9,6 +9,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/karimra/gnoic/api"
 	gos "github.com/karimra/gnoic/api/os"
 	gnoios "github.com/openconfig/gnoi/os"
 	"github.com/spf13/cobra"
@@ -56,13 +57,13 @@ func (a *App) RunEOSInstall(cmd *cobra.Command, args []string) error {
 
 	a.wg.Add(numTargets)
 	for _, t := range targets {
-		go func(t *Target) {
+		go func(t *api.Target) {
 			defer a.wg.Done()
 			ctx, cancel := context.WithCancel(a.ctx)
 			defer cancel()
 			ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
 
-			err = a.CreateGrpcClient(ctx, t, a.createBaseDialOpts()...)
+			err = t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
 			if err != nil {
 				responseChan <- &osInstallResponse{
 					TargetError: TargetError{
@@ -72,6 +73,7 @@ func (a *App) RunEOSInstall(cmd *cobra.Command, args []string) error {
 				}
 				return
 			}
+			defer t.Close()
 			a.Logger.Infof("starting install RPC")
 			err = a.OsInstall(ctx, t)
 			responseChan <- &osInstallResponse{
@@ -92,9 +94,9 @@ func (a *App) RunEOSInstall(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func (a *App) OsInstall(ctx context.Context, t *Target) error {
+func (a *App) OsInstall(ctx context.Context, t *api.Target) error {
 	// start stream
-	osc := gnoios.NewOSClient(t.client)
+	osc := gnoios.NewOSClient(t.Conn())
 	osInstallClient, err := osc.Install(ctx)
 	if err != nil {
 		return err
@@ -146,7 +148,7 @@ RCV:
 	return nil
 }
 
-func (a *App) osInstallTransferContent(ctx context.Context, t *Target, osic gnoios.OS_InstallClient) error {
+func (a *App) osInstallTransferContent(ctx context.Context, t *api.Target, osic gnoios.OS_InstallClient) error {
 	// read file
 	pkg, err := os.Open(a.Config.OsInstallPackage)
 	if err != nil {

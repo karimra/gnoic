@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/karimra/gnoic/api"
 	"github.com/openconfig/gnoi/system"
 	"github.com/openconfig/gnoi/types"
 	"github.com/spf13/cobra"
@@ -39,13 +40,13 @@ func (a *App) RunESystemCancelReboot(cmd *cobra.Command, args []string) error {
 	responseChan := make(chan *TargetError, numTargets)
 	a.wg.Add(numTargets)
 	for _, t := range targets {
-		go func(t *Target, subcomponents []*types.Path) {
+		go func(t *api.Target, subcomponents []*types.Path) {
 			defer a.wg.Done()
 			ctx, cancel := context.WithCancel(a.ctx)
 			defer cancel()
 			ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
 
-			err = a.CreateGrpcClient(ctx, t, a.createBaseDialOpts()...)
+			err = t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
 			if err != nil {
 				responseChan <- &TargetError{
 					TargetName: t.Config.Address,
@@ -53,6 +54,7 @@ func (a *App) RunESystemCancelReboot(cmd *cobra.Command, args []string) error {
 				}
 				return
 			}
+			defer t.Close()
 			err := a.SystemCancelReboot(ctx, t, subcomponents)
 			responseChan <- &TargetError{
 				TargetName: t.Config.Address,
@@ -75,8 +77,8 @@ func (a *App) RunESystemCancelReboot(cmd *cobra.Command, args []string) error {
 	return a.handleErrs(errs)
 }
 
-func (a *App) SystemCancelReboot(ctx context.Context, t *Target, subcomponents []*types.Path) error {
-	systemClient := system.NewSystemClient(t.client)
+func (a *App) SystemCancelReboot(ctx context.Context, t *api.Target, subcomponents []*types.Path) error {
+	systemClient := system.NewSystemClient(t.Conn())
 	req := &system.CancelRebootRequest{
 		Message:       a.Config.SystemCancelRebootMessage,
 		Subcomponents: subcomponents,

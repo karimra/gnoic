@@ -14,6 +14,8 @@ import (
 	"net"
 	"time"
 
+	"github.com/karimra/gnoic/api"
+	gcert "github.com/karimra/gnoic/api/cert"
 	"github.com/openconfig/gnoi/cert"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -71,13 +73,13 @@ func (a *App) RunECertInstall(cmd *cobra.Command, args []string) error {
 
 	a.wg.Add(numTargets)
 	for _, t := range targets {
-		go func(t *Target) {
+		go func(t *api.Target) {
 			defer a.wg.Done()
 			ctx, cancel := context.WithCancel(a.ctx)
 			defer cancel()
 			ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
 
-			err = a.CreateGrpcClient(ctx, t, a.createBaseDialOpts()...)
+			err = t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
 			if err != nil {
 				responseChan <- &TargetError{
 					TargetName: t.Config.Address,
@@ -85,6 +87,7 @@ func (a *App) RunECertInstall(cmd *cobra.Command, args []string) error {
 				}
 				return
 			}
+			defer t.Close()
 			err = a.CertInstall(ctx, t)
 			responseChan <- &TargetError{
 				TargetName: t.Config.Address,
@@ -107,11 +110,9 @@ func (a *App) RunECertInstall(cmd *cobra.Command, args []string) error {
 	return a.handleErrs(errs)
 }
 
-func (a *App) CertInstall(ctx context.Context, t *Target) error {
-	// create cert mgmt client
-	certClient := cert.NewCertificateManagementClient(t.client)
+func (a *App) CertInstall(ctx context.Context, t *api.Target) error {
 	// create cert mgmt install stream RPC
-	stream, err := certClient.Install(ctx)
+	stream, err := t.CertClient().Install(ctx)
 	if err != nil {
 		return fmt.Errorf("%q failed creating Install gRPC stream: %v", t.Config.Address, err)
 	}
@@ -120,13 +121,17 @@ func (a *App) CertInstall(ctx context.Context, t *Target) error {
 	// if it cannot, set --gen-csr to true,
 	// to generate the certificate locally
 	if !a.Config.CertInstallGenCSR {
-		cgcResp, err := certClient.CanGenerateCSR(ctx, &cert.CanGenerateCSRRequest{
-			KeyType:         cert.KeyType(cert.KeyType_value[a.Config.CertInstallKeyType]),
-			CertificateType: cert.CertificateType(cert.CertificateType_value[a.Config.CertInstallCertificateType]),
-			KeySize:         a.Config.CertInstallMinKeySize,
-		})
+		cgcReq, err := gcert.NewCertCanGenerateCSRRequest(
+			gcert.CertificateType(a.Config.CertInstallCertificateType),
+			gcert.KeyType(a.Config.CertInstallKeyType),
+			gcert.KeySize(a.Config.CertInstallMinKeySize),
+		)
 		if err != nil {
-			return fmt.Errorf("%q failed CanGenCSR RPC: %v", t.Config.Name, err)
+			return err
+		}
+		cgcResp, err := t.CertClient().CanGenerateCSR(ctx, cgcReq)
+		if err != nil {
+			return fmt.Errorf("%q failed Cert CanGenCSR RPC: %w", t.Config.Name, err)
 		}
 		if !cgcResp.GetCanGenerate() {
 			a.Config.CertInstallGenCSR = true
@@ -177,33 +182,26 @@ func (a *App) CertInstall(ctx context.Context, t *Target) error {
 		return fmt.Errorf("%q failed to encode as PEM: %v", t.Config.Address, err)
 	}
 	a.Logger.Infof("%q installing certificate id=%s %q", t.Config.Address, a.Config.CertInstallCertificateID, certificate.Subject.String())
-	if a.Config.CertInstallGenCSR {
-		err = stream.Send(&cert.InstallCertificateRequest{
-			InstallRequest: &cert.InstallCertificateRequest_LoadCertificate{
-				LoadCertificate: &cert.LoadCertificateRequest{
-					Certificate: &cert.Certificate{
-						Type:        cert.CertificateType(cert.CertificateType_value[a.Config.CertInstallCertificateType]),
-						Certificate: b,
-					},
-					KeyPair:       keyPair,
-					CertificateId: a.Config.CertInstallCertificateID,
-				},
-			},
-		})
-	} else {
-		err = stream.Send(&cert.InstallCertificateRequest{
-			InstallRequest: &cert.InstallCertificateRequest_LoadCertificate{
-				LoadCertificate: &cert.LoadCertificateRequest{
-					Certificate: &cert.Certificate{
-						Type:        cert.CertificateType(cert.CertificateType_value[a.Config.CertInstallCertificateType]),
-						Certificate: b,
-					},
-					// do not include certificate_id if a GenerateCSRRequest was previously sent on the stream
-					// CertificateId: a.Config.CertInstallCertificateID,
-				},
-			},
-		})
+
+	// install certificate load certificate request options
+	opts := []gcert.CertOption{
+		gcert.Certificate(
+			gcert.CertificateType(a.Config.CertInstallCertificateType),
+			gcert.CertificateBytes(b),
+		),
 	}
+	if a.Config.CertInstallGenCSR {
+		// if the csr was generated locally, add the key pair and cert ID
+		opts = append(opts,
+			gcert.KeyPair(keyPair.GetPublicKey(), keyPair.GetPrivateKey()),
+			gcert.CertificateID(a.Config.CertInstallCertificateID),
+		)
+	}
+	loadCertReq, err := gcert.NewCertInstallLoadCertificateRequest(opts...)
+	if err != nil {
+		return err
+	}
+	err = stream.Send(loadCertReq)
 	if err != nil {
 		return fmt.Errorf("%q failed sending InstallRequest: %v", t.Config.Address, err)
 	}
@@ -215,7 +213,7 @@ func (a *App) CertInstall(ctx context.Context, t *Target) error {
 	return nil
 }
 
-func (a *App) createLocalCSRInstall(t *Target) (*cert.KeyPair, *x509.CertificateRequest, error) {
+func (a *App) createLocalCSRInstall(t *api.Target) (*cert.KeyPair, *x509.CertificateRequest, error) {
 	var commonName = a.Config.CertInstallCommonName
 	var ipAddr = a.Config.CertInstallIPAddress
 	if commonName == "" {
@@ -291,7 +289,7 @@ func (a *App) createLocalCSRInstall(t *Target) (*cert.KeyPair, *x509.Certificate
 		creq, err
 }
 
-func (a *App) createRemoteCSRInstall(stream cert.CertificateManagement_InstallClient, t *Target) (*x509.CertificateRequest, error) {
+func (a *App) createRemoteCSRInstall(stream cert.CertificateManagement_InstallClient, t *api.Target) (*x509.CertificateRequest, error) {
 	var commonName = a.Config.CertInstallCommonName
 	var ipAddr = a.Config.CertInstallIPAddress
 	if commonName == "" {
@@ -300,30 +298,28 @@ func (a *App) createRemoteCSRInstall(stream cert.CertificateManagement_InstallCl
 	if ipAddr == "" {
 		ipAddr = t.Config.ResolvedIP
 	}
-	req := &cert.InstallCertificateRequest{
-		InstallRequest: &cert.InstallCertificateRequest_GenerateCsr{
-			GenerateCsr: &cert.GenerateCSRRequest{
-				CsrParams: &cert.CSRParams{
-					Type:               cert.CertificateType(cert.CertificateType_value[a.Config.CertInstallCertificateType]),
-					MinKeySize:         a.Config.CertInstallMinKeySize,
-					KeyType:            cert.KeyType(cert.KeyType_value[a.Config.CertInstallKeyType]),
-					CommonName:         commonName,
-					Country:            a.Config.CertInstallCountry,
-					State:              a.Config.CertInstallState,
-					City:               a.Config.CertInstallCity,
-					Organization:       a.Config.CertInstallOrg,
-					OrganizationalUnit: a.Config.CertInstallOrgUnit,
-					IpAddress:          ipAddr,
-					EmailId:            a.Config.CertInstallEmailID,
-				},
-				CertificateId: a.Config.CertInstallCertificateID,
-			},
-		},
+	req, err := gcert.NewCertInstallGenerateCSRRequest(
+		gcert.CertificateID(a.Config.CertInstallCertificateID),
+		gcert.CSRParams(
+			gcert.CertificateType(a.Config.CertInstallCertificateType),
+			gcert.MinKeySize(a.Config.CertInstallMinKeySize),
+			gcert.KeyType(a.Config.CertInstallKeyType),
+			gcert.CommonName(commonName),
+			gcert.Country(a.Config.CertInstallCountry),
+			gcert.State(a.Config.CertInstallState),
+			gcert.City(a.Config.CertInstallCity),
+			gcert.Org(a.Config.CertInstallOrg),
+			gcert.OrgUnit(a.Config.CertInstallOrgUnit),
+			gcert.IPAddress(ipAddr),
+			gcert.EmailID(a.Config.CertInstallEmailID),
+		),
+	)
+	if err != nil {
+		return nil, err
 	}
-
 	a.printMsg(t.Config.Name, req)
 
-	err := stream.Send(req)
+	err = stream.Send(req)
 	if err != nil {
 		return nil, fmt.Errorf("%q failed send Install RPC: GenCSR: %v", err, t.Config.Address)
 	}

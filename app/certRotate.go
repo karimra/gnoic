@@ -15,6 +15,8 @@ import (
 	"net"
 	"time"
 
+	"github.com/karimra/gnoic/api"
+	gcert "github.com/karimra/gnoic/api/cert"
 	"github.com/openconfig/gnoi/cert"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -72,12 +74,12 @@ func (a *App) RunECertRotate(cmd *cobra.Command, args []string) error {
 
 	a.wg.Add(numTargets)
 	for _, t := range targets {
-		go func(t *Target) {
+		go func(t *api.Target) {
 			defer a.wg.Done()
 			ctx, cancel := context.WithCancel(a.ctx)
 			defer cancel()
 			ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
-			err = a.CreateGrpcClient(ctx, t, a.createBaseDialOpts()...)
+			err = t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
 			if err != nil {
 				responseChan <- &TargetError{
 					TargetName: t.Config.Address,
@@ -85,6 +87,7 @@ func (a *App) RunECertRotate(cmd *cobra.Command, args []string) error {
 				}
 				return
 			}
+			defer t.Close()
 			err = a.CertRotate(ctx, t)
 			responseChan <- &TargetError{
 				TargetName: t.Config.Address,
@@ -107,18 +110,22 @@ func (a *App) RunECertRotate(cmd *cobra.Command, args []string) error {
 	return a.handleErrs(errs)
 }
 
-func (a *App) CertRotate(ctx context.Context, t *Target) error {
-	certClient := cert.NewCertificateManagementClient(t.client)
+func (a *App) CertRotate(ctx context.Context, t *api.Target) error {
+	certClient := t.CertClient()
 	stream, err := certClient.Rotate(ctx)
 	if err != nil {
 		return fmt.Errorf("%q failed creating Rotate gRPC stream: %v", t.Config.Address, err)
 	}
 	if !a.Config.CertRotateGenCSR {
-		cgcResp, err := certClient.CanGenerateCSR(ctx, &cert.CanGenerateCSRRequest{
-			KeyType:         cert.KeyType(cert.KeyType_value[a.Config.CertRotateKeyType]),
-			CertificateType: cert.CertificateType(cert.CertificateType_value[a.Config.CertRotateCertificateType]),
-			KeySize:         a.Config.CertRotateMinKeySize,
-		})
+		cgcReq, err := gcert.NewCertCanGenerateCSRRequest(
+			gcert.CertificateType(a.Config.CertRotateCertificateType),
+			gcert.KeyType(a.Config.CertRotateKeyType),
+			gcert.KeySize(a.Config.CertRotateMinKeySize),
+		)
+		if err != nil {
+			return err
+		}
+		cgcResp, err := certClient.CanGenerateCSR(ctx, cgcReq)
 		if err != nil {
 			return fmt.Errorf("%q failed CanGenCSR RPC: %v", t.Config.Name, err)
 		}
@@ -161,51 +168,38 @@ func (a *App) CertRotate(ctx context.Context, t *Target) error {
 		return fmt.Errorf("failed toPEM: %v", err)
 	}
 	a.Logger.Infof("%q rotating certificate id=%s %q", t.Config.Address, a.Config.CertRotateCertificateID, certificate.Subject.String())
-	if a.Config.CertRotateGenCSR {
-		req := &cert.RotateCertificateRequest{
-			RotateRequest: &cert.RotateCertificateRequest_LoadCertificate{
-				LoadCertificate: &cert.LoadCertificateRequest{
-					Certificate: &cert.Certificate{
-						Type:        cert.CertificateType(cert.CertificateType_value[a.Config.CertRotateCertificateType]),
-						Certificate: b,
-					},
-					KeyPair:       keyPair,
-					CertificateId: a.Config.CertRotateCertificateID,
-				},
-			},
-		}
-		a.printMsg(t.Config.Name, req)
-		err = stream.Send(req)
-	} else {
-		req := &cert.RotateCertificateRequest{
-			RotateRequest: &cert.RotateCertificateRequest_LoadCertificate{
-				LoadCertificate: &cert.LoadCertificateRequest{
-					Certificate: &cert.Certificate{
-						Type:        cert.CertificateType(cert.CertificateType_value[a.Config.CertRotateCertificateType]),
-						Certificate: b,
-					},
-					CertificateId: a.Config.CertRotateCertificateID,
-				},
-			},
-		}
-		a.printMsg(t.Config.Name, req)
-		err = stream.Send(req)
+
+	// rotate certificate load certificate request options
+	opts := []gcert.CertOption{
+		gcert.Certificate(
+			gcert.CertificateType(a.Config.CertRotateCertificateType),
+			gcert.CertificateBytes(b),
+		),
+		gcert.CertificateID(a.Config.CertRotateCertificateID),
 	}
+	if a.Config.CertRotateGenCSR {
+		// if the csr was generated locally, add the key pair and cert ID
+		opts = append(opts,
+			gcert.KeyPair(keyPair.GetPublicKey(), keyPair.GetPrivateKey()),
+		)
+	}
+	loadCertReq, err := gcert.NewCertRotateLoadCertificateRequest(opts...)
+	if err != nil {
+		return err
+	}
+	a.printMsg(t.Config.Name, loadCertReq)
+	err = stream.Send(loadCertReq)
 	if err != nil {
 		return fmt.Errorf("%q failed sending RotateRequest: %v", t.Config.Address, err)
 	}
 	resp, err := stream.Recv()
 	if err != nil {
-		return fmt.Errorf("%q RotateRequest LoadCertificate RPC failed: %v", t.Config.Address, err)
+		return err
 	}
 	a.printMsg(t.Config.Name, resp)
-	finalizeReq := &cert.RotateCertificateRequest{
-		RotateRequest: &cert.RotateCertificateRequest_FinalizeRotation{
-			FinalizeRotation: &cert.FinalizeRequest{},
-		},
-	}
-	a.printMsg(t.Config.Name, finalizeReq)
-	err = stream.Send(finalizeReq)
+
+	a.printMsg(t.Config.Name, gcert.NewCertRotateFinalizeRequest())
+	err = stream.Send(gcert.NewCertRotateFinalizeRequest())
 	if err != nil {
 		return fmt.Errorf("%q RotateRequest FinalizeRequest RPC failed: %v", t.Config.Address, err)
 	}
@@ -218,7 +212,7 @@ func (a *App) CertRotate(ctx context.Context, t *Target) error {
 	return nil
 }
 
-func (a *App) createLocalCSRRotate(t *Target) (*cert.KeyPair, *x509.CertificateRequest, error) {
+func (a *App) createLocalCSRRotate(t *api.Target) (*cert.KeyPair, *x509.CertificateRequest, error) {
 	var commonName = a.Config.CertRotateCommonName
 	var ipAddr = a.Config.CertRotateIPAddress
 	if commonName == "" {
@@ -294,7 +288,7 @@ func (a *App) createLocalCSRRotate(t *Target) (*cert.KeyPair, *x509.CertificateR
 		creq, err
 }
 
-func (a *App) createRemoteCSRRotate(stream cert.CertificateManagement_RotateClient, t *Target) (*x509.CertificateRequest, error) {
+func (a *App) createRemoteCSRRotate(stream cert.CertificateManagement_RotateClient, t *api.Target) (*x509.CertificateRequest, error) {
 	var commonName = a.Config.CertRotateCommonName
 	var ipAddr = a.Config.CertRotateIPAddress
 	if commonName == "" {
@@ -303,28 +297,27 @@ func (a *App) createRemoteCSRRotate(stream cert.CertificateManagement_RotateClie
 	if ipAddr == "" {
 		ipAddr = t.Config.ResolvedIP
 	}
-	req := &cert.RotateCertificateRequest{
-		RotateRequest: &cert.RotateCertificateRequest_GenerateCsr{
-			GenerateCsr: &cert.GenerateCSRRequest{
-				CsrParams: &cert.CSRParams{
-					Type:               cert.CertificateType(cert.CertificateType_value[a.Config.CertRotateCertificateType]),
-					MinKeySize:         a.Config.CertRotateMinKeySize,
-					KeyType:            cert.KeyType(cert.KeyType_value[a.Config.CertRotateKeyType]),
-					CommonName:         commonName,
-					Country:            a.Config.CertRotateCountry,
-					State:              a.Config.CertRotateState,
-					City:               a.Config.CertRotateCity,
-					Organization:       a.Config.CertRotateOrg,
-					OrganizationalUnit: a.Config.CertRotateOrgUnit,
-					IpAddress:          ipAddr,
-					EmailId:            a.Config.CertRotateEmailID,
-				},
-				CertificateId: a.Config.CertRotateCertificateID,
-			},
-		},
+	req, err := gcert.NewCertRotateGenerateCSRRequest(
+		gcert.CertificateID(a.Config.CertRotateCertificateID),
+		gcert.CSRParams(
+			gcert.CertificateType(a.Config.CertRotateCertificateType),
+			gcert.MinKeySize(a.Config.CertRotateMinKeySize),
+			gcert.KeyType(a.Config.CertRotateKeyType),
+			gcert.CommonName(commonName),
+			gcert.Country(a.Config.CertRotateCountry),
+			gcert.State(a.Config.CertRotateState),
+			gcert.City(a.Config.CertRotateCity),
+			gcert.Org(a.Config.CertRotateOrg),
+			gcert.OrgUnit(a.Config.CertRotateOrgUnit),
+			gcert.IPAddress(ipAddr),
+			gcert.EmailID(a.Config.CertRotateEmailID),
+		),
+	)
+	if err != nil {
+		return nil, err
 	}
 	a.printMsg(t.Config.Name, req)
-	err := stream.Send(req)
+	err = stream.Send(req)
 	if err != nil {
 		return nil, fmt.Errorf("%q failed send Rotate RPC: GenCSR: %v", err, t.Config.Address)
 	}

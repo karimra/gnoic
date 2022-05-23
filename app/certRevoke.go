@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/karimra/gnoic/api"
+	gcert "github.com/karimra/gnoic/api/cert"
 	"github.com/openconfig/gnoi/cert"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -36,12 +38,12 @@ func (a *App) RunECertRevokeCertificates(cmd *cobra.Command, args []string) erro
 
 	a.wg.Add(numTargets)
 	for _, t := range targets {
-		go func(t *Target) {
+		go func(t *api.Target) {
 			defer a.wg.Done()
 			ctx, cancel := context.WithCancel(a.ctx)
 			defer cancel()
 			ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
-			err = a.CreateGrpcClient(ctx, t, a.createBaseDialOpts()...)
+			err = t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
 			if err != nil {
 				responseChan <- &TargetError{
 					TargetName: t.Config.Address,
@@ -49,6 +51,7 @@ func (a *App) RunECertRevokeCertificates(cmd *cobra.Command, args []string) erro
 				}
 				return
 			}
+			defer t.Close()
 			err = a.Revoke(ctx, t)
 			responseChan <- &TargetError{
 				TargetName: t.Config.Address,
@@ -71,23 +74,30 @@ func (a *App) RunECertRevokeCertificates(cmd *cobra.Command, args []string) erro
 	return a.handleErrs(errs)
 }
 
-func (a *App) Revoke(ctx context.Context, t *Target) error {
-	certClient := cert.NewCertificateManagementClient(t.client)
+func (a *App) Revoke(ctx context.Context, t *api.Target) error {
+	certClient := t.CertClient()
 	//
-	certificatesID := a.Config.CertRevokeCertificatesCertificateID
-	if len(certificatesID) == 0 && a.Config.CertRevokeCertificatesAll {
+	opts := make([]gcert.CertOption, 0, len(a.Config.CertRevokeCertificatesCertificateID))
+	for _, cid := range a.Config.CertRevokeCertificatesCertificateID {
+		opts = append(opts, gcert.CertificateID(cid))
+	}
+
+	if len(opts) == 0 && a.Config.CertRevokeCertificatesAll {
 		certResponse, err := certClient.GetCertificates(ctx, &cert.GetCertificatesRequest{})
 		if err != nil {
 			return err
 		}
-		for _, certinfo := range certResponse.CertificateInfo {
-			certificatesID = append(certificatesID, certinfo.CertificateId)
+		opts = make([]gcert.CertOption, 0, len(certResponse.GetCertificateInfo()))
+		for _, certinfo := range certResponse.GetCertificateInfo() {
+			opts = append(opts, gcert.CertificateID(certinfo.CertificateId))
 		}
 	}
 	//
-	req := &cert.RevokeCertificatesRequest{
-		CertificateId: certificatesID,
+	req, err := gcert.NewCertRevokeCertificatesRequest(opts...)
+	if err != nil {
+		return err
 	}
+
 	a.printMsg(t.Config.Name, req)
 	resp, err := certClient.RevokeCertificates(ctx, req)
 	if err != nil {

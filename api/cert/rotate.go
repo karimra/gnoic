@@ -1,6 +1,8 @@
 package cert
 
-import "github.com/openconfig/gnoi/cert"
+import (
+	"github.com/openconfig/gnoi/cert"
+)
 
 func NewCertRotateGenerateCSRRequest(opts ...CertOption) (*cert.RotateCertificateRequest, error) {
 	m, err := NewCertGenerateCSRRequest(opts...)
@@ -26,12 +28,12 @@ func NewCertRotateLoadCertificateRequest(opts ...CertOption) (*cert.RotateCertif
 	}, nil
 }
 
-func NewCertRotateFinalizeRequest(opts ...CertOption) (*cert.RotateCertificateRequest, error) {
+func NewCertRotateFinalizeRequest(opts ...CertOption) *cert.RotateCertificateRequest {
 	return &cert.RotateCertificateRequest{
 		RotateRequest: &cert.RotateCertificateRequest_FinalizeRotation{
 			FinalizeRotation: &cert.FinalizeRequest{},
 		},
-	}, nil
+	}
 }
 
 func NewCertRotateGenerateCSRResponse(opts ...CertOption) (*cert.RotateCertificateResponse, error) {

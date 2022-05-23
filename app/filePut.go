@@ -15,12 +15,12 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/karimra/gnoic/api"
+	gfile "github.com/karimra/gnoic/api/file"
 	"github.com/openconfig/gnoi/file"
-	"github.com/openconfig/gnoi/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"google.golang.org/grpc/metadata"
-	"google.golang.org/protobuf/encoding/prototext"
 )
 
 const (
@@ -91,13 +91,13 @@ func (a *App) RunEFilePut(cmd *cobra.Command, args []string) error {
 
 	a.wg.Add(numTargets)
 	for _, t := range targets {
-		go func(t *Target) {
+		go func(t *api.Target) {
 			defer a.wg.Done()
 			ctx, cancel := context.WithCancel(a.ctx)
 			defer cancel()
 			ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
 
-			err = a.CreateGrpcClient(ctx, t, a.createBaseDialOpts()...)
+			err = t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
 			if err != nil {
 				responseChan <- &filePutResponse{
 					TargetError: TargetError{
@@ -107,6 +107,7 @@ func (a *App) RunEFilePut(cmd *cobra.Command, args []string) error {
 				}
 				return
 			}
+			defer t.Close()
 			filename, err := a.FilePut(ctx, t)
 			responseChan <- &filePutResponse{
 				TargetError: TargetError{
@@ -140,13 +141,13 @@ func (a *App) RunEFilePut(cmd *cobra.Command, args []string) error {
 	return a.handleErrs(errs)
 }
 
-func (a *App) FilePut(ctx context.Context, t *Target) ([]string, error) {
+func (a *App) FilePut(ctx context.Context, t *api.Target) ([]string, error) {
 	numFiles := len(a.Config.FilePutFile)
 
 	errChan := make(chan error, numFiles)
 	fileChan := make(chan string, numFiles)
 
-	fileClient := file.NewFileClient(t.client)
+	fileClient := t.FileClient()
 
 	wg := new(sync.WaitGroup)
 	wg.Add(numFiles)
@@ -202,7 +203,7 @@ func (a *App) FilePut(ctx context.Context, t *Target) ([]string, error) {
 	return files, err
 }
 
-func (a *App) filePut(ctx context.Context, t *Target, fileClient file.FileClient, localFile, remote string, perm uint32) error {
+func (a *App) filePut(ctx context.Context, t *api.Target, fileClient file.FileClient, localFile, remote string, perm uint32) error {
 	// open local file
 	f, err := os.Open(localFile)
 	if err != nil {
@@ -216,15 +217,15 @@ func (a *App) filePut(ctx context.Context, t *Target, fileClient file.FileClient
 	}
 	defer stream.CloseSend()
 	//
-	req := &file.PutRequest{
-		Request: &file.PutRequest_Open{
-			Open: &file.PutRequest_Details{
-				RemoteFile:  remote,
-				Permissions: perm,
-			},
-		},
+	req, err := gfile.NewPutOpenRequest(
+		gfile.Permissions(perm),
+		gfile.FileName(remote),
+	)
+	if err != nil {
+		return err
 	}
-	a.Logger.Debug(prototext.Format(req))
+
+	a.printMsg(t.Config.Name, req)
 	err = stream.Send(req)
 	if err != nil {
 		return err
@@ -266,19 +267,18 @@ func (a *App) filePut(ctx context.Context, t *Target, fileClient file.FileClient
 	}
 	// send Hash
 	a.Logger.Infof("%q sending file=%q hash", t.Config.Address, localFile)
-	reqHash := &file.PutRequest{
-		Request: &file.PutRequest_Hash{
-			Hash: &types.HashType{
-				Method: types.HashType_HashMethod(types.HashType_HashMethod_value[a.Config.FilePutHashMethod]),
-				Hash:   h.Sum(nil),
-			},
-		},
+	reqHash, err := gfile.NewPutHashRequest(
+		gfile.Hash(a.Config.FilePutHashMethod, h.Sum(nil)),
+	)
+	if err != nil {
+		return err
 	}
-	a.Logger.Debug(reqHash)
+	a.printMsg(t.Config.Name, reqHash)
 	err = stream.Send(reqHash)
 	if err != nil {
 		return err
 	}
-	_, err = stream.CloseAndRecv()
+	rsp, err := stream.CloseAndRecv()
+	a.printMsg(t.Config.Name, rsp)
 	return err
 }

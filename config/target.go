@@ -14,6 +14,7 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 type TargetConfig struct {
@@ -176,7 +177,7 @@ func (c *Config) setTargetConfigDefaults(tc *TargetConfig) {
 func (tc *TargetConfig) DialOpts() ([]grpc.DialOption, error) {
 	tOpts := make([]grpc.DialOption, 0)
 	if tc.Insecure != nil && *tc.Insecure {
-		tOpts = append(tOpts, grpc.WithInsecure())
+		tOpts = append(tOpts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	} else {
 		tlsConfig, err := tc.newTLS()
 		if err != nil {
@@ -239,7 +240,7 @@ func loadCerts(tlscfg *tls.Config, tc *TargetConfig) error {
 			return err
 		}
 		tlscfg.Certificates = []tls.Certificate{certificate}
-		tlscfg.BuildNameToCertificate()
+		// tlscfg.BuildNameToCertificate()
 	}
 	if tc.TLSCA != nil && *tc.TLSCA != "" {
 		certPool := x509.NewCertPool()

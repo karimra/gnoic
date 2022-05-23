@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/karimra/gnoic/api"
 	"github.com/openconfig/gnoi/healthz"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -46,13 +47,13 @@ func (a *App) RunEHealthzGet(cmd *cobra.Command, args []string) error {
 
 	a.wg.Add(numTargets)
 	for _, t := range targets {
-		go func(t *Target) {
+		go func(t *api.Target) {
 			defer a.wg.Done()
 			ctx, cancel := context.WithCancel(a.ctx)
 			defer cancel()
 			ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
 
-			err = a.CreateGrpcClient(ctx, t, a.createBaseDialOpts()...)
+			err = t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
 			if err != nil {
 				responseChan <- &healthzGetResponse{
 					TargetError: TargetError{
@@ -62,6 +63,7 @@ func (a *App) RunEHealthzGet(cmd *cobra.Command, args []string) error {
 				}
 				return
 			}
+			defer t.Close()
 			responseChan <- a.HealthzGet(ctx, t)
 		}(t)
 	}
@@ -86,7 +88,7 @@ func (a *App) RunEHealthzGet(cmd *cobra.Command, args []string) error {
 	return a.handleErrs(errs)
 }
 
-func (a *App) HealthzGet(ctx context.Context, t *Target) *healthzGetResponse {
+func (a *App) HealthzGet(ctx context.Context, t *api.Target) *healthzGetResponse {
 	p, err := ParsePath(a.Config.HealthzGetPath)
 	if err != nil {
 		return &healthzGetResponse{
@@ -100,7 +102,7 @@ func (a *App) HealthzGet(ctx context.Context, t *Target) *healthzGetResponse {
 		Path: p,
 	}
 	a.printMsg(t.Config.Name, req)
-	hc := healthz.NewHealthzClient(t.client)
+	hc := healthz.NewHealthzClient(t.Conn())
 	rsp, err := hc.Get(ctx, req)
 	return &healthzGetResponse{
 		TargetError: TargetError{

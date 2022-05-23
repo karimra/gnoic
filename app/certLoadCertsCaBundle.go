@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"github.com/karimra/gnoic/api"
+	gcert "github.com/karimra/gnoic/api/cert"
 	"github.com/openconfig/gnoi/cert"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -36,12 +38,12 @@ func (a *App) RunELoadCertsCaBundle(cmd *cobra.Command, args []string) error {
 	responseChan := make(chan *certLoadCABundle, numTargets)
 	a.wg.Add(numTargets)
 	for _, t := range targets {
-		go func(t *Target) {
+		go func(t *api.Target) {
 			defer a.wg.Done()
 			ctx, cancel := context.WithCancel(a.ctx)
 			defer cancel()
 			ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
-			err = a.CreateGrpcClient(ctx, t, a.createBaseDialOpts()...)
+			err = t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
 			if err != nil {
 				responseChan <- &certLoadCABundle{
 					TargetError: TargetError{
@@ -51,6 +53,7 @@ func (a *App) RunELoadCertsCaBundle(cmd *cobra.Command, args []string) error {
 				}
 				return
 			}
+			defer t.Close()
 			rsp, err := a.CertLoadCABundle(ctx, t)
 			responseChan <- &certLoadCABundle{
 				TargetError: TargetError{
@@ -79,28 +82,31 @@ func (a *App) RunELoadCertsCaBundle(cmd *cobra.Command, args []string) error {
 	return a.handleErrs(errs)
 }
 
-func (a *App) CertLoadCABundle(ctx context.Context, t *Target) (*cert.LoadCertificateAuthorityBundleResponse, error) {
+func (a *App) CertLoadCABundle(ctx context.Context, t *api.Target) (*cert.LoadCertificateAuthorityBundleResponse, error) {
 	var err error
 
-	certClient := cert.NewCertificateManagementClient(t.client)
-	req := &cert.LoadCertificateAuthorityBundleRequest{}
+	n := len(a.Config.CertLoadCertificateCaBundleCaCertificates)
+	opts := make([]gcert.CertOption, 0, n)
 
-	if n := len(a.Config.CertLoadCertificateCaBundleCaCertificates); n != 0 {
-		req.CaCertificates = make([]*cert.Certificate, n)
-		for i, certFilename := range a.Config.CertLoadCertificateCaBundleCaCertificates {
-			b, err := ioutil.ReadFile(certFilename)
-			if err != nil {
-				return nil, fmt.Errorf("error reading certificate from file %q: %v",
-					certFilename, err)
-			}
-			req.CaCertificates[i] = &cert.Certificate{
-				Certificate: b,
-				Type:        cert.CertificateType(cert.CertificateType_value[a.Config.CertLoadCertificateCertificateType]),
-			}
+	for _, certFilename := range a.Config.CertLoadCertificateCaBundleCaCertificates {
+		b, err := ioutil.ReadFile(certFilename)
+		if err != nil {
+			return nil, fmt.Errorf("error reading certificate from file %q: %v",
+				certFilename, err)
 		}
+		opts = append(opts,
+			gcert.CaCertificate(
+				gcert.CertificateType(a.Config.CertLoadCertificateCertificateType),
+				gcert.CertificateBytes(b),
+			),
+		)
+	}
+	req, err := gcert.NewCertLoadCertificateAuthorityBundleRequest(opts...)
+	if err != nil {
+		return nil, err
 	}
 	a.printMsg(t.Config.Name, req)
-	resp, err := certClient.LoadCertificateAuthorityBundle(ctx, req)
+	resp, err := t.CertClient().LoadCertificateAuthorityBundle(ctx, req)
 	if err != nil {
 		return nil, err
 	}

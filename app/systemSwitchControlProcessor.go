@@ -8,6 +8,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/karimra/gnoic/api"
 	"github.com/olekukonko/tablewriter"
 	"github.com/openconfig/gnoi/system"
 	"github.com/openconfig/gnoi/types"
@@ -44,13 +45,13 @@ func (a *App) RunESystemSwitchControlProcessor(cmd *cobra.Command, args []string
 	responseChan := make(chan *systemSwitchControlProcessorResponse, numTargets)
 	a.wg.Add(numTargets)
 	for _, t := range targets {
-		go func(t *Target) {
+		go func(t *api.Target) {
 			defer a.wg.Done()
 			ctx, cancel := context.WithCancel(a.ctx)
 			defer cancel()
 			ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
 
-			err = a.CreateGrpcClient(ctx, t, a.createBaseDialOpts()...)
+			err = t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
 			if err != nil {
 				responseChan <- &systemSwitchControlProcessorResponse{
 					TargetError: TargetError{
@@ -60,6 +61,7 @@ func (a *App) RunESystemSwitchControlProcessor(cmd *cobra.Command, args []string
 				}
 				return
 			}
+			defer t.Close()
 			rsp, err := a.SystemSwitchControlProcessor(ctx, t)
 			responseChan <- &systemSwitchControlProcessorResponse{
 				TargetError: TargetError{
@@ -93,8 +95,8 @@ func (a *App) RunESystemSwitchControlProcessor(cmd *cobra.Command, args []string
 	return a.handleErrs(errs)
 }
 
-func (a *App) SystemSwitchControlProcessor(ctx context.Context, t *Target) (*system.SwitchControlProcessorResponse, error) {
-	systemClient := system.NewSystemClient(t.client)
+func (a *App) SystemSwitchControlProcessor(ctx context.Context, t *api.Target) (*system.SwitchControlProcessorResponse, error) {
+	systemClient := system.NewSystemClient(t.Conn())
 	req := &system.SwitchControlProcessorRequest{
 		ControlProcessor: &types.Path{},
 	}

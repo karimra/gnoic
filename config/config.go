@@ -178,8 +178,8 @@ type LocalFlags struct {
 	SystemTracerouteSize          int32         `json:"system-traceroute-size,omitempty" mapstructure:"system-traceroute-size,omitempty" yaml:"system-traceroute-size,omitempty"`
 	SystemTracerouteDoNotFragment bool          `json:"system-traceroute-do-not-fragment,omitempty" mapstructure:"system-traceroute-do-not-fragment,omitempty" yaml:"system-traceroute-do-not-fragment,omitempty"`
 	SystemTracerouteDoNotResolve  bool          `json:"system-traceroute-do-not-resolve,omitempty" mapstructure:"system-traceroute-do-not-resolve,omitempty" yaml:"system-traceroute-do-not-resolve,omitempty"`
-	SystemTracerouteL3Protocol    string        `json:"system-traceroute-l-3-protocol,omitempty" mapstructure:"system-traceroute-l-3-protocol,omitempty" yaml:"system-traceroute-l-3-protocol,omitempty"`
-	SystemTracerouteL4Protocol    string        `json:"system-traceroute-l-4-protocol,omitempty" mapstructure:"system-traceroute-l-4-protocol,omitempty" yaml:"system-traceroute-l-4-protocol,omitempty"`
+	SystemTracerouteL3Protocol    string        `json:"system-traceroute-l3-protocol,omitempty" mapstructure:"system-traceroute-l3-protocol,omitempty" yaml:"system-traceroute-l3-protocol,omitempty"`
+	SystemTracerouteL4Protocol    string        `json:"system-traceroute-l4-protocol,omitempty" mapstructure:"system-traceroute-l4-protocol,omitempty" yaml:"system-traceroute-l4-protocol,omitempty"`
 	// System Reboot
 	SystemRebootMethod         string        `json:"system-reboot-method,omitempty" mapstructure:"system-reboot-method,omitempty" yaml:"system-reboot-method,omitempty"`
 	SystemRebootDelay          time.Duration `json:"system-reboot-delay,omitempty" mapstructure:"system-reboot-delay,omitempty" yaml:"system-reboot-delay,omitempty"`

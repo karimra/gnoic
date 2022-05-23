@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/karimra/gnoic/api"
 	"github.com/olekukonko/tablewriter"
 	"github.com/openconfig/gnoi/common"
 	"github.com/openconfig/gnoi/file"
@@ -42,13 +43,13 @@ func (a *App) RunEFileTransfer(cmd *cobra.Command, args []string) error {
 	responseChan := make(chan *fileTransferResponse, numTargets)
 	a.wg.Add(numTargets)
 	for _, t := range targets {
-		go func(t *Target) {
+		go func(t *api.Target) {
 			defer a.wg.Done()
 			ctx, cancel := context.WithCancel(a.ctx)
 			defer cancel()
 			ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
 
-			err = a.CreateGrpcClient(ctx, t, a.createBaseDialOpts()...)
+			err = t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
 			if err != nil {
 				responseChan <- &fileTransferResponse{
 					TargetError: TargetError{
@@ -58,6 +59,7 @@ func (a *App) RunEFileTransfer(cmd *cobra.Command, args []string) error {
 				}
 				return
 			}
+			defer t.Close()
 			responseChan <- a.FileTransfer(ctx, t)
 		}(t)
 	}
@@ -82,7 +84,7 @@ func (a *App) RunEFileTransfer(cmd *cobra.Command, args []string) error {
 	return a.handleErrs(errs)
 }
 
-func (a *App) FileTransfer(ctx context.Context, t *Target) *fileTransferResponse {
+func (a *App) FileTransfer(ctx context.Context, t *api.Target) *fileTransferResponse {
 	rd, err := a.transferFileRemoteDownload()
 	if err != nil {
 		return &fileTransferResponse{
@@ -96,7 +98,7 @@ func (a *App) FileTransfer(ctx context.Context, t *Target) *fileTransferResponse
 		LocalPath:      a.Config.FileTransferLocal,
 		RemoteDownload: rd,
 	}
-	fileClient := file.NewFileClient(t.client)
+	fileClient := t.FileClient()
 	a.Logger.Infof("sending file transfer request: %v to target %q", req, t.Config.Name)
 	rsp, err := fileClient.TransferToRemote(ctx, req)
 	return &fileTransferResponse{

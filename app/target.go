@@ -1,27 +1,17 @@
 package app
 
 import (
-	"github.com/karimra/gnoic/config"
-	"google.golang.org/grpc"
+	"github.com/karimra/gnoic/api"
 )
 
-type Target struct {
-	Config *config.TargetConfig
-	client *grpc.ClientConn
-}
-
-func NewTarget(tc *config.TargetConfig) *Target {
-	return &Target{Config: tc}
-}
-
-func (a *App) GetTargets() (map[string]*Target, error) {
+func (a *App) GetTargets() (map[string]*api.Target, error) {
 	targetsConfigs, err := a.Config.GetTargets()
 	if err != nil {
 		return nil, err
 	}
-	targets := make(map[string]*Target)
+	targets := make(map[string]*api.Target)
 	for n, tc := range targetsConfigs {
-		targets[n] = NewTarget(tc)
+		targets[n] = api.NewTargetFromConfig(tc)
 	}
 	return targets, nil
 }
