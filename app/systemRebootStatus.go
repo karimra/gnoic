@@ -100,12 +100,11 @@ func (a *App) RunESystemRebootStatus(cmd *cobra.Command, args []string) error {
 }
 
 func (a *App) SystemRebootStatus(ctx context.Context, t *api.Target, subcomponents []*types.Path) (*system.RebootStatusResponse, error) {
-	systemClient := system.NewSystemClient(t.Conn())
 	req := &system.RebootStatusRequest{
 		Subcomponents: subcomponents,
 	}
 
-	resp, err := systemClient.RebootStatus(ctx, req)
+	resp, err := t.SystemClient().RebootStatus(ctx, req)
 	if err != nil {
 		return nil, err
 	}

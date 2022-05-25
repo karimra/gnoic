@@ -78,13 +78,13 @@ func (a *App) RunESystemCancelReboot(cmd *cobra.Command, args []string) error {
 }
 
 func (a *App) SystemCancelReboot(ctx context.Context, t *api.Target, subcomponents []*types.Path) error {
-	systemClient := system.NewSystemClient(t.Conn())
 	req := &system.CancelRebootRequest{
 		Message:       a.Config.SystemCancelRebootMessage,
 		Subcomponents: subcomponents,
 	}
 	a.Logger.Debugf("%q System CancelReboot Request: %s", t.Config.Address, prototext.Format(req))
-	_, err := systemClient.CancelReboot(ctx, req)
+	a.printMsg(t.Config.Name, req)
+	_, err := t.SystemClient().CancelReboot(ctx, req)
 	if err != nil {
 		return err
 	}

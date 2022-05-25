@@ -47,6 +47,10 @@ func CertificateType(ct string) func(msg proto.Message) error {
 	}
 }
 
+func CertificateTypeX509() func(msg proto.Message) error {
+	return CertificateType("CT_X509")
+}
+
 func CertificateBytes(b []byte) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {

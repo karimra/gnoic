@@ -97,7 +97,6 @@ func (a *App) RunESystemReboot(cmd *cobra.Command, args []string) error {
 }
 
 func (a *App) SystemReboot(ctx context.Context, t *api.Target, subcomponents []*types.Path) error {
-	systemClient := system.NewSystemClient(t.Conn())
 	req := &system.RebootRequest{
 		Method:        system.RebootMethod(system.RebootMethod_value[a.Config.SystemRebootMethod]),
 		Delay:         uint64(a.Config.SystemRebootDelay.Nanoseconds()),
@@ -105,7 +104,7 @@ func (a *App) SystemReboot(ctx context.Context, t *api.Target, subcomponents []*
 		Subcomponents: subcomponents,
 		Force:         a.Config.SystemRebootForce,
 	}
-	_, err := systemClient.Reboot(ctx, req)
+	_, err := t.SystemClient().Reboot(ctx, req)
 	if err != nil {
 		return err
 	}

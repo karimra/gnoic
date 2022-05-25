@@ -36,6 +36,7 @@ func newSystemTracerouteCmd() *cobra.Command {
 		PreRun: func(cmd *cobra.Command, args []string) {
 			gApp.Config.SetLocalFlagsFromFile(cmd)
 		},
+		PreRunE:      gApp.PreRunESystemTraceRoute,
 		RunE:         gApp.RunESystemTraceRoute,
 		SilenceUsage: true,
 	}
