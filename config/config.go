@@ -54,6 +54,8 @@ type LocalFlags struct {
 	// tree
 	TreeFlat    bool `json:"tree-flat,omitempty" mapstructure:"tree-flat,omitempty" yaml:"tree-flat,omitempty"`
 	TreeDetails bool `json:"tree-details,omitempty" mapstructure:"tree-details,omitempty" yaml:"tree-details,omitempty"`
+	// VersionUpgrade
+	UpgradeUsePkg bool `mapstructure:"upgrade-use-pkg" json:"upgrade-use-pkg,omitempty" yaml:"upgrade-use-pkg,omitempty"`
 	// Cert
 	CertCACert string `json:"cert-ca-cert,omitempty" mapstructure:"cert-ca-cert,omitempty" yaml:"cert-ca-cert,omitempty"`
 	CertCAKey  string `json:"cert-ca-key,omitempty" mapstructure:"cert-ca-key,omitempty" yaml:"cert-ca-key,omitempty"`

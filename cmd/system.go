@@ -12,6 +12,16 @@ func newSystemCmd() *cobra.Command {
 		SilenceUsage: true,
 	}
 	gApp.InitSystemFlags(cmd)
+	cmd.AddCommand(
+		newSystemPingCmd(),
+		newSystemTracerouteCmd(),
+		newSystemTimeCmd(),
+		newSystemSetPackageCmd(),
+		newSystemSwitchControlProcessorCmd(),
+		newSystemRebootCmd(),
+		newSystemRebootStatusCmd(),
+		newSystemCancelRebootCmd(),
+	)
 	return cmd
 }
 

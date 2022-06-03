@@ -30,6 +30,17 @@ func newCertCmd() *cobra.Command {
 		SilenceUsage: true,
 	}
 	gApp.InitCertFlags(cmd)
+	cmd.AddCommand(
+		newCertRotateCmd(),
+		newCertInstallCmd(),
+		newCertGenCSRCmd(),
+		newCertLoadCertificatesCmd(),
+		newCertLoadCertificateAuthorityBundleCmd(),
+		newCertGetCertificatesCmd(),
+		newCertRevokeCertificatesCmd(),
+		newCertCanGenerateCSRCmd(),
+		newCertCreateCaCmd(),
+	)
 	return cmd
 }
 
