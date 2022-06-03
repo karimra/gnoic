@@ -77,6 +77,7 @@ func newRootCmd() *cobra.Command {
 	gApp.RootCmd.AddCommand(newVersionCmd())
 	gApp.RootCmd.AddCommand(healthzCmd)
 	gApp.RootCmd.AddCommand(osCmd)
+	gApp.RootCmd.AddCommand(newServerCmd())
 	return gApp.RootCmd
 }
 

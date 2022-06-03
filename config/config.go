@@ -214,6 +214,9 @@ type LocalFlags struct {
 	OsActivateVersion           string `json:"os-activate-version,omitempty" mapstructure:"os-activate-version,omitempty" yaml:"os-activate-version,omitempty"`
 	OsActivateStandbySupervisor bool   `json:"os-activate-standby-supervisor,omitempty" mapstructure:"os-activate-standby-supervisor,omitempty" yaml:"os-activate-standby-supervisor,omitempty"`
 	OsActivateNoReboot          bool   `json:"os-activate-no-reboot,omitempty" mapstructure:"os-activate-no-reboot,omitempty" yaml:"os-activate-no-reboot,omitempty"`
+	// Server
+	ServerFile     bool   `json:"server-file,omitempty" mapstructure:"server-file,omitempty" yaml:"server-file,omitempty"`
+	ServerFileHash string `json:"server-file-hash,omitempty" mapstructure:"server-file-hash,omitempty" yaml:"server-file-hash,omitempty"`
 }
 
 func New() *Config {
