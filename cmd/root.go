@@ -33,51 +33,19 @@ func newRootCmd() *cobra.Command {
 		PersistentPreRunE: gApp.PreRun,
 	}
 	gApp.InitGlobalFlags()
-	//
-	certCmd := newCertCmd()
-	certCmd.AddCommand(newCertRotateCmd())
-	certCmd.AddCommand(newCertInstallCmd())
-	certCmd.AddCommand(newCertGenCSRCmd())
-	certCmd.AddCommand(newCertLoadCertificatesCmd())
-	certCmd.AddCommand(newCertLoadCertificateAuthorityBundleCmd())
-	certCmd.AddCommand(newCertGetCertificatesCmd())
-	certCmd.AddCommand(newCertRevokeCertificatesCmd())
-	certCmd.AddCommand(newCertCanGenerateCSRCmd())
-	certCmd.AddCommand(newCertCreateCaCmd())
-	//
-	fileCmd := newFileCmd()
-	fileCmd.AddCommand(newFileGetCmd())
-	fileCmd.AddCommand(newFileTransferCmd())
-	fileCmd.AddCommand(newFilePutCmd())
-	fileCmd.AddCommand(newFileStatCmd())
-	fileCmd.AddCommand(newFileRemoveCmd())
-	//
-	systemCmd := newSystemCmd()
-	systemCmd.AddCommand(newSystemPingCmd())
-	systemCmd.AddCommand(newSystemTracerouteCmd())
-	systemCmd.AddCommand(newSystemTimeCmd())
-	systemCmd.AddCommand(newSystemSetPackageCmd())
-	systemCmd.AddCommand(newSystemSwitchControlProcessorCmd())
-	systemCmd.AddCommand(newSystemRebootCmd())
-	systemCmd.AddCommand(newSystemRebootStatusCmd())
-	systemCmd.AddCommand(newSystemCancelRebootCmd())
-	//
-	healthzCmd := newHealthzCmd()
-	healthzCmd.AddCommand(newHealthzGetmd())
-	//
-	osCmd := newOSCmd()
-	osCmd.AddCommand(newOSInstallCmd())
-	osCmd.AddCommand(newOSActivateCmd())
-	osCmd.AddCommand(newOSVerifyCmd())
-	//
-	gApp.RootCmd.AddCommand(certCmd)
-	gApp.RootCmd.AddCommand(fileCmd)
-	gApp.RootCmd.AddCommand(systemCmd)
-	gApp.RootCmd.AddCommand(newTreeCmd())
-	gApp.RootCmd.AddCommand(newVersionCmd())
-	gApp.RootCmd.AddCommand(healthzCmd)
-	gApp.RootCmd.AddCommand(osCmd)
-	gApp.RootCmd.AddCommand(newServerCmd())
+
+	// root cmd
+	gApp.RootCmd.AddCommand(
+		newCertCmd(),
+		newFileCmd(),
+		newSystemCmd(),
+		newHealthzCmd(),
+		newOSCmd(),
+		newVersionCmd(),
+		newTreeCmd(),
+		newServerCmd(),
+	)
+
 	return gApp.RootCmd
 }
 

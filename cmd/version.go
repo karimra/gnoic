@@ -10,5 +10,6 @@ func newVersionCmd() *cobra.Command {
 		RunE:         gApp.RunEVersion,
 		SilenceUsage: true,
 	}
+	cmd.AddCommand(newVersionUpgradeCmd())
 	return cmd
 }

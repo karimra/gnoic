@@ -10,6 +10,11 @@ func newOSCmd() *cobra.Command {
 		SilenceUsage: true,
 	}
 	gApp.InitOSFlags(cmd)
+	cmd.AddCommand(
+		newOSInstallCmd(),
+		newOSActivateCmd(),
+		newOSVerifyCmd(),
+	)
 	return cmd
 }
 

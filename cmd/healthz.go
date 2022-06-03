@@ -10,6 +10,7 @@ func newHealthzCmd() *cobra.Command {
 		SilenceUsage: true,
 	}
 	gApp.InitHealthzFlags(cmd)
+	cmd.AddCommand(newHealthzGetmd())
 	return cmd
 }
 
