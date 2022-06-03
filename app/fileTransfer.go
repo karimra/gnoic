@@ -70,7 +70,7 @@ func (a *App) RunEFileTransfer(cmd *cobra.Command, args []string) error {
 	result := make([]*fileTransferResponse, 0, numTargets)
 	for rsp := range responseChan {
 		if rsp.Err != nil {
-			wErr := fmt.Errorf("%q File Stat failed: %v", rsp.TargetName, rsp.Err)
+			wErr := fmt.Errorf("%q File Transfer failed: %v", rsp.TargetName, rsp.Err)
 			a.Logger.Error(wErr)
 			errs = append(errs, wErr)
 			continue

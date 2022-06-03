@@ -170,7 +170,8 @@ func (a *App) statTable(r []*fileStatResponse) string {
 	targetTabData := make(map[string][][]string)
 	for _, rsps := range r {
 		for _, fsi := range rsps.rsp {
-			perms := os.FileMode(fsi.StatInfo.GetPermissions() & fsi.StatInfo.GetUmask()).String()
+			decimalPerms := octalToDecimal(fsi.StatInfo.GetPermissions())
+			perms := os.FileMode(decimalPerms).String()
 			if fsi.IsDir {
 				perms = "d" + perms[1:]
 			}
@@ -193,7 +194,7 @@ func (a *App) statTable(r []*fileStatResponse) string {
 				fsi.StatInfo.GetPath(),
 				lastMod,
 				perms,
-				os.FileMode(fsi.StatInfo.GetUmask()).String(),
+				os.FileMode(octalToDecimal(fsi.StatInfo.GetUmask())).String(),
 				size,
 			})
 		}
