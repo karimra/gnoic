@@ -9,7 +9,7 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mitchellh/mapstructure v1.4.3
 	github.com/olekukonko/tablewriter v0.0.5
-	github.com/openconfig/gnoi v0.0.0-20220520163705-1ce1557b7a76
+	github.com/openconfig/gnoi v0.0.0-20220525015227-2e1ce73b5602
 	github.com/pkg/sftp v1.13.1
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.4.0

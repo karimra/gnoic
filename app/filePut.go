@@ -11,7 +11,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
 
@@ -38,7 +37,7 @@ func (a *App) InitFilePutFlags(cmd *cobra.Command) {
 	cmd.Flags().StringSliceVar(&a.Config.FilePutFile, "file", []string{}, "file(s) to put on the target(s)")
 	cmd.Flags().StringVar(&a.Config.FilePutDst, "dst", "", "destination file/directory name")
 	cmd.Flags().Uint64Var(&a.Config.FilePutChunkSize, "chunk-size", defaultChunkSize, "chunk write size in Bytes, default is used if set to 0")
-	cmd.Flags().Uint32Var(&a.Config.FilePutPermissions, "permission", 0777, "file permissions, in octal format. If set to 0, the local system file permissions are used")
+	cmd.Flags().Uint32Var(&a.Config.FilePutPermissions, "permission", 777, "file permissions, in octal format. If set to 0, the local system file permissions are used")
 	cmd.Flags().StringVar(&a.Config.FilePutHashMethod, "hash-method", "MD5", "hash method, one of MD5, SHA256 or SHA512. If another value is supplied MD5 is used")
 	//
 	cmd.Flags().VisitAll(func(flag *pflag.Flag) {
@@ -161,14 +160,8 @@ func (a *App) FilePut(ctx context.Context, t *api.Target) ([]string, error) {
 			}
 			fPerm := a.Config.FilePutPermissions
 			if fPerm == 0 {
-				perm := "0" + strconv.FormatUint(uint64(fi.Mode().Perm()), 8)
-				a.Logger.Infof("setting permission to %s", perm)
-				operm, err := strconv.ParseInt(perm, 8, 64)
-				if err != nil {
-					errChan <- fmt.Errorf("file %q perm read err: %v", filename, err)
-					return
-				}
-				fPerm = uint32(operm)
+				fPerm = decimalToOctal(uint32(fi.Mode().Perm()))
+				a.Logger.Infof("setting remote file permission to %d", fPerm)
 			}
 			var remoteName = a.Config.FilePutDst
 			if numFiles > 1 {

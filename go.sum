@@ -296,6 +296,8 @@ github.com/olekukonko/tablewriter v0.0.5 h1:P2Ga83D34wi1o9J6Wh1mRuqd4mF/x/lgBS7N
 github.com/olekukonko/tablewriter v0.0.5/go.mod h1:hPp6KlRPjbx+hW8ykQs1w3UBbZlj6HuIJcUGPhkA7kY=
 github.com/openconfig/gnoi v0.0.0-20220520163705-1ce1557b7a76 h1:XR2/D7B2S/lnXvST8+85zIPlluwyItr6PtQXLVlx3v0=
 github.com/openconfig/gnoi v0.0.0-20220520163705-1ce1557b7a76/go.mod h1:Eq1jYfsMBoLDeE6p2+NP4CqPquhfJCI+gMtELTs2NYU=
+github.com/openconfig/gnoi v0.0.0-20220525015227-2e1ce73b5602 h1:y0zyu047FDW28lKFuGZI+R3OdBieCR0dcKD2nV5nBSU=
+github.com/openconfig/gnoi v0.0.0-20220525015227-2e1ce73b5602/go.mod h1:Eq1jYfsMBoLDeE6p2+NP4CqPquhfJCI+gMtELTs2NYU=
 github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c/go.mod h1:lzWF7FIEvWOWxwDKqyGYQf6ZUaNfKdP144TG7ZOy1lc=
 github.com/pascaldekloe/goe v0.1.0/go.mod h1:lzWF7FIEvWOWxwDKqyGYQf6ZUaNfKdP144TG7ZOy1lc=
 github.com/pelletier/go-toml v1.9.4 h1:tjENF6MfZAg8e4ZmZTeWaWiT2vXtsoO6+iuOjFhECwM=
