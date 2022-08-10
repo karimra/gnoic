@@ -219,6 +219,9 @@ type LocalFlags struct {
 	// Server
 	ServerFile     bool   `json:"server-file,omitempty" mapstructure:"server-file,omitempty" yaml:"server-file,omitempty"`
 	ServerFileHash string `json:"server-file-hash,omitempty" mapstructure:"server-file-hash,omitempty" yaml:"server-file-hash,omitempty"`
+	// FactoryReset
+	FactoryResetStartFactoryOS bool `json:"factory-reset-start-factory-os,omitempty" mapstructure:"factory-reset-start-factory-os,omitempty" yaml:"factory-reset-start-factory-os,omitempty"`
+	FactoryResetStartZeroFill  bool `json:"factory-reset-start-zero-fill,omitempty" mapstructure:"factory-reset-start-zero-fill,omitempty" yaml:"factory-reset-start-zero-fill,omitempty"`
 }
 
 func New() *Config {
