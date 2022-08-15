@@ -44,6 +44,7 @@ func newRootCmd() *cobra.Command {
 		newVersionCmd(),
 		newTreeCmd(),
 		newServerCmd(),
+		newFactoryResetCmd(),
 	)
 
 	return gApp.RootCmd
