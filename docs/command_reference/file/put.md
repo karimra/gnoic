@@ -36,7 +36,7 @@ The `dst` defines the remote destination. If `--file` points to a directory or m
 
 The `--chunk-size` defines the chunk size in Bytes, the default (64KB) is used if set to 0.
 
-#### has-method
+#### hash-method
 
 The `--hash-method` sets the method to be used to calculate the hash to be sent to the target(s)
 
