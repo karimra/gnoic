@@ -45,7 +45,7 @@ The `--hash-method` sets the method to be used to calculate the hash to be sent 
 ```bash
 gnoic -a 172.17.0.100:57400 --insecure -u admin -p admin \
       file put \
-      --file license.lic --remote-name cf3:\license.lic
+      --file license.lic --dst cf3:\license.lic
 ```
 
 ```bash
