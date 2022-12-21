@@ -21,6 +21,7 @@ func newSystemCmd() *cobra.Command {
 		newSystemRebootCmd(),
 		newSystemRebootStatusCmd(),
 		newSystemCancelRebootCmd(),
+		newSystemKillProcessCmd(),
 	)
 	return cmd
 }
@@ -140,5 +141,19 @@ func newSystemCancelRebootCmd() *cobra.Command {
 		SilenceUsage: true,
 	}
 	gApp.InitSystemCancelRebootFlags(cmd)
+	return cmd
+}
+
+// newSystemRebootCmd represents the system reboot command
+func newSystemKillProcessCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:          "kill-process",
+		Aliases:      []string{"k"},
+		Short:        "run System KillProcess gNOI RPC",
+		PreRunE:      gApp.PreRunESystemKillProcess,
+		RunE:         gApp.RunESystemKillProcess,
+		SilenceUsage: true,
+	}
+	gApp.InitSystemKillProcessFlags(cmd)
 	return cmd
 }

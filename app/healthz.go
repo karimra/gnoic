@@ -6,11 +6,12 @@ import (
 	"os"
 	"strings"
 
-	"github.com/karimra/gnoic/api"
 	"github.com/openconfig/gnoi/healthz"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"google.golang.org/grpc/metadata"
+
+	"github.com/karimra/gnoic/api"
 )
 
 type healthzGetResponse struct {

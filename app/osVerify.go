@@ -7,13 +7,14 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/karimra/gnoic/api"
-	gos "github.com/karimra/gnoic/api/os"
 	"github.com/olekukonko/tablewriter"
 	gnoios "github.com/openconfig/gnoi/os"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"google.golang.org/grpc/metadata"
+
+	"github.com/karimra/gnoic/api"
+	gos "github.com/karimra/gnoic/api/os"
 )
 
 type osVerifyResponse struct {

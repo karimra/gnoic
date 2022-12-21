@@ -5,10 +5,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/karimra/gnoic/api"
 	gnoisystem "github.com/openconfig/gnoi/system"
 	"github.com/openconfig/gnoi/types"
 	"google.golang.org/protobuf/proto"
+
+	"github.com/karimra/gnoic/api"
 )
 
 type SystemOption func(proto.Message) error
@@ -685,6 +686,66 @@ func DoNotLookupAsn(b bool) func(msg proto.Message) error {
 			msg.DoNotLookupAsn = b
 		default:
 			return fmt.Errorf("option DoNotLookupAsn: %w", api.ErrInvalidMsgType)
+		}
+		return nil
+	}
+}
+
+func PID(p uint32) func(msg proto.Message) error {
+	return func(msg proto.Message) error {
+		if msg == nil {
+			return fmt.Errorf("option PID: %w", api.ErrInvalidMsgType)
+		}
+		switch msg := msg.ProtoReflect().Interface().(type) {
+		case *gnoisystem.KillProcessRequest:
+			msg.Pid = p
+		default:
+			return fmt.Errorf("option PID: %w", api.ErrInvalidMsgType)
+		}
+		return nil
+	}
+}
+
+func ProcessName(n string) func(msg proto.Message) error {
+	return func(msg proto.Message) error {
+		if msg == nil {
+			return fmt.Errorf("option ProcessName: %w", api.ErrInvalidMsgType)
+		}
+		switch msg := msg.ProtoReflect().Interface().(type) {
+		case *gnoisystem.KillProcessRequest:
+			msg.Name = n
+		default:
+			return fmt.Errorf("option ProcessName: %w", api.ErrInvalidMsgType)
+		}
+		return nil
+	}
+}
+
+func Signal(sig string) func(msg proto.Message) error {
+	return func(msg proto.Message) error {
+		if msg == nil {
+			return fmt.Errorf("option Signal: %w", api.ErrInvalidMsgType)
+		}
+		switch msg := msg.ProtoReflect().Interface().(type) {
+		case *gnoisystem.KillProcessRequest:
+			msg.Signal = gnoisystem.KillProcessRequest_Signal(gnoisystem.KillProcessRequest_Signal_value["SIGNAL_"+sig])
+		default:
+			return fmt.Errorf("option Signal: %w", api.ErrInvalidMsgType)
+		}
+		return nil
+	}
+}
+
+func ProcessRestart(b bool) func(msg proto.Message) error {
+	return func(msg proto.Message) error {
+		if msg == nil {
+			return fmt.Errorf("option ProcessRestart: %w", api.ErrInvalidMsgType)
+		}
+		switch msg := msg.ProtoReflect().Interface().(type) {
+		case *gnoisystem.KillProcessRequest:
+			msg.Restart = b
+		default:
+			return fmt.Errorf("option ProcessRestart: %w", api.ErrInvalidMsgType)
 		}
 		return nil
 	}

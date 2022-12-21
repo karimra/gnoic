@@ -7,17 +7,17 @@ require (
 	github.com/bramvdbogaerde/go-scp v1.2.0
 	github.com/dustin/go-humanize v1.0.0
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/mitchellh/mapstructure v1.4.3
+	github.com/mitchellh/mapstructure v1.5.0
 	github.com/olekukonko/tablewriter v0.0.5
-	github.com/openconfig/gnoi v0.0.0-20220525015227-2e1ce73b5602
-	github.com/pkg/sftp v1.13.1
+	github.com/openconfig/gnoi v0.0.0-20221026174759-671c42868203
+	github.com/pkg/sftp v1.13.5
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.4.0
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.10.1
-	golang.org/x/crypto v0.0.0-20211108221036-ceb1ce70b4fa
-	google.golang.org/grpc v1.45.0
-	google.golang.org/protobuf v1.27.1
+	golang.org/x/crypto v0.0.0-20211215153901-e495a2d5b3d3
+	google.golang.org/grpc v1.50.1
+	google.golang.org/protobuf v1.28.1
 )
 
 require (
@@ -28,7 +28,6 @@ require (
 	github.com/kr/fs v0.1.0 // indirect
 	github.com/kr/pretty v0.2.0 // indirect
 	github.com/pelletier/go-toml v1.9.4 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/spf13/cast v1.4.1 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
@@ -45,6 +44,6 @@ require (
 	github.com/spf13/afero v1.8.2 // indirect
 	golang.org/x/net v0.0.0-20220225172249-27dd8689420f // indirect
 	golang.org/x/sys v0.0.0-20220310020820-b874c991c1a5
-	google.golang.org/genproto v0.0.0-20220310185008-1973136f34c6 // indirect
+	google.golang.org/genproto v0.0.0-20220608133413-ed9918b62aac // indirect
 	gopkg.in/ini.v1 v1.66.4 // indirect
 )
