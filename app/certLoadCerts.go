@@ -3,14 +3,15 @@ package app
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"os"
 
-	"github.com/karimra/gnoic/api"
-	gcert "github.com/karimra/gnoic/api/cert"
 	"github.com/openconfig/gnoi/cert"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"google.golang.org/grpc/metadata"
+
+	"github.com/karimra/gnoic/api"
+	gcert "github.com/karimra/gnoic/api/cert"
 )
 
 type certLoadCert struct {
@@ -96,7 +97,7 @@ func (a *App) CertLoadCertificate(ctx context.Context, t *api.Target) (*cert.Loa
 	// certClient := t.CertClient()
 
 	if a.Config.CertLoadCertificateCertificate != "" {
-		b, err := ioutil.ReadFile(a.Config.CertLoadCertificateCertificate)
+		b, err := os.ReadFile(a.Config.CertLoadCertificateCertificate)
 		if err != nil {
 			return nil, fmt.Errorf("error reading certificate from file %q: %v",
 				a.Config.CertLoadCertificateCertificate, err)
@@ -109,7 +110,7 @@ func (a *App) CertLoadCertificate(ctx context.Context, t *api.Target) (*cert.Loa
 	}
 
 	if a.Config.CertLoadCertificatePublicKey != "" {
-		k, err := ioutil.ReadFile(a.Config.CertLoadCertificatePublicKey)
+		k, err := os.ReadFile(a.Config.CertLoadCertificatePublicKey)
 		if err != nil {
 			return nil, fmt.Errorf("error reading public key from %q: %v", a.Config.CertLoadCertificatePublicKey, err)
 		}
@@ -117,7 +118,7 @@ func (a *App) CertLoadCertificate(ctx context.Context, t *api.Target) (*cert.Loa
 	}
 
 	if a.Config.CertLoadCertificatePrivateKey != "" {
-		k, err := ioutil.ReadFile(a.Config.CertLoadCertificatePrivateKey)
+		k, err := os.ReadFile(a.Config.CertLoadCertificatePrivateKey)
 		if err != nil {
 			return nil, fmt.Errorf("error reading private key from %q: %v", a.Config.CertLoadCertificatePrivateKey, err)
 		}
@@ -126,7 +127,7 @@ func (a *App) CertLoadCertificate(ctx context.Context, t *api.Target) (*cert.Loa
 
 	if n := len(a.Config.CertLoadCertificateCaCertificates); n != 0 {
 		for _, certFilename := range a.Config.CertLoadCertificateCaCertificates {
-			b, err := ioutil.ReadFile(certFilename)
+			b, err := os.ReadFile(certFilename)
 			if err != nil {
 				return nil, fmt.Errorf("error reading certificate from file %q: %v",
 					certFilename, err)

@@ -11,7 +11,6 @@ import (
 	"hash"
 	"io"
 	"io/fs"
-	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -20,7 +19,6 @@ import (
 	"time"
 
 	scp "github.com/bramvdbogaerde/go-scp"
-	gfile "github.com/karimra/gnoic/api/file"
 	"github.com/mitchellh/go-homedir"
 	"github.com/openconfig/gnoi/common"
 	"github.com/openconfig/gnoi/file"
@@ -34,6 +32,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	gfile "github.com/karimra/gnoic/api/file"
 )
 
 func (a *App) InitServerFlags(cmd *cobra.Command) {
@@ -332,7 +332,7 @@ func (s *fserver) Put(stream file.File_PutServer) error {
 		}
 		defer rFile.Close()
 		// create temp file
-		tempFile, err = ioutil.TempFile(dir, filepath.Base(remoteFile))
+		tempFile, err = os.CreateTemp(dir, filepath.Base(remoteFile))
 		if err != nil {
 			return status.Errorf(codes.FailedPrecondition, "%v", err)
 		}

@@ -3,14 +3,15 @@ package app
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"os"
 
-	"github.com/karimra/gnoic/api"
-	gcert "github.com/karimra/gnoic/api/cert"
 	"github.com/openconfig/gnoi/cert"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"google.golang.org/grpc/metadata"
+
+	"github.com/karimra/gnoic/api"
+	gcert "github.com/karimra/gnoic/api/cert"
 )
 
 type certLoadCABundle struct {
@@ -89,7 +90,7 @@ func (a *App) CertLoadCABundle(ctx context.Context, t *api.Target) (*cert.LoadCe
 	opts := make([]gcert.CertOption, 0, n)
 
 	for _, certFilename := range a.Config.CertLoadCertificateCaBundleCaCertificates {
-		b, err := ioutil.ReadFile(certFilename)
+		b, err := os.ReadFile(certFilename)
 		if err != nil {
 			return nil, fmt.Errorf("error reading certificate from file %q: %v",
 				certFilename, err)
