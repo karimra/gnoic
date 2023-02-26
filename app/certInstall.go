@@ -268,6 +268,7 @@ func (a *App) createLocalCSRInstall(t *api.Target) (*cert.KeyPair, *x509.Certifi
 		EmailAddresses:     []string{a.Config.CertInstallEmailID},
 		SignatureAlgorithm: x509.SHA256WithRSA,
 		IPAddresses:        make([]net.IP, 0),
+		DNSNames:           []string{commonName},
 	}
 
 	if ipAddrs != nil {
