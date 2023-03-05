@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -24,7 +24,7 @@ func newCertCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "cert",
 		Short: "run Certificate Management gNOI RPCs",
-		PreRun: func(cmd *cobra.Command, args []string) {
+		PreRun: func(cmd *cobra.Command, _ []string) {
 			gApp.Config.SetPersistantFlagsFromFile(cmd)
 		},
 		SilenceUsage: true,
@@ -49,7 +49,7 @@ func newCertRotateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "rotate",
 		Short: "run certificate Rotate gNOI RPC",
-		PreRun: func(cmd *cobra.Command, args []string) {
+		PreRun: func(cmd *cobra.Command, _ []string) {
 			gApp.Config.SetLocalFlagsFromFile(cmd)
 		},
 		RunE:         gApp.RunECertRotate,
@@ -64,7 +64,7 @@ func newCertInstallCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "install",
 		Short: "run certificate Install gNOI RPC",
-		PreRun: func(cmd *cobra.Command, args []string) {
+		PreRun: func(cmd *cobra.Command, _ []string) {
 			gApp.Config.SetLocalFlagsFromFile(cmd)
 		},
 		RunE:         gApp.RunECertInstall,
@@ -80,7 +80,7 @@ func newCertGenCSRCmd() *cobra.Command {
 		Use:     "generate-csr",
 		Aliases: []string{"gcsr", "gc"},
 		Short:   "run certificate GenerateCSR gNOI RPC",
-		PreRun: func(cmd *cobra.Command, args []string) {
+		PreRun: func(cmd *cobra.Command, _ []string) {
 			gApp.Config.SetLocalFlagsFromFile(cmd)
 		},
 		RunE:         gApp.RunEGenerateCSR,
@@ -96,7 +96,7 @@ func newCertLoadCertificatesCmd() *cobra.Command {
 		Use:     "load",
 		Aliases: []string{"load-certs"},
 		Short:   "run certificate LoadCertificates gNOI RPC",
-		PreRun: func(cmd *cobra.Command, args []string) {
+		PreRun: func(cmd *cobra.Command, _ []string) {
 			gApp.Config.SetLocalFlagsFromFile(cmd)
 		},
 		RunE:         gApp.RunELoadCerts,
@@ -112,7 +112,7 @@ func newCertLoadCertificateAuthorityBundleCmd() *cobra.Command {
 		Use:     "load-ca",
 		Aliases: []string{"load-certs-ca-bundle"},
 		Short:   "run certificate LoadCertificateAuthorityBundle gNOI RPC",
-		PreRun: func(cmd *cobra.Command, args []string) {
+		PreRun: func(cmd *cobra.Command, _ []string) {
 			gApp.Config.SetLocalFlagsFromFile(cmd)
 		},
 		RunE:         gApp.RunELoadCertsCaBundle,
@@ -128,7 +128,7 @@ func newCertGetCertificatesCmd() *cobra.Command {
 		Use:     "get-certs",
 		Aliases: []string{"get"},
 		Short:   "run certificate GetCertificates gNOI RPC",
-		PreRun: func(cmd *cobra.Command, args []string) {
+		PreRun: func(cmd *cobra.Command, _ []string) {
 			gApp.Config.SetLocalFlagsFromFile(cmd)
 		},
 		RunE:         gApp.RunECertGetCertificates,
@@ -144,7 +144,7 @@ func newCertRevokeCertificatesCmd() *cobra.Command {
 		Use:     "revoke",
 		Aliases: []string{"revoke-certs", "rev"},
 		Short:   "run certificate RevokeCertificates gNOI RPC",
-		PreRun: func(cmd *cobra.Command, args []string) {
+		PreRun: func(cmd *cobra.Command, _ []string) {
 			gApp.Config.SetLocalFlagsFromFile(cmd)
 		},
 		RunE:         gApp.RunECertRevokeCertificates,
@@ -160,7 +160,7 @@ func newCertCanGenerateCSRCmd() *cobra.Command {
 		Use:     "can-generate-csr",
 		Aliases: []string{"cgc"},
 		Short:   "run certificate CanGenerateCSR gNOI RPC",
-		PreRun: func(cmd *cobra.Command, args []string) {
+		PreRun: func(cmd *cobra.Command, _ []string) {
 			gApp.Config.SetLocalFlagsFromFile(cmd)
 		},
 		RunE:         gApp.RunECertCanGenerateCSR,
@@ -175,7 +175,7 @@ func newCertCreateCaCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create-ca",
 		Short: "create a CA Certificate and Key",
-		PreRun: func(cmd *cobra.Command, args []string) {
+		PreRun: func(cmd *cobra.Command, _ []string) {
 			gApp.Config.SetLocalFlagsFromFile(cmd)
 		},
 		RunE:         gApp.RunECertCreateCa,

@@ -40,7 +40,7 @@ func VerifyStandbyState(s gnoios.StandbyState_State) func(msg proto.Message) err
 }
 
 func VerifyStandbyStateUNSUPPORTED() func(msg proto.Message) error {
-	return VerifyStandbyState(gnoios.StandbyState_UNSUPORTED)
+	return VerifyStandbyState(gnoios.StandbyState_UNSUPPORTED)
 }
 
 func VerifyStandbyStateNON_EXISTENT() func(msg proto.Message) error {

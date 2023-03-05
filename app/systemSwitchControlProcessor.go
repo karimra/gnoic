@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/karimra/gnoic/api"
+	"github.com/karimra/gnoic/utils"
 	"github.com/olekukonko/tablewriter"
 	"github.com/openconfig/gnoi/system"
 	"github.com/spf13/cobra"
@@ -95,7 +96,7 @@ func (a *App) RunESystemSwitchControlProcessor(cmd *cobra.Command, args []string
 }
 
 func (a *App) SystemSwitchControlProcessor(ctx context.Context, t *api.Target) (*system.SwitchControlProcessorResponse, error) {
-	p, err := ParsePath(a.Config.SystemSwitchControlProcessorPath)
+	p, err := utils.ParsePath(a.Config.SystemSwitchControlProcessorPath)
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +118,7 @@ func systemSwitchControlProcessorTable(rsps []*systemSwitchControlProcessorRespo
 	for _, rsp := range rsps {
 		tabData = append(tabData, []string{
 			rsp.TargetName,
-			pathToXPath(rsp.rsp.GetControlProcessor()),
+			utils.PathToXPath(rsp.rsp.GetControlProcessor()),
 			rsp.rsp.GetVersion(),
 			time.Unix(0, rsp.rsp.GetUptime()).String(),
 		})

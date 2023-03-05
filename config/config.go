@@ -211,6 +211,17 @@ type LocalFlags struct {
 	// Healthz
 	// Healthz Get
 	HealthzGetPath string `json:"healthz-get-path,omitempty" mapstructure:"healthz-get-path,omitempty" yaml:"healthz-get-path,omitempty"`
+	// Healthz List
+	HealthzListPath  string `json:"healthz-list-path,omitempty" mapstructure:"healthz-list-path,omitempty" yaml:"healthz-list-path,omitempty"`
+	HealthzListAcked bool   `json:"healthz-list-acked,omitempty" mapstructure:"healthz-list-acked,omitempty" yaml:"healthz-list-acked,omitempty"`
+	// Healthz Ack
+	HealthzAckPath string `json:"healthz-ack-path,omitempty" mapstructure:"healthz-ack-path,omitempty" yaml:"healthz-ack-path,omitempty"`
+	HealthzAckID   string `json:"healthz-ack-id,omitempty" mapstructure:"healthz-ack-id,omitempty" yaml:"healthz-ack-id,omitempty"`
+	// Healthz Check
+	HealthzCheckPath string `json:"healthz-check-path,omitempty" mapstructure:"healthz-check-path,omitempty" yaml:"healthz-check-path,omitempty"`
+	HealthzCheckID   string `json:"healthz-check-id,omitempty" mapstructure:"healthz-check-id,omitempty" yaml:"healthz-check-id,omitempty"`
+	// Healthz Artifact
+	HealthzArtifactID string `json:"healthz-artifact-id,omitempty" mapstructure:"healthz-artifact-id,omitempty" yaml:"healthz-artifact-id,omitempty"`
 	// OS
 	// OS Install
 	OsInstallVersion           string `json:"os-install-version,omitempty" mapstructure:"os-install-version,omitempty" yaml:"os-install-version,omitempty"`

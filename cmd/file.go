@@ -30,7 +30,7 @@ func newFileGetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "get",
 		Short: "run file Get gNOI RPC",
-		PreRun: func(cmd *cobra.Command, args []string) {
+		PreRun: func(cmd *cobra.Command, _ []string) {
 			gApp.Config.SetLocalFlagsFromFile(cmd)
 		},
 		RunE:         gApp.RunEFileGet,
@@ -46,7 +46,7 @@ func newFileTransferCmd() *cobra.Command {
 		Use:     "transfer",
 		Short:   "run file Transfer gNOI RPC",
 		Aliases: []string{"trans", "tr"},
-		PreRunE: func(cmd *cobra.Command, args []string) error {
+		PreRunE: func(cmd *cobra.Command, _ []string) error {
 			gApp.Config.SetLocalFlagsFromFile(cmd)
 			if gApp.Config.FileTransferLocal == "" {
 				return errors.New("missing local file path, set with --local")
@@ -83,7 +83,7 @@ func newFileStatCmd() *cobra.Command {
 		Use:     "stat",
 		Aliases: []string{"st"},
 		Short:   "run file Stat gNOI RPC",
-		PreRun: func(cmd *cobra.Command, args []string) {
+		PreRun: func(cmd *cobra.Command, _ []string) {
 			gApp.Config.SetLocalFlagsFromFile(cmd)
 		},
 		RunE:         gApp.RunEFileStat,
@@ -99,7 +99,7 @@ func newFileRemoveCmd() *cobra.Command {
 		Use:     "remove",
 		Aliases: []string{"rm"},
 		Short:   "run file Remove gNOI RPC",
-		PreRun: func(cmd *cobra.Command, args []string) {
+		PreRun: func(cmd *cobra.Command, _ []string) {
 			gApp.Config.SetLocalFlagsFromFile(cmd)
 		},
 		RunE:         gApp.RunEFileRemove,
