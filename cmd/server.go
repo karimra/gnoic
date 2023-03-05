@@ -9,7 +9,7 @@ func newServerCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "server",
 		Short: "starts a gNOI server",
-		PreRunE: func(cmd *cobra.Command, args []string) error {
+		PreRunE: func(_ *cobra.Command, _ []string) error {
 			if len(gApp.Config.Address) == 0 {
 				gApp.Config.Address = []string{":9339"}
 			}

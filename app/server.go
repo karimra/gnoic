@@ -24,7 +24,7 @@ import (
 	"github.com/openconfig/gnoi/file"
 	"github.com/openconfig/gnoi/types"
 	"github.com/pkg/sftp"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"golang.org/x/crypto/ssh"
@@ -85,7 +85,7 @@ func (a *App) RunEServer(cmd *cobra.Command, args []string) error {
 type fserver struct {
 	file.UnimplementedFileServer
 
-	logger         *logrus.Entry
+	logger         *log.Entry
 	s              *grpc.Server
 	rootDir        string
 	fileHashMethod string

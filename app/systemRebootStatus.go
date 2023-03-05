@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/karimra/gnoic/api"
+	"github.com/karimra/gnoic/utils"
 	"github.com/olekukonko/tablewriter"
 	"github.com/openconfig/gnoi/system"
 	"github.com/openconfig/gnoi/types"
@@ -40,7 +41,7 @@ func (a *App) RunESystemRebootStatus(cmd *cobra.Command, args []string) error {
 	}
 	subcomponents := make([]*types.Path, len(a.Config.SystemRebootStatusSubscomponents))
 	for i, p := range a.Config.SystemRebootStatusSubscomponents {
-		subcomponents[i], err = ParsePath(p)
+		subcomponents[i], err = utils.ParsePath(p)
 		if err != nil {
 			return err
 		}

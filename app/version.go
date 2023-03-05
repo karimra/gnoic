@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -33,7 +32,7 @@ func (a *App) RunEVersion(cmd *cobra.Command, args []string) error {
 }
 
 func (a *App) VersionUpgradeRun(cmd *cobra.Command, args []string) error {
-	f, err := ioutil.TempFile("", "gnmic")
+	f, err := os.CreateTemp("", "gnmic")
 	defer os.Remove(f.Name())
 	if err != nil {
 		return err
