@@ -31,6 +31,7 @@ import (
 	"golang.org/x/sys/unix"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/status"
 
 	gfile "github.com/karimra/gnoic/api/file"
@@ -69,6 +70,7 @@ func (a *App) RunEServer(cmd *cobra.Command, args []string) error {
 		fileHashMethod: strings.ToLower(a.Config.ServerFileHash),
 	}
 	file.RegisterFileServer(fileServer.s, fileServer)
+	reflection.Register(fileServer.s)
 	ctx, cancel := context.WithCancel(a.ctx)
 	go func() {
 		err = fileServer.s.Serve(l)
