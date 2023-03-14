@@ -17,7 +17,6 @@ import (
 	"github.com/openconfig/gnoi/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/encoding/prototext"
 )
 
@@ -49,32 +48,7 @@ func (a *App) RunEFileGet(cmd *cobra.Command, args []string) error {
 
 	a.wg.Add(numTargets)
 	for _, t := range targets {
-		go func(t *api.Target) {
-			defer a.wg.Done()
-			ctx, cancel := context.WithCancel(a.ctx)
-			defer cancel()
-			ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
-
-			err = t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
-			if err != nil {
-				responseChan <- &fileGetResponse{
-					TargetError: TargetError{
-						TargetName: t.Config.Address,
-						Err:        err,
-					},
-				}
-				return
-			}
-			defer t.Close()
-			filename, err := a.FileGet(ctx, t)
-			responseChan <- &fileGetResponse{
-				TargetError: TargetError{
-					TargetName: t.Config.Address,
-					Err:        err,
-				},
-				file: filename,
-			}
-		}(t)
+		go a.fileGetRequest(cmd.Context(), t, responseChan)
 	}
 	a.wg.Wait()
 	close(responseChan)
@@ -99,13 +73,40 @@ func (a *App) RunEFileGet(cmd *cobra.Command, args []string) error {
 	return a.handleErrs(errs)
 }
 
-func (a *App) FileGet(ctx context.Context, t *api.Target) ([]string, error) {
+func (a *App) fileGetRequest(ctx context.Context, t *api.Target, rspCh chan<- *fileGetResponse) {
+	defer a.wg.Done()
+	ctx = t.AppendMetadata(ctx)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	err := t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
+	if err != nil {
+		rspCh <- &fileGetResponse{
+			TargetError: TargetError{
+				TargetName: t.Config.Address,
+				Err:        err,
+			},
+		}
+		return
+	}
+	defer t.Close()
+	filename, err := a.fileGet(ctx, t)
+	rspCh <- &fileGetResponse{
+		TargetError: TargetError{
+			TargetName: t.Config.Address,
+			Err:        err,
+		},
+		file: filename,
+	}
+}
+
+func (a *App) fileGet(ctx context.Context, t *api.Target) ([]string, error) {
 	fileClient := t.FileClient()
 	numFiles := len(a.Config.FileGetFile)
 	files := make([]string, 0, numFiles)
 	errs := make([]error, 0, numFiles)
 	for _, f := range a.Config.FileGetFile {
-		fs, err := a.fileGet(ctx, t, fileClient, f)
+		fs, err := a.fileGetPath(ctx, t, fileClient, f)
 		if err != nil {
 			errs = append(errs, err)
 			continue
@@ -122,7 +123,7 @@ func (a *App) FileGet(ctx context.Context, t *api.Target) ([]string, error) {
 	return files, nil
 }
 
-func (a *App) fileGet(ctx context.Context, t *api.Target, fileClient file.FileClient, path string) ([]string, error) {
+func (a *App) fileGetPath(ctx context.Context, t *api.Target, fileClient file.FileClient, path string) ([]string, error) {
 	files := make([]string, 0)
 	isDir, err := a.isDir(ctx, fileClient, path)
 	if err != nil {
@@ -134,7 +135,7 @@ func (a *App) fileGet(ctx context.Context, t *api.Target, fileClient file.FileCl
 			return nil, err
 		}
 		for _, si := range r.Stats {
-			f, err := a.fileGet(ctx, t, fileClient, si.Path)
+			f, err := a.fileGetPath(ctx, t, fileClient, si.Path)
 			if err != nil {
 				return nil, err
 			}

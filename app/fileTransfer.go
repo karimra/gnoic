@@ -13,7 +13,6 @@ import (
 	"github.com/openconfig/gnoi/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"google.golang.org/grpc/metadata"
 )
 
 type fileTransferResponse struct {
@@ -43,25 +42,7 @@ func (a *App) RunEFileTransfer(cmd *cobra.Command, args []string) error {
 	responseChan := make(chan *fileTransferResponse, numTargets)
 	a.wg.Add(numTargets)
 	for _, t := range targets {
-		go func(t *api.Target) {
-			defer a.wg.Done()
-			ctx, cancel := context.WithCancel(a.ctx)
-			defer cancel()
-			ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
-
-			err = t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
-			if err != nil {
-				responseChan <- &fileTransferResponse{
-					TargetError: TargetError{
-						TargetName: t.Config.Address,
-						Err:        err,
-					},
-				}
-				return
-			}
-			defer t.Close()
-			responseChan <- a.FileTransfer(ctx, t)
-		}(t)
+		go a.fileTransferRequest(cmd.Context(), t, responseChan)
 	}
 	a.wg.Wait()
 	close(responseChan)
@@ -78,10 +59,30 @@ func (a *App) RunEFileTransfer(cmd *cobra.Command, args []string) error {
 		result = append(result, rsp)
 	}
 	for _, r := range result {
-		a.printMsg(r.TargetName, r.rsp)
+		a.printProtoMsg(r.TargetName, r.rsp)
 	}
 	fmt.Print(a.transferTable(result))
 	return a.handleErrs(errs)
+}
+
+func (a *App) fileTransferRequest(ctx context.Context, t *api.Target, rspCh chan<- *fileTransferResponse) {
+	defer a.wg.Done()
+	ctx = t.AppendMetadata(ctx)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	err := t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
+	if err != nil {
+		rspCh <- &fileTransferResponse{
+			TargetError: TargetError{
+				TargetName: t.Config.Address,
+				Err:        err,
+			},
+		}
+		return
+	}
+	defer t.Close()
+	rspCh <- a.FileTransfer(ctx, t)
 }
 
 func (a *App) FileTransfer(ctx context.Context, t *api.Target) *fileTransferResponse {

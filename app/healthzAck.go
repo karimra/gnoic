@@ -8,7 +8,6 @@ import (
 	"github.com/openconfig/gnoi/healthz"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"google.golang.org/grpc/metadata"
 
 	"github.com/karimra/gnoic/api"
 	ghealthz "github.com/karimra/gnoic/api/healthz"
@@ -41,25 +40,7 @@ func (a *App) RunEHealthzAck(cmd *cobra.Command, args []string) error {
 
 	a.wg.Add(numTargets)
 	for _, t := range targets {
-		go func(t *api.Target) {
-			defer a.wg.Done()
-			ctx, cancel := context.WithCancel(a.ctx)
-			defer cancel()
-			ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
-
-			err = t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
-			if err != nil {
-				responseChan <- &healthzAckResponse{
-					TargetError: TargetError{
-						TargetName: t.Config.Address,
-						Err:        err,
-					},
-				}
-				return
-			}
-			defer t.Close()
-			responseChan <- a.HealthAck(ctx, t)
-		}(t)
+		go a.HealthAckRequest(cmd.Context(), t, responseChan)
 	}
 	a.wg.Wait()
 	close(responseChan)
@@ -73,12 +54,11 @@ func (a *App) RunEHealthzAck(cmd *cobra.Command, args []string) error {
 			errs = append(errs, wErr)
 			continue
 		}
+		a.printProtoMsg(rsp.TargetName, rsp.rsp)
 		result = append(result, rsp)
 	}
 
 	for _, r := range result {
-		fmt.Printf("target %q:\n", r.TargetName)
-		a.printMsg(r.TargetName, r.rsp)
 		switch a.Config.Format {
 		case "json":
 			b, err := json.MarshalIndent(r.rsp, "", "  ")
@@ -91,6 +71,26 @@ func (a *App) RunEHealthzAck(cmd *cobra.Command, args []string) error {
 		}
 	}
 	return a.handleErrs(errs)
+}
+
+func (a *App) HealthAckRequest(ctx context.Context, t *api.Target, rspCh chan<- *healthzAckResponse) {
+	defer a.wg.Done()
+	ctx = t.AppendMetadata(ctx)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	err := t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
+	if err != nil {
+		rspCh <- &healthzAckResponse{
+			TargetError: TargetError{
+				TargetName: t.Config.Address,
+				Err:        err,
+			},
+		}
+		return
+	}
+	defer t.Close()
+	rspCh <- a.HealthAck(ctx, t)
 }
 
 func (a *App) HealthAck(ctx context.Context, t *api.Target) *healthzAckResponse {
@@ -107,7 +107,7 @@ func (a *App) HealthAck(ctx context.Context, t *api.Target) *healthzAckResponse 
 			},
 		}
 	}
-	a.printMsg(t.Config.Name, req)
+	a.printProtoMsg(t.Config.Name, req)
 	hc := healthz.NewHealthzClient(t.Conn())
 	rsp, err := hc.Acknowledge(ctx, req)
 	return &healthzAckResponse{

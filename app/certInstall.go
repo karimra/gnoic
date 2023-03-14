@@ -19,7 +19,6 @@ import (
 	"github.com/openconfig/gnoi/cert"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/encoding/prototext"
 )
 
@@ -72,28 +71,9 @@ func (a *App) RunECertInstall(cmd *cobra.Command, args []string) error {
 	responseChan := make(chan *TargetError, numTargets)
 
 	a.wg.Add(numTargets)
-	for _, t := range targets {
-		go func(t *api.Target) {
-			defer a.wg.Done()
-			ctx, cancel := context.WithCancel(a.ctx)
-			defer cancel()
-			ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
 
-			err = t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
-			if err != nil {
-				responseChan <- &TargetError{
-					TargetName: t.Config.Address,
-					Err:        err,
-				}
-				return
-			}
-			defer t.Close()
-			err = a.CertInstall(ctx, t)
-			responseChan <- &TargetError{
-				TargetName: t.Config.Address,
-				Err:        err,
-			}
-		}(t)
+	for _, t := range targets {
+		go a.certCertificateInstallRequest(cmd.Context(), t, responseChan)
 	}
 	a.wg.Wait()
 	close(responseChan)
@@ -104,13 +84,34 @@ func (a *App) RunECertInstall(cmd *cobra.Command, args []string) error {
 			wErr := fmt.Errorf("%q Cert Install failed: %v", rsp.TargetName, rsp.Err)
 			a.Logger.Error(wErr)
 			errs = append(errs, wErr)
-			continue
 		}
 	}
 	return a.handleErrs(errs)
 }
 
-func (a *App) CertInstall(ctx context.Context, t *api.Target) error {
+func (a *App) certCertificateInstallRequest(ctx context.Context, t *api.Target, rspCh chan<- *TargetError) {
+	defer a.wg.Done()
+	ctx = t.AppendMetadata(ctx)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	err := t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
+	if err != nil {
+		rspCh <- &TargetError{
+			TargetName: t.Config.Address,
+			Err:        err,
+		}
+		return
+	}
+	defer t.Close()
+	err = a.certInstall(ctx, t)
+	rspCh <- &TargetError{
+		TargetName: t.Config.Address,
+		Err:        err,
+	}
+}
+
+func (a *App) certInstall(ctx context.Context, t *api.Target) error {
 	// create cert mgmt install stream RPC
 	stream, err := t.CertClient().Install(ctx)
 	if err != nil {
@@ -321,7 +322,7 @@ func (a *App) createRemoteCSRInstall(stream cert.CertificateManagement_InstallCl
 	if err != nil {
 		return nil, err
 	}
-	a.printMsg(t.Config.Name, req)
+	a.printProtoMsg(t.Config.Name, req)
 
 	err = stream.Send(req)
 	if err != nil {
@@ -335,7 +336,7 @@ func (a *App) createRemoteCSRInstall(stream cert.CertificateManagement_InstallCl
 		return nil, fmt.Errorf("%q returned a <nil> CSR response", t.Config.Address)
 	}
 	if !a.Config.CertInstallPrintCSR {
-		a.printMsg(t.Config.Name, resp)
+		a.printProtoMsg(t.Config.Name, resp)
 	}
 	if a.Config.CertInstallPrintCSR {
 		fmt.Printf("%q genCSR response:\n %s\n", t.Config.Address, prototext.Format(resp))

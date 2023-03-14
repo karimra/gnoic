@@ -9,7 +9,6 @@ import (
 	"github.com/openconfig/gnoi/file"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"google.golang.org/grpc/metadata"
 )
 
 type fileRemoveResponse struct {
@@ -38,32 +37,7 @@ func (a *App) RunEFileRemove(cmd *cobra.Command, args []string) error {
 
 	a.wg.Add(numTargets)
 	for _, t := range targets {
-		go func(t *api.Target) {
-			defer a.wg.Done()
-			ctx, cancel := context.WithCancel(a.ctx)
-			defer cancel()
-			ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
-
-			err = t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
-			if err != nil {
-				responseChan <- &fileRemoveResponse{
-					TargetError: TargetError{
-						TargetName: t.Config.Address,
-						Err:        err,
-					},
-				}
-				return
-			}
-			defer t.Close()
-			filename, err := a.FileRemove(ctx, t)
-			responseChan <- &fileRemoveResponse{
-				TargetError: TargetError{
-					TargetName: t.Config.Address,
-					Err:        err,
-				},
-				file: filename,
-			}
-		}(t)
+		go a.fileRemoveRequest(cmd.Context(), t, responseChan)
 	}
 	a.wg.Wait()
 	close(responseChan)
@@ -86,6 +60,33 @@ func (a *App) RunEFileRemove(cmd *cobra.Command, args []string) error {
 		}
 	}
 	return a.handleErrs(errs)
+}
+
+func (a *App) fileRemoveRequest(ctx context.Context, t *api.Target, rspCh chan<- *fileRemoveResponse) {
+	defer a.wg.Done()
+	ctx = t.AppendMetadata(ctx)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	err := t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
+	if err != nil {
+		rspCh <- &fileRemoveResponse{
+			TargetError: TargetError{
+				TargetName: t.Config.Address,
+				Err:        err,
+			},
+		}
+		return
+	}
+	defer t.Close()
+	filename, err := a.FileRemove(ctx, t)
+	rspCh <- &fileRemoveResponse{
+		TargetError: TargetError{
+			TargetName: t.Config.Address,
+			Err:        err,
+		},
+		file: filename,
+	}
 }
 
 func (a *App) FileRemove(ctx context.Context, t *api.Target) ([]string, error) {

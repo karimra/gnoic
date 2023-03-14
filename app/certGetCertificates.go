@@ -18,12 +18,19 @@ import (
 	"github.com/openconfig/gnoi/cert"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"google.golang.org/grpc/metadata"
 )
 
 type getCertificatesResponse struct {
 	TargetError
 	rsp *cert.GetCertificatesResponse
+}
+
+func (r *getCertificatesResponse) Target() string {
+	return r.TargetName
+}
+
+func (r *getCertificatesResponse) Response() any {
+	return r.rsp
 }
 
 func (a *App) InitCertGetCertificatesFlags(cmd *cobra.Command) {
@@ -49,33 +56,7 @@ func (a *App) RunECertGetCertificates(cmd *cobra.Command, args []string) error {
 
 	a.wg.Add(numTargets)
 	for _, t := range targets {
-		go func(t *api.Target) {
-			defer a.wg.Done()
-			ctx, cancel := context.WithCancel(a.ctx)
-			defer cancel()
-			ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
-
-			err = t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
-			if err != nil {
-				responseChan <- &getCertificatesResponse{
-					TargetError: TargetError{
-						TargetName: t.Config.Address,
-						Err:        err,
-					},
-				}
-				return
-			}
-			defer t.Close()
-			a.Logger.Debugf("%q gRPC client created", t.Config.Address)
-			rsp, err := a.CertGetCertificates(ctx, t)
-			responseChan <- &getCertificatesResponse{
-				TargetError: TargetError{
-					TargetName: t.Config.Address,
-					Err:        err,
-				},
-				rsp: rsp,
-			}
-		}(t)
+		go a.certGetCertificatesRequest(cmd.Context(), t, responseChan)
 	}
 	a.wg.Wait()
 	close(responseChan)
@@ -140,6 +121,27 @@ func (a *App) RunECertGetCertificates(cmd *cobra.Command, args []string) error {
 	return a.handleErrs(errs)
 }
 
+func (a *App) certGetCertificatesRequest(ctx context.Context, t *api.Target, rspCh chan<- *getCertificatesResponse) {
+	defer a.wg.Done()
+	ctx = t.AppendMetadata(ctx)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	err := t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
+	if err != nil {
+		rspCh <- &getCertificatesResponse{
+			TargetError: TargetError{
+				TargetName: t.Config.Address,
+				Err:        err,
+			},
+		}
+		return
+	}
+	defer t.Close()
+	a.Logger.Debugf("%q gRPC client created", t.Config.Address)
+	rspCh <- a.CertGetCertificates(ctx, t)
+}
+
 func (a *App) certTable(rsps []*getCertificatesResponse) (string, error) {
 	tabData := make([][]string, 0)
 	for _, rsp := range rsps {
@@ -182,14 +184,25 @@ func (a *App) certTable(rsps []*getCertificatesResponse) (string, error) {
 	return b.String(), nil
 }
 
-func (a *App) CertGetCertificates(ctx context.Context, t *api.Target) (*cert.GetCertificatesResponse, error) {
+func (a *App) CertGetCertificates(ctx context.Context, t *api.Target) *getCertificatesResponse {
 	resp, err := t.CertClient().GetCertificates(ctx, new(cert.GetCertificatesRequest))
 	if err != nil {
-		return nil, err
+		return &getCertificatesResponse{
+			TargetError: TargetError{
+				TargetName: t.Config.Name,
+				Err:        err,
+			},
+		}
 	}
 
-	a.printMsg(t.Config.Name, resp)
-	return resp, nil
+	a.printProtoMsg(t.Config.Name, resp)
+	return &getCertificatesResponse{
+		TargetError: TargetError{
+			TargetName: t.Config.Name,
+			Err:        err,
+		},
+		rsp: resp,
+	}
 }
 
 func (a *App) saveCerts(rsp *getCertificatesResponse) {

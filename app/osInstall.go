@@ -14,7 +14,6 @@ import (
 	gnoios "github.com/openconfig/gnoi/os"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"google.golang.org/grpc/metadata"
 )
 
 type osInstallResponse struct {
@@ -57,41 +56,44 @@ func (a *App) RunEOSInstall(cmd *cobra.Command, args []string) error {
 
 	a.wg.Add(numTargets)
 	for _, t := range targets {
-		go func(t *api.Target) {
-			defer a.wg.Done()
-			ctx, cancel := context.WithCancel(a.ctx)
-			defer cancel()
-			ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
-
-			err = t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
-			if err != nil {
-				responseChan <- &osInstallResponse{
-					TargetError: TargetError{
-						TargetName: t.Config.Name,
-						Err:        err,
-					},
-				}
-				return
-			}
-			defer t.Close()
-			a.Logger.Infof("starting install RPC")
-			err = a.OsInstall(ctx, t)
-			responseChan <- &osInstallResponse{
-				TargetError: TargetError{
-					TargetName: t.Config.Name,
-					Err:        err,
-				},
-			}
-		}(t)
+		go a.OsInstallRequest(cmd.Context(), t, responseChan)
 	}
 	a.wg.Wait()
 	close(responseChan)
 	for rsp := range responseChan {
 		if rsp.Err != nil {
-			fmt.Printf("%+v\n", rsp)
+			a.Logger.Errorf("%+v", rsp)
 		}
 	}
 	return nil
+}
+
+func (a *App) OsInstallRequest(ctx context.Context, t *api.Target, rspCh chan<- *osInstallResponse) {
+	defer a.wg.Done()
+	ctx = t.AppendMetadata(ctx)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	err := t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
+	if err != nil {
+		rspCh <- &osInstallResponse{
+			TargetError: TargetError{
+				TargetName: t.Config.Name,
+				Err:        err,
+			},
+		}
+		return
+	}
+	defer t.Close()
+	a.Logger.Infof("%s: starting install RPC", t.Config.Name)
+	err = a.OsInstall(ctx, t)
+	rspCh <- &osInstallResponse{
+		TargetError: TargetError{
+			TargetName: t.Config.Name,
+			Err:        err,
+		},
+	}
+
 }
 
 func (a *App) OsInstall(ctx context.Context, t *api.Target) error {
@@ -109,7 +111,7 @@ func (a *App) OsInstall(ctx context.Context, t *api.Target) error {
 	if err != nil {
 		return err
 	}
-	a.printMsg(t.Config.Name, req)
+	a.printProtoMsg(t.Config.Name, req)
 	err = osInstallClient.Send(req)
 	if err != nil {
 		return err
@@ -122,7 +124,7 @@ RCV:
 		return err
 	}
 	a.Logger.Debugf("target %q: OS Install stream got: %+v", t.Config.Name, rsp)
-	a.printMsg(t.Config.Name, rsp)
+	a.printProtoMsg(t.Config.Name, rsp)
 	switch rsp := rsp.GetResponse().(type) {
 	case *gnoios.InstallResponse_TransferReady:
 		err = a.osInstallTransferContent(ctx, t, osInstallClient)
@@ -170,7 +172,7 @@ func (a *App) osInstallTransferContent(ctx context.Context, t *api.Target, osic 
 					errCh <- err
 					return
 				}
-				a.printMsg(t.Config.Name, rsp)
+				a.printProtoMsg(t.Config.Name, rsp)
 				switch rsp := rsp.GetResponse().(type) {
 				case *gnoios.InstallResponse_InstallError:
 					a.Logger.Errorf("target %q Install Content Transfer RPC failed: %v: %v", t.Config.Name, rsp.InstallError.GetType(), rsp.InstallError.GetDetail())

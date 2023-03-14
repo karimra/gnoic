@@ -10,7 +10,6 @@ import (
 	"github.com/openconfig/gnoi/healthz"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/encoding/prototext"
 
 	"github.com/karimra/gnoic/api"
@@ -52,25 +51,7 @@ func (a *App) RunEHealthzGet(cmd *cobra.Command, args []string) error {
 
 	a.wg.Add(numTargets)
 	for _, t := range targets {
-		go func(t *api.Target) {
-			defer a.wg.Done()
-			ctx, cancel := context.WithCancel(a.ctx)
-			defer cancel()
-			ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
-
-			err = t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
-			if err != nil {
-				responseChan <- &healthzGetResponse{
-					TargetError: TargetError{
-						TargetName: t.Config.Address,
-						Err:        err,
-					},
-				}
-				return
-			}
-			defer t.Close()
-			responseChan <- a.HealthzGet(ctx, t)
-		}(t)
+		go a.HealthzGetRequest(cmd.Context(), t, responseChan)
 	}
 	a.wg.Wait()
 	close(responseChan)
@@ -84,12 +65,12 @@ func (a *App) RunEHealthzGet(cmd *cobra.Command, args []string) error {
 			errs = append(errs, wErr)
 			continue
 		}
+		a.printProtoMsg(rsp.TargetName, rsp.rsp)
 		result = append(result, rsp)
 	}
 
 	for _, r := range result {
-		fmt.Printf("target %q:\n", r.TargetName)
-		a.printMsg(r.TargetName, r.rsp)
+
 		switch a.Config.Format {
 		case "json":
 			b, err := json.MarshalIndent(r.rsp, "", "  ")
@@ -102,6 +83,26 @@ func (a *App) RunEHealthzGet(cmd *cobra.Command, args []string) error {
 		}
 	}
 	return a.handleErrs(errs)
+}
+
+func (a *App) HealthzGetRequest(ctx context.Context, t *api.Target, rspCh chan<- *healthzGetResponse) {
+	defer a.wg.Done()
+	ctx = t.AppendMetadata(ctx)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	err := t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
+	if err != nil {
+		rspCh <- &healthzGetResponse{
+			TargetError: TargetError{
+				TargetName: t.Config.Address,
+				Err:        err,
+			},
+		}
+		return
+	}
+	defer t.Close()
+	rspCh <- a.HealthzGet(ctx, t)
 }
 
 func (a *App) HealthzGet(ctx context.Context, t *api.Target) *healthzGetResponse {
@@ -117,7 +118,7 @@ func (a *App) HealthzGet(ctx context.Context, t *api.Target) *healthzGetResponse
 			},
 		}
 	}
-	a.printMsg(t.Config.Name, req)
+	a.printProtoMsg(t.Config.Name, req)
 	hc := healthz.NewHealthzClient(t.Conn())
 	rsp, err := hc.Get(ctx, req)
 	return &healthzGetResponse{

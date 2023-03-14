@@ -7,7 +7,6 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"google.golang.org/grpc/metadata"
 
 	"github.com/karimra/gnoic/api"
 	gsystem "github.com/karimra/gnoic/api/system"
@@ -52,27 +51,7 @@ func (a *App) RunESystemKillProcess(cmd *cobra.Command, args []string) error {
 	responseChan := make(chan *TargetError, numTargets)
 	a.wg.Add(numTargets)
 	for _, t := range targets {
-		go func(t *api.Target) {
-			defer a.wg.Done()
-			ctx, cancel := context.WithCancel(a.ctx)
-			defer cancel()
-			ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
-
-			err = t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
-			if err != nil {
-				responseChan <- &TargetError{
-					TargetName: t.Config.Address,
-					Err:        err,
-				}
-				return
-			}
-			defer t.Close()
-			err := a.SystemKillProcess(ctx, t)
-			responseChan <- &TargetError{
-				TargetName: t.Config.Address,
-				Err:        err,
-			}
-		}(t)
+		go a.systemKillProcessRequest(cmd.Context(), t, responseChan)
 	}
 	a.wg.Wait()
 	close(responseChan)
@@ -87,6 +66,28 @@ func (a *App) RunESystemKillProcess(cmd *cobra.Command, args []string) error {
 		}
 	}
 	return a.handleErrs(errs)
+}
+
+func (a *App) systemKillProcessRequest(ctx context.Context, t *api.Target, rspCh chan<- *TargetError) {
+	defer a.wg.Done()
+	ctx = t.AppendMetadata(ctx)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	err := t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
+	if err != nil {
+		rspCh <- &TargetError{
+			TargetName: t.Config.Address,
+			Err:        err,
+		}
+		return
+	}
+	defer t.Close()
+	err = a.SystemKillProcess(ctx, t)
+	rspCh <- &TargetError{
+		TargetName: t.Config.Address,
+		Err:        err,
+	}
 }
 
 func (a *App) SystemKillProcess(ctx context.Context, t *api.Target) error {

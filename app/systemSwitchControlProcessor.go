@@ -14,7 +14,6 @@ import (
 	"github.com/openconfig/gnoi/system"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"google.golang.org/grpc/metadata"
 )
 
 type systemSwitchControlProcessorResponse struct {
@@ -45,32 +44,7 @@ func (a *App) RunESystemSwitchControlProcessor(cmd *cobra.Command, args []string
 	responseChan := make(chan *systemSwitchControlProcessorResponse, numTargets)
 	a.wg.Add(numTargets)
 	for _, t := range targets {
-		go func(t *api.Target) {
-			defer a.wg.Done()
-			ctx, cancel := context.WithCancel(a.ctx)
-			defer cancel()
-			ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
-
-			err = t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
-			if err != nil {
-				responseChan <- &systemSwitchControlProcessorResponse{
-					TargetError: TargetError{
-						TargetName: t.Config.Address,
-						Err:        err,
-					},
-				}
-				return
-			}
-			defer t.Close()
-			rsp, err := a.SystemSwitchControlProcessor(ctx, t)
-			responseChan <- &systemSwitchControlProcessorResponse{
-				TargetError: TargetError{
-					TargetName: t.Config.Address,
-					Err:        err,
-				},
-				rsp: rsp,
-			}
-		}(t)
+		go a.systemSwitchControlProcessorRequest(cmd.Context(), t, responseChan)
 	}
 	a.wg.Wait()
 	close(responseChan)
@@ -95,6 +69,33 @@ func (a *App) RunESystemSwitchControlProcessor(cmd *cobra.Command, args []string
 	return a.handleErrs(errs)
 }
 
+func (a *App) systemSwitchControlProcessorRequest(ctx context.Context, t *api.Target, rspCh chan<- *systemSwitchControlProcessorResponse) {
+	defer a.wg.Done()
+	ctx = t.AppendMetadata(ctx)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	err := t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
+	if err != nil {
+		rspCh <- &systemSwitchControlProcessorResponse{
+			TargetError: TargetError{
+				TargetName: t.Config.Address,
+				Err:        err,
+			},
+		}
+		return
+	}
+	defer t.Close()
+	rsp, err := a.SystemSwitchControlProcessor(ctx, t)
+	rspCh <- &systemSwitchControlProcessorResponse{
+		TargetError: TargetError{
+			TargetName: t.Config.Address,
+			Err:        err,
+		},
+		rsp: rsp,
+	}
+}
+
 func (a *App) SystemSwitchControlProcessor(ctx context.Context, t *api.Target) (*system.SwitchControlProcessorResponse, error) {
 	p, err := utils.ParsePath(a.Config.SystemSwitchControlProcessorPath)
 	if err != nil {
@@ -103,12 +104,12 @@ func (a *App) SystemSwitchControlProcessor(ctx context.Context, t *api.Target) (
 	req := &system.SwitchControlProcessorRequest{
 		ControlProcessor: p,
 	}
-	a.printMsg(t.Config.Name, req)
+	a.printProtoMsg(t.Config.Name, req)
 	rsp, err := t.SystemClient().SwitchControlProcessor(ctx, req)
 	if err != nil {
 		return nil, err
 	}
-	a.printMsg(t.Config.Name, rsp)
+	a.printProtoMsg(t.Config.Name, rsp)
 	a.Logger.Infof("%q System SwitchControlProcessor Request successful", t.Config.Address)
 	return rsp, nil
 }

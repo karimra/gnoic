@@ -16,7 +16,6 @@ import (
 	"github.com/openconfig/gnoi/file"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/encoding/prototext"
 )
 
@@ -53,32 +52,7 @@ func (a *App) RunEFileStat(cmd *cobra.Command, args []string) error {
 
 	a.wg.Add(numTargets)
 	for _, t := range targets {
-		go func(t *api.Target) {
-			defer a.wg.Done()
-			ctx, cancel := context.WithCancel(a.ctx)
-			defer cancel()
-			ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
-
-			err = t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
-			if err != nil {
-				responseChan <- &fileStatResponse{
-					TargetError: TargetError{
-						TargetName: t.Config.Address,
-						Err:        err,
-					},
-				}
-				return
-			}
-			defer t.Close()
-			rsp, err := a.FileStat(ctx, t)
-			responseChan <- &fileStatResponse{
-				TargetError: TargetError{
-					TargetName: t.Config.Address,
-					Err:        err,
-				},
-				rsp: rsp,
-			}
-		}(t)
+		go a.fileStatRequest(cmd.Context(), t, responseChan)
 	}
 	a.wg.Wait()
 	close(responseChan)
@@ -115,6 +89,33 @@ func (a *App) RunEFileStat(cmd *cobra.Command, args []string) error {
 	return a.handleErrs(errs)
 }
 
+func (a *App) fileStatRequest(ctx context.Context, t *api.Target, rspCh chan<- *fileStatResponse) {
+	defer a.wg.Done()
+	ctx = t.AppendMetadata(ctx)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	err := t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
+	if err != nil {
+		rspCh <- &fileStatResponse{
+			TargetError: TargetError{
+				TargetName: t.Config.Address,
+				Err:        err,
+			},
+		}
+		return
+	}
+	defer t.Close()
+	rsp, err := a.FileStat(ctx, t)
+	rspCh <- &fileStatResponse{
+		TargetError: TargetError{
+			TargetName: t.Config.Address,
+			Err:        err,
+		},
+		rsp: rsp,
+	}
+}
+
 func (a *App) FileStat(ctx context.Context, t *api.Target) ([]*fileStatInfo, error) {
 	fileClient := file.NewFileClient(t.Conn())
 	rsps := make([]*fileStatInfo, 0, len(a.Config.FileStatPath))
@@ -130,13 +131,13 @@ func (a *App) FileStat(ctx context.Context, t *api.Target) ([]*fileStatInfo, err
 
 func (a *App) fileStat(ctx context.Context, t *api.Target, fileClient file.FileClient, path string) ([]*fileStatInfo, error) {
 	req := &file.StatRequest{Path: path}
-	a.printMsg(t.Config.Name, req)
+	a.printProtoMsg(t.Config.Name, req)
 	r, err := fileClient.Stat(ctx, req)
 	if err != nil {
 		return nil, fmt.Errorf("%q file %q stat err: %v", t.Config.Address, path, err)
 	}
 	a.Logger.Debugf("%q File Stat Response:\n%s", t.Config.Address, prototext.Format(r))
-	a.printMsg(t.Config.Name, r)
+	a.printProtoMsg(t.Config.Name, r)
 	rsps := make([]*fileStatInfo, 0, len(r.Stats))
 	for _, si := range r.Stats {
 		isDir, err := a.isDir(ctx, fileClient, si.Path)

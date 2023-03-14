@@ -15,7 +15,6 @@ import (
 	"github.com/openconfig/gnoi/system"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/encoding/prototext"
 )
 
@@ -69,27 +68,7 @@ func (a *App) RunESystemPing(cmd *cobra.Command, args []string) error {
 
 	a.wg.Add(numTargets)
 	for _, t := range targets {
-		go func(t *api.Target) {
-			defer a.wg.Done()
-			ctx, cancel := context.WithCancel(a.ctx)
-			defer cancel()
-			ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
-
-			err = t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
-			if err != nil {
-				responseChan <- &TargetError{
-					TargetName: t.Config.Address,
-					Err:        err,
-				}
-				return
-			}
-			defer t.Close()
-			err := a.SystemPing(ctx, t)
-			responseChan <- &TargetError{
-				TargetName: t.Config.Address,
-				Err:        err,
-			}
-		}(t)
+		go a.systemPingRequest(cmd.Context(), t, responseChan)
 	}
 	a.wg.Wait()
 	close(responseChan)
@@ -104,6 +83,28 @@ func (a *App) RunESystemPing(cmd *cobra.Command, args []string) error {
 		}
 	}
 	return a.handleErrs(errs)
+}
+
+func (a *App) systemPingRequest(ctx context.Context, t *api.Target, rspCh chan<- *TargetError) {
+	defer a.wg.Done()
+	ctx = t.AppendMetadata(ctx)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	err := t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
+	if err != nil {
+		rspCh <- &TargetError{
+			TargetName: t.Config.Address,
+			Err:        err,
+		}
+		return
+	}
+	defer t.Close()
+	err = a.SystemPing(ctx, t)
+	rspCh <- &TargetError{
+		TargetName: t.Config.Address,
+		Err:        err,
+	}
 }
 
 func (a *App) SystemPing(ctx context.Context, t *api.Target) error {
@@ -122,7 +123,7 @@ func (a *App) SystemPing(ctx context.Context, t *api.Target) error {
 		return err
 	}
 	a.Logger.Debugf("ping request:\n%s", prototext.Format(req))
-	a.printMsg(t.Config.Name, req)
+	a.printProtoMsg(t.Config.Name, req)
 	stream, err := t.SystemClient().Ping(ctx, req)
 	if err != nil {
 		a.Logger.Errorf("%q creating System Ping stream failed: %v", t.Config.Address, err)
@@ -139,7 +140,7 @@ func (a *App) SystemPing(ctx context.Context, t *api.Target) error {
 			return err
 		}
 		a.Logger.Debugf("ping response %s:\n%s", t.Config.Name, prototext.Format(rsp))
-		a.printMsg(t.Config.Name, rsp)
+		a.printProtoMsg(t.Config.Name, rsp)
 		a.printPingResponse(t.Config.Name, rsp)
 	}
 	return nil

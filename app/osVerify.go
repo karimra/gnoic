@@ -11,7 +11,6 @@ import (
 	gnoios "github.com/openconfig/gnoi/os"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"google.golang.org/grpc/metadata"
 
 	"github.com/karimra/gnoic/api"
 	gos "github.com/karimra/gnoic/api/os"
@@ -42,32 +41,7 @@ func (a *App) RunEOSVerify(cmd *cobra.Command, args []string) error {
 
 	a.wg.Add(numTargets)
 	for _, t := range targets {
-		go func(t *api.Target) {
-			defer a.wg.Done()
-			ctx, cancel := context.WithCancel(a.ctx)
-			defer cancel()
-			ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
-
-			err = t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
-			if err != nil {
-				responseChan <- &osVerifyResponse{
-					TargetError: TargetError{
-						TargetName: t.Config.Name,
-						Err:        err,
-					},
-				}
-				return
-			}
-			defer t.Close()
-			rsp, err := a.OsVerify(ctx, t)
-			responseChan <- &osVerifyResponse{
-				TargetError: TargetError{
-					TargetName: t.Config.Name,
-					Err:        err,
-				},
-				rsp: rsp,
-			}
-		}(t)
+		go a.OsVerifyRequest(cmd.Context(), t, responseChan)
 	}
 	a.wg.Wait()
 	close(responseChan)
@@ -81,7 +55,7 @@ func (a *App) RunEOSVerify(cmd *cobra.Command, args []string) error {
 			continue
 		}
 		result = append(result, rsp)
-		a.printMsg(rsp.TargetName, rsp.rsp)
+		a.printProtoMsg(rsp.TargetName, rsp.rsp)
 	}
 	switch a.Config.Format {
 	default:
@@ -102,6 +76,33 @@ func (a *App) RunEOSVerify(cmd *cobra.Command, args []string) error {
 	}
 
 	return a.handleErrs(errs)
+}
+
+func (a *App) OsVerifyRequest(ctx context.Context, t *api.Target, rspCh chan<- *osVerifyResponse) {
+	defer a.wg.Done()
+	ctx = t.AppendMetadata(ctx)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	err := t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
+	if err != nil {
+		rspCh <- &osVerifyResponse{
+			TargetError: TargetError{
+				TargetName: t.Config.Name,
+				Err:        err,
+			},
+		}
+		return
+	}
+	defer t.Close()
+	rsp, err := a.OsVerify(ctx, t)
+	rspCh <- &osVerifyResponse{
+		TargetError: TargetError{
+			TargetName: t.Config.Name,
+			Err:        err,
+		},
+		rsp: rsp,
+	}
 }
 
 func (a *App) OsVerify(ctx context.Context, t *api.Target) (*gnoios.VerifyResponse, error) {

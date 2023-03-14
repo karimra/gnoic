@@ -20,7 +20,6 @@ import (
 	"github.com/openconfig/gnoi/cert"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/encoding/prototext"
 )
 
@@ -74,26 +73,7 @@ func (a *App) RunECertRotate(cmd *cobra.Command, args []string) error {
 
 	a.wg.Add(numTargets)
 	for _, t := range targets {
-		go func(t *api.Target) {
-			defer a.wg.Done()
-			ctx, cancel := context.WithCancel(a.ctx)
-			defer cancel()
-			ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
-			err = t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
-			if err != nil {
-				responseChan <- &TargetError{
-					TargetName: t.Config.Address,
-					Err:        err,
-				}
-				return
-			}
-			defer t.Close()
-			err = a.CertRotate(ctx, t)
-			responseChan <- &TargetError{
-				TargetName: t.Config.Address,
-				Err:        err,
-			}
-		}(t)
+		go a.certRotateRequest(cmd.Context(), t, responseChan)
 	}
 	a.wg.Wait()
 	close(responseChan)
@@ -110,7 +90,29 @@ func (a *App) RunECertRotate(cmd *cobra.Command, args []string) error {
 	return a.handleErrs(errs)
 }
 
-func (a *App) CertRotate(ctx context.Context, t *api.Target) error {
+func (a *App) certRotateRequest(ctx context.Context, t *api.Target, rspCh chan<- *TargetError) {
+	defer a.wg.Done()
+	ctx = t.AppendMetadata(ctx)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	err := t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
+	if err != nil {
+		rspCh <- &TargetError{
+			TargetName: t.Config.Address,
+			Err:        err,
+		}
+		return
+	}
+	defer t.Close()
+	err = a.certRotate(ctx, t)
+	rspCh <- &TargetError{
+		TargetName: t.Config.Address,
+		Err:        err,
+	}
+}
+
+func (a *App) certRotate(ctx context.Context, t *api.Target) error {
 	certClient := t.CertClient()
 	stream, err := certClient.Rotate(ctx)
 	if err != nil {
@@ -190,7 +192,7 @@ func (a *App) CertRotate(ctx context.Context, t *api.Target) error {
 	if err != nil {
 		return err
 	}
-	a.printMsg(t.Config.Name, loadCertReq)
+	a.printProtoMsg(t.Config.Name, loadCertReq)
 	err = stream.Send(loadCertReq)
 	if err != nil {
 		return fmt.Errorf("%q failed sending RotateRequest: %v", t.Config.Address, err)
@@ -199,9 +201,9 @@ func (a *App) CertRotate(ctx context.Context, t *api.Target) error {
 	if err != nil {
 		return err
 	}
-	a.printMsg(t.Config.Name, resp)
+	a.printProtoMsg(t.Config.Name, resp)
 
-	a.printMsg(t.Config.Name, gcert.NewCertRotateFinalizeRequest())
+	a.printProtoMsg(t.Config.Name, gcert.NewCertRotateFinalizeRequest())
 	err = stream.Send(gcert.NewCertRotateFinalizeRequest())
 	if err != nil {
 		return fmt.Errorf("%q RotateRequest FinalizeRequest RPC failed: %v", t.Config.Address, err)
@@ -210,7 +212,7 @@ func (a *App) CertRotate(ctx context.Context, t *api.Target) error {
 	if err != nil && !errors.Is(err, io.EOF) {
 		return err
 	}
-	a.printMsg(t.Config.Name, resp)
+	a.printProtoMsg(t.Config.Name, resp)
 	a.Logger.Infof("%q Rotate RPC successful", t.Config.Address)
 	return nil
 }
@@ -319,7 +321,7 @@ func (a *App) createRemoteCSRRotate(stream cert.CertificateManagement_RotateClie
 	if err != nil {
 		return nil, err
 	}
-	a.printMsg(t.Config.Name, req)
+	a.printProtoMsg(t.Config.Name, req)
 	err = stream.Send(req)
 	if err != nil {
 		return nil, fmt.Errorf("%q failed send Rotate RPC: GenCSR: %v", err, t.Config.Address)
@@ -331,7 +333,7 @@ func (a *App) createRemoteCSRRotate(stream cert.CertificateManagement_RotateClie
 	if resp == nil {
 		return nil, fmt.Errorf("%q returned a <nil> CSR response", t.Config.Address)
 	}
-	a.printMsg(t.Config.Name, resp)
+	a.printProtoMsg(t.Config.Name, resp)
 	if a.Config.CertRotatePrintCSR {
 		fmt.Printf("%q genCSR response:\n %s\n", t.Config.Address, prototext.Format(resp))
 	}

@@ -9,7 +9,6 @@ import (
 	gnoios "github.com/openconfig/gnoi/os"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"google.golang.org/grpc/metadata"
 )
 
 type osActivateResponse struct {
@@ -30,6 +29,7 @@ func (a *App) InitOSActivateFlags(cmd *cobra.Command) {
 }
 
 func (a *App) PreRunEOSActivate(cmd *cobra.Command, args []string) error { return nil }
+
 func (a *App) RunEOSActivate(cmd *cobra.Command, args []string) error {
 	targets, err := a.GetTargets()
 	if err != nil {
@@ -41,32 +41,7 @@ func (a *App) RunEOSActivate(cmd *cobra.Command, args []string) error {
 
 	a.wg.Add(numTargets)
 	for _, t := range targets {
-		go func(t *api.Target) {
-			defer a.wg.Done()
-			ctx, cancel := context.WithCancel(a.ctx)
-			defer cancel()
-			ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
-
-			err = t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
-			if err != nil {
-				responseChan <- &osActivateResponse{
-					TargetError: TargetError{
-						TargetName: t.Config.Name,
-						Err:        err,
-					},
-				}
-				return
-			}
-			defer t.Close()
-			rsp, err := a.OsActivate(ctx, t)
-			responseChan <- &osActivateResponse{
-				TargetError: TargetError{
-					TargetName: t.Config.Name,
-					Err:        err,
-				},
-				rsp: rsp,
-			}
-		}(t)
+		go a.OsActivateRequest(cmd.Context(), t, responseChan)
 	}
 	a.wg.Wait()
 	close(responseChan)
@@ -80,12 +55,39 @@ func (a *App) RunEOSActivate(cmd *cobra.Command, args []string) error {
 			continue
 		}
 		result = append(result, rsp)
-		a.printMsg(rsp.TargetName, rsp.rsp)
+		a.printProtoMsg(rsp.TargetName, rsp.rsp)
 	}
 	for _, r := range result {
 		a.Logger.Infof("target %q activate response %q", r.TargetName, r.rsp)
 	}
 	return a.handleErrs(errs)
+}
+
+func (a *App) OsActivateRequest(ctx context.Context, t *api.Target, rspCh chan<- *osActivateResponse) {
+	defer a.wg.Done()
+	ctx = t.AppendMetadata(ctx)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	err := t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
+	if err != nil {
+		rspCh <- &osActivateResponse{
+			TargetError: TargetError{
+				TargetName: t.Config.Name,
+				Err:        err,
+			},
+		}
+		return
+	}
+	defer t.Close()
+	rsp, err := a.OsActivate(ctx, t)
+	rspCh <- &osActivateResponse{
+		TargetError: TargetError{
+			TargetName: t.Config.Name,
+			Err:        err,
+		},
+		rsp: rsp,
+	}
 }
 
 func (a *App) OsActivate(ctx context.Context, t *api.Target) (*gnoios.ActivateResponse, error) {
@@ -97,6 +99,6 @@ func (a *App) OsActivate(ctx context.Context, t *api.Target) (*gnoios.ActivateRe
 	if err != nil {
 		return nil, err
 	}
-	a.printMsg(t.Config.Name, req)
+	a.printProtoMsg(t.Config.Name, req)
 	return gnoios.NewOSClient(t.Conn()).Activate(ctx, req)
 }

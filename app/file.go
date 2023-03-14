@@ -2,20 +2,9 @@ package app
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/openconfig/gnoi/file"
-	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
-
-func (a *App) InitFileFlags(cmd *cobra.Command) {
-	cmd.ResetFlags()
-	//
-	cmd.LocalFlags().VisitAll(func(flag *pflag.Flag) {
-		a.Config.FileConfig.BindPFlag(fmt.Sprintf("%s-%s", cmd.Name(), flag.Name), flag)
-	})
-}
 
 func (a *App) isDir(ctx context.Context, fileClient file.FileClient, path string) (bool, error) {
 	r, err := fileClient.Stat(ctx, &file.StatRequest{

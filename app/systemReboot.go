@@ -11,7 +11,6 @@ import (
 	"github.com/openconfig/gnoi/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"google.golang.org/grpc/metadata"
 )
 
 func (a *App) InitSystemRebootFlags(cmd *cobra.Command) {
@@ -60,27 +59,7 @@ func (a *App) RunESystemReboot(cmd *cobra.Command, args []string) error {
 	responseChan := make(chan *TargetError, numTargets)
 	a.wg.Add(numTargets)
 	for _, t := range targets {
-		go func(t *api.Target, subcomponents []*types.Path) {
-			defer a.wg.Done()
-			ctx, cancel := context.WithCancel(a.ctx)
-			defer cancel()
-			ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
-
-			err = t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
-			if err != nil {
-				responseChan <- &TargetError{
-					TargetName: t.Config.Address,
-					Err:        err,
-				}
-				return
-			}
-			defer t.Close()
-			err := a.SystemReboot(ctx, t, subcomponents)
-			responseChan <- &TargetError{
-				TargetName: t.Config.Address,
-				Err:        err,
-			}
-		}(t, subcomponents)
+		go a.systemRebootRequest(cmd.Context(), t, subcomponents, responseChan)
 	}
 	a.wg.Wait()
 	close(responseChan)
@@ -95,6 +74,28 @@ func (a *App) RunESystemReboot(cmd *cobra.Command, args []string) error {
 		}
 	}
 	return a.handleErrs(errs)
+}
+
+func (a *App) systemRebootRequest(ctx context.Context, t *api.Target, subcomponents []*types.Path, rspCh chan<- *TargetError) {
+	defer a.wg.Done()
+	ctx = t.AppendMetadata(ctx)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	err := t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
+	if err != nil {
+		rspCh <- &TargetError{
+			TargetName: t.Config.Address,
+			Err:        err,
+		}
+		return
+	}
+	defer t.Close()
+	err = a.SystemReboot(ctx, t, subcomponents)
+	rspCh <- &TargetError{
+		TargetName: t.Config.Address,
+		Err:        err,
+	}
 }
 
 func (a *App) SystemReboot(ctx context.Context, t *api.Target, subcomponents []*types.Path) error {

@@ -11,7 +11,8 @@ func newSystemCmd() *cobra.Command {
 
 		SilenceUsage: true,
 	}
-	gApp.InitSystemFlags(cmd)
+	// no system level flags
+
 	cmd.AddCommand(
 		newSystemPingCmd(),
 		newSystemTracerouteCmd(),

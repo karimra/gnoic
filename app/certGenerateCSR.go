@@ -11,7 +11,6 @@ import (
 	"github.com/openconfig/gnoi/cert"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"google.golang.org/grpc/metadata"
 )
 
 type certGenCSRResponse struct {
@@ -21,7 +20,6 @@ type certGenCSRResponse struct {
 
 func (a *App) InitCertGenerateCSRFlags(cmd *cobra.Command) {
 	cmd.ResetFlags()
-	//
 	//
 	cmd.Flags().StringVar(&a.Config.CertGenerateCSRCertificateID, "id", "", "Certificate ID")
 	cmd.Flags().StringVar(&a.Config.CertGenerateCSRKeyType, "key-type", "KT_RSA", "Key Type")
@@ -51,31 +49,7 @@ func (a *App) RunEGenerateCSR(cmd *cobra.Command, args []string) error {
 	responseChan := make(chan *certGenCSRResponse, numTargets)
 	a.wg.Add(numTargets)
 	for _, t := range targets {
-		go func(t *api.Target) {
-			defer a.wg.Done()
-			ctx, cancel := context.WithCancel(a.ctx)
-			defer cancel()
-			ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
-			err = t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
-			if err != nil {
-				responseChan <- &certGenCSRResponse{
-					TargetError: TargetError{
-						TargetName: t.Config.Address,
-						Err:        err,
-					},
-				}
-				return
-			}
-			defer t.Close()
-			rsp, err := a.CertGenerateCSR(ctx, t)
-			responseChan <- &certGenCSRResponse{
-				TargetError: TargetError{
-					TargetName: t.Config.Address,
-					Err:        err,
-				},
-				rsp: rsp,
-			}
-		}(t)
+		go a.certGenerateCSRRequest(cmd.Context(), t, responseChan)
 	}
 	a.wg.Wait()
 	close(responseChan)
@@ -121,13 +95,13 @@ func (a *App) CertGenerateCSR(ctx context.Context, t *api.Target) (*cert.Generat
 	if err != nil {
 		return nil, err
 	}
-	a.printMsg(t.Config.Name, req)
+	a.printProtoMsg(t.Config.Name, req)
 	certClient := t.CertClient()
 	resp, err := certClient.GenerateCSR(ctx, req)
 	if err != nil {
 		return nil, err
 	}
-	a.printMsg(t.Config.Name, resp)
+	a.printProtoMsg(t.Config.Name, resp)
 	return resp, nil
 }
 
@@ -153,4 +127,31 @@ func (a *App) saveCSR(rsp *certGenCSRResponse) error {
 		return err
 	}
 	return nil
+}
+
+func (a *App) certGenerateCSRRequest(ctx context.Context, t *api.Target, rspCh chan<- *certGenCSRResponse) {
+	defer a.wg.Done()
+	ctx = t.AppendMetadata(ctx)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	err := t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
+	if err != nil {
+		rspCh <- &certGenCSRResponse{
+			TargetError: TargetError{
+				TargetName: t.Config.Address,
+				Err:        err,
+			},
+		}
+		return
+	}
+	defer t.Close()
+	rsp, err := a.CertGenerateCSR(ctx, t)
+	rspCh <- &certGenCSRResponse{
+		TargetError: TargetError{
+			TargetName: t.Config.Address,
+			Err:        err,
+		},
+		rsp: rsp,
+	}
 }

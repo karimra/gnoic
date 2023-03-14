@@ -8,7 +8,6 @@ import (
 	"github.com/openconfig/gnoi/factory_reset"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"google.golang.org/grpc/metadata"
 )
 
 type factoryResetStartResponse struct {
@@ -38,25 +37,7 @@ func (a *App) RunEFactoryResetStart(cmd *cobra.Command, args []string) error {
 
 	a.wg.Add(numTargets)
 	for _, t := range targets {
-		go func(t *api.Target) {
-			defer a.wg.Done()
-			ctx, cancel := context.WithCancel(a.ctx)
-			defer cancel()
-			ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
-
-			err = t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
-			if err != nil {
-				responseChan <- &factoryResetStartResponse{
-					TargetError: TargetError{
-						TargetName: t.Config.Address,
-						Err:        err,
-					},
-				}
-				return
-			}
-			defer t.Close()
-			responseChan <- a.FactoryResetStart(ctx, t)
-		}(t)
+		go a.factoryResetStartRequest(cmd.Context(), t, responseChan)
 	}
 	a.wg.Wait()
 	close(responseChan)
@@ -73,17 +54,37 @@ func (a *App) RunEFactoryResetStart(cmd *cobra.Command, args []string) error {
 		result = append(result, rsp)
 	}
 	for _, r := range result {
-		a.printMsg(r.TargetName, r.rsp)
+		a.printProtoMsg(r.TargetName, r.rsp)
 	}
 	return a.handleErrs(errs)
 }
 
-func (a *App) FactoryResetStart(ctx context.Context, t *api.Target) *factoryResetStartResponse {
+func (a *App) factoryResetStartRequest(ctx context.Context, t *api.Target, rspCh chan<- *factoryResetStartResponse) {
+	defer a.wg.Done()
+	ctx = t.AppendMetadata(ctx)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	err := t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
+	if err != nil {
+		rspCh <- &factoryResetStartResponse{
+			TargetError: TargetError{
+				TargetName: t.Config.Address,
+				Err:        err,
+			},
+		}
+		return
+	}
+	defer t.Close()
+	rspCh <- a.factoryResetStart(ctx, t)
+}
+
+func (a *App) factoryResetStart(ctx context.Context, t *api.Target) *factoryResetStartResponse {
 	req := &factory_reset.StartRequest{
 		FactoryOs: a.Config.FactoryResetStartFactoryOS,
 		ZeroFill:  a.Config.FactoryResetStartZeroFill,
 	}
-	a.printMsg(t.Config.Name, req)
+	a.printProtoMsg(t.Config.Name, req)
 	fr := factory_reset.NewFactoryResetClient(t.Conn())
 	rsp, err := fr.Start(ctx, req)
 	return &factoryResetStartResponse{
