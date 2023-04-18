@@ -172,6 +172,8 @@ github.com/olekukonko/tablewriter v0.0.5 h1:P2Ga83D34wi1o9J6Wh1mRuqd4mF/x/lgBS7N
 github.com/olekukonko/tablewriter v0.0.5/go.mod h1:hPp6KlRPjbx+hW8ykQs1w3UBbZlj6HuIJcUGPhkA7kY=
 github.com/openconfig/gnoi v0.0.0-20230221223856-1727ed932554 h1:qV9anDoBeILsK/rUe7sc0DePwo7dkA45lzDQhfeTniA=
 github.com/openconfig/gnoi v0.0.0-20230221223856-1727ed932554/go.mod h1:ZMRwQ7maVNSOjie3Jn67fW5WY7UDrFSiYSlV/GxthQs=
+github.com/openconfig/gnoi v0.0.0-20230418185437-891b1d10e452 h1:TKQsR7kGhZ0XFQqCtH0KN+sz8iZH+CdkTZXvP/Mh8dw=
+github.com/openconfig/gnoi v0.0.0-20230418185437-891b1d10e452/go.mod h1:ZMRwQ7maVNSOjie3Jn67fW5WY7UDrFSiYSlV/GxthQs=
 github.com/pelletier/go-toml v1.9.4 h1:tjENF6MfZAg8e4ZmZTeWaWiT2vXtsoO6+iuOjFhECwM=
 github.com/pelletier/go-toml v1.9.4/go.mod h1:u1nR/EPcESfeI/szUZKdtJ0xRNbUoANCkoOuaOx1Y+c=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
