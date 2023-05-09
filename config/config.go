@@ -187,10 +187,10 @@ type LocalFlags struct {
 	SystemRebootMethod        string        `json:"system-reboot-method,omitempty" mapstructure:"system-reboot-method,omitempty" yaml:"system-reboot-method,omitempty"`
 	SystemRebootDelay         time.Duration `json:"system-reboot-delay,omitempty" mapstructure:"system-reboot-delay,omitempty" yaml:"system-reboot-delay,omitempty"`
 	SystemRebootMessage       string        `json:"system-reboot-message,omitempty" mapstructure:"system-reboot-message,omitempty" yaml:"system-reboot-message,omitempty"`
-	SystemRebootSubcomponents []string      `json:"system-reboot-subscomponents,omitempty" mapstructure:"system-reboot-subscomponents,omitempty" yaml:"system-reboot-subscomponents,omitempty"`
+	SystemRebootSubcomponents []string      `json:"system-reboot-subcomponents,omitempty" mapstructure:"system-reboot-subcomponents,omitempty" yaml:"system-reboot-subcomponents,omitempty"`
 	SystemRebootForce         bool          `json:"system-reboot-force,omitempty" mapstructure:"system-reboot-force,omitempty" yaml:"system-reboot-force,omitempty"`
 	// System RebootStatus
-	SystemRebootStatusSubscomponents []string `json:"system-reboot-status-subscomponents,omitempty" mapstructure:"system-reboot-status-subscomponents,omitempty" yaml:"system-reboot-status-subscomponents,omitempty"`
+	SystemRebootStatusSubcomponents []string `json:"system-reboot-status-subcomponents,omitempty" mapstructure:"system-reboot-status-subcomponents,omitempty" yaml:"system-reboot-status-subcomponents,omitempty"`
 	// System CancelReboot
 	SystemCancelRebootMessage       string   `json:"system-cancel-reboot-message,omitempty" mapstructure:"system-cancel-reboot-message,omitempty" yaml:"system-cancel-reboot-message,omitempty"`
 	SystemCancelRebootSubcomponents []string `json:"system-cancel-reboot-subcomponents,omitempty" mapstructure:"system-cancel-reboot-subcomponents,omitempty" yaml:"system-cancel-reboot-subcomponents,omitempty"`
@@ -204,10 +204,10 @@ type LocalFlags struct {
 	SystemSetPackageCredentials string `json:"system-set-package-credentials,omitempty" mapstructure:"system-set-package-credentials,omitempty" yaml:"system-set-package-credentials,omitempty"`
 	SystemSetPackageChunkSize   uint64 `json:"system-set-package-chunk-size,omitempty" mapstructure:"system-set-package-chunk-size,omitempty" yaml:"system-set-package-chunk-size,omitempty"`
 	// System KillProcess
-	SystemKillProcessPID     uint32
-	SystemKillProcessName    string
-	SystemKillProcessSignal  string
-	SystemKillProcessRestart bool
+	SystemKillProcessPID     uint32 `mapstructure:"system-kill-process-pid,omitempty" yaml:"system-kill-process-pid,omitempty" json:"system-kill-process-pid,omitempty"`
+	SystemKillProcessName    string `mapstructure:"system-kill-process-name,omitempty" yaml:"system-kill-process-name,omitempty" json:"system-kill-process-name,omitempty"`
+	SystemKillProcessSignal  string `mapstructure:"system-kill-process-signal,omitempty" yaml:"system-kill-process-signal,omitempty" json:"system-kill-process-signal,omitempty"`
+	SystemKillProcessRestart bool   `mapstructure:"system-kill-process-restart,omitempty" yaml:"system-kill-process-restart,omitempty" json:"system-kill-process-restart,omitempty"`
 	// Healthz
 	// Healthz Get
 	HealthzGetPath string `json:"healthz-get-path,omitempty" mapstructure:"healthz-get-path,omitempty" yaml:"healthz-get-path,omitempty"`

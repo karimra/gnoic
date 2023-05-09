@@ -18,7 +18,7 @@ func (a *App) InitSystemCancelRebootFlags(cmd *cobra.Command) {
 	cmd.ResetFlags()
 	//
 	cmd.Flags().StringVar(&a.Config.SystemCancelRebootMessage, "message", "", "Cancel Reboot message")
-	cmd.Flags().StringArrayVar(&a.Config.SystemCancelRebootSubcomponents, "subcomponent", []string{}, "Cancel Reboot subscomponents")
+	cmd.Flags().StringArrayVar(&a.Config.SystemCancelRebootSubcomponents, "subcomponent", []string{}, "Cancel Reboot subcomponents")
 	//
 	cmd.Flags().VisitAll(func(flag *pflag.Flag) {
 		a.Config.FileConfig.BindPFlag(fmt.Sprintf("%s-%s", cmd.Name(), flag.Name), flag)
@@ -31,7 +31,7 @@ func (a *App) RunESystemCancelReboot(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	subcomponents := make([]*types.Path, len(a.Config.SystemCancelRebootSubcomponents))
-	for i, p := range a.Config.SystemRebootStatusSubscomponents {
+	for i, p := range a.Config.SystemCancelRebootSubcomponents {
 		subcomponents[i], err = utils.ParsePath(p)
 		if err != nil {
 			return err
