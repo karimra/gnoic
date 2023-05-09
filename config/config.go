@@ -184,11 +184,11 @@ type LocalFlags struct {
 	SystemTracerouteL4Protocol     string        `json:"system-traceroute-l4-protocol,omitempty" mapstructure:"system-traceroute-l4-protocol,omitempty" yaml:"system-traceroute-l4-protocol,omitempty"`
 	SystemTracerouteDoNotLookupAsn bool          `json:"system-traceroute-do-not-lookup-asn,omitempty" mapstructure:"system-traceroute-do-not-lookup-asn,omitempty" yaml:"system-traceroute-do-not-lookup-asn,omitempty"`
 	// System Reboot
-	SystemRebootMethod         string        `json:"system-reboot-method,omitempty" mapstructure:"system-reboot-method,omitempty" yaml:"system-reboot-method,omitempty"`
-	SystemRebootDelay          time.Duration `json:"system-reboot-delay,omitempty" mapstructure:"system-reboot-delay,omitempty" yaml:"system-reboot-delay,omitempty"`
-	SystemRebootMessage        string        `json:"system-reboot-message,omitempty" mapstructure:"system-reboot-message,omitempty" yaml:"system-reboot-message,omitempty"`
-	SystemRebootSubscomponents []string      `json:"system-reboot-subscomponents,omitempty" mapstructure:"system-reboot-subscomponents,omitempty" yaml:"system-reboot-subscomponents,omitempty"`
-	SystemRebootForce          bool          `json:"system-reboot-force,omitempty" mapstructure:"system-reboot-force,omitempty" yaml:"system-reboot-force,omitempty"`
+	SystemRebootMethod        string        `json:"system-reboot-method,omitempty" mapstructure:"system-reboot-method,omitempty" yaml:"system-reboot-method,omitempty"`
+	SystemRebootDelay         time.Duration `json:"system-reboot-delay,omitempty" mapstructure:"system-reboot-delay,omitempty" yaml:"system-reboot-delay,omitempty"`
+	SystemRebootMessage       string        `json:"system-reboot-message,omitempty" mapstructure:"system-reboot-message,omitempty" yaml:"system-reboot-message,omitempty"`
+	SystemRebootSubcomponents []string      `json:"system-reboot-subscomponents,omitempty" mapstructure:"system-reboot-subscomponents,omitempty" yaml:"system-reboot-subscomponents,omitempty"`
+	SystemRebootForce         bool          `json:"system-reboot-force,omitempty" mapstructure:"system-reboot-force,omitempty" yaml:"system-reboot-force,omitempty"`
 	// System RebootStatus
 	SystemRebootStatusSubscomponents []string `json:"system-reboot-status-subscomponents,omitempty" mapstructure:"system-reboot-status-subscomponents,omitempty" yaml:"system-reboot-status-subscomponents,omitempty"`
 	// System CancelReboot
