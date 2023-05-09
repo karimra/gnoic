@@ -27,7 +27,7 @@ type systemRebootStatusResponse struct {
 func (a *App) InitSystemRebootStatusFlags(cmd *cobra.Command) {
 	cmd.ResetFlags()
 	//
-	cmd.Flags().StringArrayVar(&a.Config.SystemRebootStatusSubscomponents, "subcomponent", []string{}, "Reboot subscomponents")
+	cmd.Flags().StringArrayVar(&a.Config.SystemRebootStatusSubcomponents, "subcomponent", []string{}, "Reboot subcomponents")
 	//
 	cmd.Flags().VisitAll(func(flag *pflag.Flag) {
 		a.Config.FileConfig.BindPFlag(fmt.Sprintf("%s-%s", cmd.Name(), flag.Name), flag)
@@ -39,8 +39,8 @@ func (a *App) RunESystemRebootStatus(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	subcomponents := make([]*types.Path, len(a.Config.SystemRebootStatusSubscomponents))
-	for i, p := range a.Config.SystemRebootStatusSubscomponents {
+	subcomponents := make([]*types.Path, len(a.Config.SystemRebootStatusSubcomponents))
+	for i, p := range a.Config.SystemRebootStatusSubcomponents {
 		subcomponents[i], err = utils.ParsePath(p)
 		if err != nil {
 			return err

@@ -20,7 +20,7 @@ func (a *App) InitSystemRebootFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&a.Config.SystemRebootMethod, "method", "COLD", "Reboot method")
 	cmd.Flags().DurationVar(&a.Config.SystemRebootDelay, "delay", 0, "Reboot delay")
 	cmd.Flags().StringVar(&a.Config.SystemRebootMessage, "message", "", "Reboot message")
-	cmd.Flags().StringArrayVar(&a.Config.SystemRebootSubscomponents, "subcomponent", []string{}, "Reboot subscomponents")
+	cmd.Flags().StringArrayVar(&a.Config.SystemRebootSubcomponents, "subcomponent", []string{}, "Reboot subscomponents")
 	cmd.Flags().BoolVar(&a.Config.SystemRebootForce, "force", false, "force reboot")
 	//
 	cmd.Flags().VisitAll(func(flag *pflag.Flag) {
@@ -48,8 +48,8 @@ func (a *App) RunESystemReboot(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	subcomponents := make([]*types.Path, len(a.Config.SystemRebootSubscomponents))
-	for i, p := range a.Config.SystemRebootStatusSubscomponents {
+	subcomponents := make([]*types.Path, len(a.Config.SystemRebootSubcomponents))
+	for i, p := range a.Config.SystemRebootSubcomponents {
 		subcomponents[i], err = utils.ParsePath(p)
 		if err != nil {
 			return err
