@@ -10,7 +10,6 @@ import (
 	"github.com/openconfig/gnoi/cert"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"google.golang.org/grpc/metadata"
 )
 
 func (a *App) InitCertRevokeCertificatesFlags(cmd *cobra.Command) {
@@ -38,26 +37,7 @@ func (a *App) RunECertRevokeCertificates(cmd *cobra.Command, args []string) erro
 
 	a.wg.Add(numTargets)
 	for _, t := range targets {
-		go func(t *api.Target) {
-			defer a.wg.Done()
-			ctx, cancel := context.WithCancel(a.ctx)
-			defer cancel()
-			ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
-			err = t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
-			if err != nil {
-				responseChan <- &TargetError{
-					TargetName: t.Config.Address,
-					Err:        err,
-				}
-				return
-			}
-			defer t.Close()
-			err = a.Revoke(ctx, t)
-			responseChan <- &TargetError{
-				TargetName: t.Config.Address,
-				Err:        err,
-			}
-		}(t)
+		go a.certRevokeRequest(cmd.Context(), t, responseChan)
 	}
 	a.wg.Wait()
 	close(responseChan)
@@ -74,7 +54,29 @@ func (a *App) RunECertRevokeCertificates(cmd *cobra.Command, args []string) erro
 	return a.handleErrs(errs)
 }
 
-func (a *App) Revoke(ctx context.Context, t *api.Target) error {
+func (a *App) certRevokeRequest(ctx context.Context, t *api.Target, rspCh chan<- *TargetError) {
+	defer a.wg.Done()
+	ctx = t.AppendMetadata(ctx)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	err := t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
+	if err != nil {
+		rspCh <- &TargetError{
+			TargetName: t.Config.Name,
+			Err:        err,
+		}
+		return
+	}
+	defer t.Close()
+	err = a.certRevoke(ctx, t)
+	rspCh <- &TargetError{
+		TargetName: t.Config.Name,
+		Err:        err,
+	}
+}
+
+func (a *App) certRevoke(ctx context.Context, t *api.Target) error {
 	certClient := t.CertClient()
 	//
 	opts := make([]gcert.CertOption, 0, len(a.Config.CertRevokeCertificatesCertificateID))
@@ -98,12 +100,12 @@ func (a *App) Revoke(ctx context.Context, t *api.Target) error {
 		return err
 	}
 
-	a.printMsg(t.Config.Name, req)
+	a.printProtoMsg(t.Config.Name, req)
 	resp, err := certClient.RevokeCertificates(ctx, req)
 	if err != nil {
 		return err
 	}
-	a.printMsg(t.Config.Name, resp)
+	a.printProtoMsg(t.Config.Name, resp)
 	for _, revokeErr := range resp.CertificateRevocationError {
 		a.Logger.Errorf("%q certificateID=%s revoke failed: %v\n", t.Config.Address, revokeErr.GetCertificateId(), revokeErr.GetErrorMessage())
 	}

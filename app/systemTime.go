@@ -14,7 +14,6 @@ import (
 	"github.com/openconfig/gnoi/system"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"google.golang.org/grpc/metadata"
 )
 
 type systemTimeResponse struct {
@@ -41,32 +40,7 @@ func (a *App) RunESystemTime(cmd *cobra.Command, args []string) error {
 	responseChan := make(chan *systemTimeResponse, numTargets)
 	a.wg.Add(numTargets)
 	for _, t := range targets {
-		go func(t *api.Target) {
-			defer a.wg.Done()
-			ctx, cancel := context.WithCancel(a.ctx)
-			defer cancel()
-			ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
-
-			err = t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
-			if err != nil {
-				responseChan <- &systemTimeResponse{
-					TargetError: TargetError{
-						TargetName: t.Config.Address,
-						Err:        err,
-					},
-				}
-				return
-			}
-			defer t.Close()
-			rsp, err := t.SystemClient().Time(ctx, gsystem.NewSystemTimeRequest())
-			responseChan <- &systemTimeResponse{
-				TargetError: TargetError{
-					TargetName: t.Config.Address,
-					Err:        err,
-				},
-				rsp: rsp,
-			}
-		}(t)
+		go a.systemTimeRequest(cmd.Context(), t, responseChan)
 	}
 	a.wg.Wait()
 	close(responseChan)
@@ -88,6 +62,33 @@ func (a *App) RunESystemTime(cmd *cobra.Command, args []string) error {
 	}
 	fmt.Print(s)
 	return a.handleErrs(errs)
+}
+
+func (a *App) systemTimeRequest(ctx context.Context, t *api.Target, rspCh chan<- *systemTimeResponse) {
+	defer a.wg.Done()
+	ctx = t.AppendMetadata(ctx)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	err := t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
+	if err != nil {
+		rspCh <- &systemTimeResponse{
+			TargetError: TargetError{
+				TargetName: t.Config.Address,
+				Err:        err,
+			},
+		}
+		return
+	}
+	defer t.Close()
+	rsp, err := t.SystemClient().Time(ctx, gsystem.NewSystemTimeRequest())
+	rspCh <- &systemTimeResponse{
+		TargetError: TargetError{
+			TargetName: t.Config.Address,
+			Err:        err,
+		},
+		rsp: rsp,
+	}
 }
 
 func systemTimeTable(rsps []*systemTimeResponse) (string, error) {

@@ -10,13 +10,20 @@ import (
 	"github.com/karimra/gnoic/api"
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
-	"google.golang.org/grpc/metadata"
 	reflectpb "google.golang.org/grpc/reflection/grpc_reflection_v1alpha"
 )
 
 type reflectionResponse struct {
 	TargetError
 	rsp *reflectpb.ServerReflectionResponse
+}
+
+func (r *reflectionResponse) Target() string {
+	return r.TargetName
+}
+
+func (r *reflectionResponse) Response() any {
+	return r.rsp
 }
 
 func (a *App) RunEServices(cmd *cobra.Command, args []string) error {
@@ -34,7 +41,7 @@ func (a *App) RunEServices(cmd *cobra.Command, args []string) error {
 	a.wg.Wait()
 	close(responseChan)
 	errs := make([]error, 0, numTargets)
-	result := make([]*reflectionResponse, 0, numTargets)
+	result := make([]TargetResponse, 0, numTargets)
 
 	for rsp := range responseChan {
 		if rsp.Err != nil {
@@ -44,28 +51,33 @@ func (a *App) RunEServices(cmd *cobra.Command, args []string) error {
 			continue
 		}
 		result = append(result, rsp)
-		a.printMsg(rsp.TargetName, rsp.rsp)
+		a.printProtoMsg(rsp.TargetName, rsp.rsp)
 	}
 	a.printCMDOutput(result, a.reflectionServicesTable)
 	return a.handleErrs(errs)
 }
 
-func (a *App) reflectionServicesTable(rs []*reflectionResponse) string {
+func (a *App) reflectionServicesTable(rs []TargetResponse) string {
 	targetTabData := make([][]string, 0, len(rs))
 	sort.Slice(rs, func(i, j int) bool {
-		return rs[i].TargetName < rs[j].TargetName
+		return rs[i].Target() < rs[j].Target()
 	})
 	for _, rsp := range rs {
-		switch r := rsp.rsp.MessageResponse.(type) {
-		case *reflectpb.ServerReflectionResponse_ListServicesResponse:
-			for _, srv := range r.ListServicesResponse.GetService() {
-				targetTabData = append(targetTabData, []string{
-					rsp.TargetName,
-					srv.GetName(),
-				})
+		switch r := rsp.Response().(type) {
+		case *reflectpb.ServerReflectionResponse:
+			switch r := r.MessageResponse.(type) {
+			case *reflectpb.ServerReflectionResponse_ListServicesResponse:
+				for _, srv := range r.ListServicesResponse.GetService() {
+					targetTabData = append(targetTabData, []string{
+						rsp.Target(),
+						srv.GetName(),
+					})
+				}
+			default:
+				a.Logger.Printf("%s: unexpected message type: %T", rsp.Target(), rsp.Response())
 			}
 		default:
-			a.Logger.Printf("%s: unexpected message type: %T", rsp.TargetName, rsp.rsp)
+			a.Logger.Printf("%s: unexpected message type: %T", rsp.Target(), rsp.Response())
 		}
 	}
 
@@ -80,9 +92,9 @@ func (a *App) reflectionServicesTable(rs []*reflectionResponse) string {
 
 func (a *App) reflectionServicesRequest(ctx context.Context, t *api.Target, rspCh chan<- *reflectionResponse) {
 	defer a.wg.Done()
+	ctx = t.AppendMetadata(ctx)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
 
 	err := t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
 	if err != nil {
@@ -130,19 +142,19 @@ func (a *App) reflectionServicesRequest(ctx context.Context, t *api.Target, rspC
 	}
 }
 
-func (a *App) printCMDOutput(rs []*reflectionResponse, fn func([]*reflectionResponse) string) {
+func (a *App) printCMDOutput(rs []TargetResponse, fn func([]TargetResponse) string) {
 	switch a.Config.Format {
 	default:
 		fmt.Println(fn(rs))
 	case "json":
 		for _, r := range rs {
 			tRsp := targetResponse{
-				Target:   r.TargetName,
-				Response: r.rsp,
+				Target:   r.Target(),
+				Response: r.Response(),
 			}
 			b, err := json.MarshalIndent(tRsp, "", "  ")
 			if err != nil {
-				a.Logger.Errorf("failed to marshal Target response from %q: %v", r.TargetName, err)
+				a.Logger.Errorf("failed to marshal Target response from %q: %v", r.Target(), err)
 				continue
 			}
 			fmt.Println(string(b))

@@ -10,7 +10,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/encoding/prototext"
 
 	"github.com/karimra/gnoic/api"
@@ -43,25 +42,7 @@ func (a *App) RunEHealthzArtifact(cmd *cobra.Command, args []string) error {
 
 	a.wg.Add(numTargets)
 	for _, t := range targets {
-		go func(t *api.Target) {
-			defer a.wg.Done()
-			ctx, cancel := context.WithCancel(a.ctx)
-			defer cancel()
-			ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
-
-			err = t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
-			if err != nil {
-				responseChan <- &healthzArtifactResponse{
-					TargetError: TargetError{
-						TargetName: t.Config.Address,
-						Err:        err,
-					},
-				}
-				return
-			}
-			defer t.Close()
-			responseChan <- a.HealthArtifact(ctx, t)
-		}(t)
+		go a.HealthArtifactRequest(cmd.Context(), t, responseChan)
 	}
 	a.wg.Wait()
 	close(responseChan)
@@ -79,9 +60,29 @@ func (a *App) RunEHealthzArtifact(cmd *cobra.Command, args []string) error {
 	}
 
 	for _, r := range result {
-		a.printMsg(r.TargetName, r.rsp)
+		a.printProtoMsg(r.TargetName, r.rsp)
 	}
 	return a.handleErrs(errs)
+}
+
+func (a *App) HealthArtifactRequest(ctx context.Context, t *api.Target, rspCh chan<- *healthzArtifactResponse) {
+	defer a.wg.Done()
+	ctx = t.AppendMetadata(ctx)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	err := t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
+	if err != nil {
+		rspCh <- &healthzArtifactResponse{
+			TargetError: TargetError{
+				TargetName: t.Config.Address,
+				Err:        err,
+			},
+		}
+		return
+	}
+	defer t.Close()
+	rspCh <- a.HealthArtifact(ctx, t)
 }
 
 func (a *App) HealthArtifact(ctx context.Context, t *api.Target) *healthzArtifactResponse {
@@ -97,7 +98,7 @@ func (a *App) HealthArtifact(ctx context.Context, t *api.Target) *healthzArtifac
 			},
 		}
 	}
-	a.printMsg(t.Config.Name, req)
+	a.printProtoMsg(t.Config.Name, req)
 	hc := healthz.NewHealthzClient(t.Conn())
 	artifactStream, err := hc.Artifact(ctx, req)
 	if err != nil {
@@ -203,6 +204,5 @@ func (a *App) handleProtoArtifact(targetName string, h *healthz.ArtifactResponse
 	id := h.Header.GetId()
 	log.Infof("%s: received proto header for artifactID: %s", targetName, id)
 	fmt.Println(prototext.Format(h.Header))
-	//
 	return nil
 }

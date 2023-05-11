@@ -71,7 +71,7 @@ func (a *App) RunEServer(cmd *cobra.Command, args []string) error {
 	}
 	file.RegisterFileServer(fileServer.s, fileServer)
 	reflection.Register(fileServer.s)
-	ctx, cancel := context.WithCancel(a.ctx)
+	ctx, cancel := context.WithCancel(cmd.Context())
 	go func() {
 		err = fileServer.s.Serve(l)
 		if err != nil {

@@ -15,7 +15,6 @@ import (
 	"github.com/openconfig/gnoi/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/encoding/prototext"
 )
 
@@ -50,32 +49,7 @@ func (a *App) RunESystemRebootStatus(cmd *cobra.Command, args []string) error {
 	responseChan := make(chan *systemRebootStatusResponse, numTargets)
 	a.wg.Add(numTargets)
 	for _, t := range targets {
-		go func(t *api.Target, subcomponents []*types.Path) {
-			defer a.wg.Done()
-			ctx, cancel := context.WithCancel(a.ctx)
-			defer cancel()
-			ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
-
-			err = t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
-			if err != nil {
-				responseChan <- &systemRebootStatusResponse{
-					TargetError: TargetError{
-						TargetName: t.Config.Address,
-						Err:        err,
-					},
-				}
-				return
-			}
-			defer t.Close()
-			rsp, err := a.SystemRebootStatus(ctx, t, subcomponents)
-			responseChan <- &systemRebootStatusResponse{
-				TargetError: TargetError{
-					TargetName: t.Config.Address,
-					Err:        err,
-				},
-				rsp: rsp,
-			}
-		}(t, subcomponents)
+		go a.systemRebootStatusRequest(cmd.Context(), t, subcomponents, responseChan)
 	}
 	a.wg.Wait()
 	close(responseChan)
@@ -98,6 +72,33 @@ func (a *App) RunESystemRebootStatus(cmd *cobra.Command, args []string) error {
 	}
 	fmt.Print(s)
 	return a.handleErrs(errs)
+}
+
+func (a *App) systemRebootStatusRequest(ctx context.Context, t *api.Target, subcomponents []*types.Path, rspCh chan<- *systemRebootStatusResponse) {
+	defer a.wg.Done()
+	ctx = t.AppendMetadata(ctx)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	err := t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
+	if err != nil {
+		rspCh <- &systemRebootStatusResponse{
+			TargetError: TargetError{
+				TargetName: t.Config.Address,
+				Err:        err,
+			},
+		}
+		return
+	}
+	defer t.Close()
+	rsp, err := a.SystemRebootStatus(ctx, t, subcomponents)
+	rspCh <- &systemRebootStatusResponse{
+		TargetError: TargetError{
+			TargetName: t.Config.Address,
+			Err:        err,
+		},
+		rsp: rsp,
+	}
 }
 
 func (a *App) SystemRebootStatus(ctx context.Context, t *api.Target, subcomponents []*types.Path) (*system.RebootStatusResponse, error) {

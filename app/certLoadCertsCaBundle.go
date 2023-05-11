@@ -8,16 +8,10 @@ import (
 	"github.com/openconfig/gnoi/cert"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"google.golang.org/grpc/metadata"
 
 	"github.com/karimra/gnoic/api"
 	gcert "github.com/karimra/gnoic/api/cert"
 )
-
-type certLoadCABundle struct {
-	TargetError
-	rsp *cert.LoadCertificateAuthorityBundleResponse
-}
 
 func (a *App) InitCertLoadCertsCaBundleFlags(cmd *cobra.Command) {
 	cmd.ResetFlags()
@@ -36,34 +30,10 @@ func (a *App) RunELoadCertsCaBundle(cmd *cobra.Command, args []string) error {
 	}
 
 	numTargets := len(targets)
-	responseChan := make(chan *certLoadCABundle, numTargets)
+	responseChan := make(chan *TargetError, numTargets)
 	a.wg.Add(numTargets)
 	for _, t := range targets {
-		go func(t *api.Target) {
-			defer a.wg.Done()
-			ctx, cancel := context.WithCancel(a.ctx)
-			defer cancel()
-			ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
-			err = t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
-			if err != nil {
-				responseChan <- &certLoadCABundle{
-					TargetError: TargetError{
-						TargetName: t.Config.Address,
-						Err:        err,
-					},
-				}
-				return
-			}
-			defer t.Close()
-			rsp, err := a.CertLoadCABundle(ctx, t)
-			responseChan <- &certLoadCABundle{
-				TargetError: TargetError{
-					TargetName: t.Config.Address,
-					Err:        err,
-				},
-				rsp: rsp,
-			}
-		}(t)
+		go a.certLoadCertsCABundleRequest(cmd.Context(), t, responseChan)
 	}
 	a.wg.Wait()
 	close(responseChan)
@@ -83,7 +53,29 @@ func (a *App) RunELoadCertsCaBundle(cmd *cobra.Command, args []string) error {
 	return a.handleErrs(errs)
 }
 
-func (a *App) CertLoadCABundle(ctx context.Context, t *api.Target) (*cert.LoadCertificateAuthorityBundleResponse, error) {
+func (a *App) certLoadCertsCABundleRequest(ctx context.Context, t *api.Target, rspCh chan<- *TargetError) {
+	defer a.wg.Done()
+	ctx = t.AppendMetadata(ctx)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	err := t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
+	if err != nil {
+		rspCh <- &TargetError{
+			TargetName: t.Config.Address,
+			Err:        err,
+		}
+		return
+	}
+	defer t.Close()
+	_, err = a.certLoadCABundle(ctx, t)
+	rspCh <- &TargetError{
+		TargetName: t.Config.Address,
+		Err:        err,
+	}
+}
+
+func (a *App) certLoadCABundle(ctx context.Context, t *api.Target) (*cert.LoadCertificateAuthorityBundleResponse, error) {
 	var err error
 
 	n := len(a.Config.CertLoadCertificateCaBundleCaCertificates)
@@ -106,11 +98,11 @@ func (a *App) CertLoadCABundle(ctx context.Context, t *api.Target) (*cert.LoadCe
 	if err != nil {
 		return nil, err
 	}
-	a.printMsg(t.Config.Name, req)
+	a.printProtoMsg(t.Config.Name, req)
 	resp, err := t.CertClient().LoadCertificateAuthorityBundle(ctx, req)
 	if err != nil {
 		return nil, err
 	}
-	a.printMsg(t.Config.Name, resp)
+	a.printProtoMsg(t.Config.Name, resp)
 	return resp, nil
 }

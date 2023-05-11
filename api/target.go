@@ -13,6 +13,7 @@ import (
 	gnoios "github.com/openconfig/gnoi/os"
 	"github.com/openconfig/gnoi/system"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 )
 
 var DefaultTargetTimeout = 10 * time.Second
@@ -84,6 +85,18 @@ func (t *Target) CreateGrpcClient(ctx context.Context, opts ...grpc.DialOption) 
 }
 
 func (t *Target) Conn() grpc.ClientConnInterface { return t.client }
+
+func (t *Target) AppendMetadata(ctx context.Context) context.Context {
+	kv := make([]string, 0, 4)
+	if t.Config.Username != nil {
+		kv = append(kv, "username", *t.Config.Username)
+	}
+	if t.Config.Password != nil {
+		kv = append(kv, "password", *t.Config.Password)
+	}
+
+	return metadata.AppendToOutgoingContext(ctx, kv...)
+}
 
 func (t *Target) CertClient() cert.CertificateManagementClient {
 	return cert.NewCertificateManagementClient(t.client)

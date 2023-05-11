@@ -1,7 +1,6 @@
 package app
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"sync"
@@ -20,8 +19,6 @@ import (
 )
 
 type App struct {
-	ctx     context.Context
-	Cfn     context.CancelFunc
 	RootCmd *cobra.Command
 
 	wg      *sync.WaitGroup
@@ -33,12 +30,14 @@ type App struct {
 	pm *sync.Mutex
 }
 
+type TargetResponse interface {
+	Target() string
+	Response() any
+}
+
 func New() *App {
-	ctx, cancel := context.WithCancel(context.Background())
 	logger := log.New()
 	a := &App{
-		ctx:     ctx,
-		Cfn:     cancel,
 		RootCmd: new(cobra.Command),
 		wg:      new(sync.WaitGroup),
 		Config:  config.New(),
@@ -103,7 +102,7 @@ func (a *App) createBaseDialOpts() []grpc.DialOption {
 	return opts
 }
 
-func (a *App) printMsg(targetName string, m proto.Message) {
+func (a *App) printProtoMsg(targetName string, m proto.Message) {
 	if !a.Config.PrintProto {
 		return
 	}

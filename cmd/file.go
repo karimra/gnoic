@@ -14,7 +14,6 @@ func newFileCmd() *cobra.Command {
 
 		SilenceUsage: true,
 	}
-	gApp.InitFileFlags(cmd)
 	cmd.AddCommand(
 		newFileGetCmd(),
 		newFileTransferCmd(),

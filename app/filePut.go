@@ -19,7 +19,6 @@ import (
 	"github.com/openconfig/gnoi/file"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"google.golang.org/grpc/metadata"
 )
 
 const (
@@ -90,32 +89,7 @@ func (a *App) RunEFilePut(cmd *cobra.Command, args []string) error {
 
 	a.wg.Add(numTargets)
 	for _, t := range targets {
-		go func(t *api.Target) {
-			defer a.wg.Done()
-			ctx, cancel := context.WithCancel(a.ctx)
-			defer cancel()
-			ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
-
-			err = t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
-			if err != nil {
-				responseChan <- &filePutResponse{
-					TargetError: TargetError{
-						TargetName: t.Config.Address,
-						Err:        err,
-					},
-				}
-				return
-			}
-			defer t.Close()
-			filename, err := a.FilePut(ctx, t)
-			responseChan <- &filePutResponse{
-				TargetError: TargetError{
-					TargetName: t.Config.Address,
-					Err:        err,
-				},
-				file: filename,
-			}
-		}(t)
+		go a.filePutRequest(cmd.Context(), t, responseChan)
 	}
 	a.wg.Wait()
 	close(responseChan)
@@ -138,6 +112,33 @@ func (a *App) RunEFilePut(cmd *cobra.Command, args []string) error {
 		}
 	}
 	return a.handleErrs(errs)
+}
+
+func (a *App) filePutRequest(ctx context.Context, t *api.Target, rspCh chan<- *filePutResponse) {
+	defer a.wg.Done()
+	ctx = t.AppendMetadata(ctx)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	err := t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
+	if err != nil {
+		rspCh <- &filePutResponse{
+			TargetError: TargetError{
+				TargetName: t.Config.Address,
+				Err:        err,
+			},
+		}
+		return
+	}
+	defer t.Close()
+	filename, err := a.FilePut(ctx, t)
+	rspCh <- &filePutResponse{
+		TargetError: TargetError{
+			TargetName: t.Config.Address,
+			Err:        err,
+		},
+		file: filename,
+	}
 }
 
 func (a *App) FilePut(ctx context.Context, t *api.Target) ([]string, error) {
@@ -218,7 +219,7 @@ func (a *App) filePut(ctx context.Context, t *api.Target, fileClient file.FileCl
 		return err
 	}
 
-	a.printMsg(t.Config.Name, req)
+	a.printProtoMsg(t.Config.Name, req)
 	err = stream.Send(req)
 	if err != nil {
 		return err
@@ -266,12 +267,12 @@ func (a *App) filePut(ctx context.Context, t *api.Target, fileClient file.FileCl
 	if err != nil {
 		return err
 	}
-	a.printMsg(t.Config.Name, reqHash)
+	a.printProtoMsg(t.Config.Name, reqHash)
 	err = stream.Send(reqHash)
 	if err != nil {
 		return err
 	}
 	rsp, err := stream.CloseAndRecv()
-	a.printMsg(t.Config.Name, rsp)
+	a.printProtoMsg(t.Config.Name, rsp)
 	return err
 }
