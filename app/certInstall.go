@@ -29,7 +29,7 @@ func (a *App) InitCertInstallFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&a.Config.CertInstallCertificateID, "id", "", "Certificate ID")
 	cmd.Flags().StringVar(&a.Config.CertInstallKeyType, "key-type", "KT_RSA", "Key Type")
 	cmd.Flags().StringVar(&a.Config.CertInstallCertificateType, "cert-type", "CT_X509", "Certificate Type")
-	cmd.Flags().Uint32Var(&a.Config.CertInstallMinKeySize, "min-key-size", 1024, "Minimum Key Size")
+	cmd.Flags().Uint32Var(&a.Config.CertInstallMinKeySize, "min-key-size", 2048, "Minimum Key Size")
 	cmd.Flags().StringVar(&a.Config.CertInstallCommonName, "common-name", "", "CSR common name")
 	cmd.Flags().StringVar(&a.Config.CertInstallCountry, "country", "", "CSR country")
 	cmd.Flags().StringVar(&a.Config.CertInstallState, "state", "", "CSR state")
@@ -137,7 +137,6 @@ func (a *App) CertInstall(ctx context.Context, t *api.Target) error {
 			a.Config.CertInstallGenCSR = true
 		}
 	}
-
 	keyPair := new(cert.KeyPair)
 	var creq *x509.CertificateRequest
 
@@ -176,7 +175,7 @@ func (a *App) CertInstall(ctx context.Context, t *api.Target) error {
 		return err
 	}
 	a.Logger.Debugf("%q signed certificate:\n%s\n", t.Config.Address, sCertText)
-	// encode signed certifcate in PEM format
+	// encode signed certificate in PEM format
 	b, err := toPEM(signedCert)
 	if err != nil {
 		return fmt.Errorf("%q failed to encode as PEM: %v", t.Config.Address, err)
@@ -302,21 +301,24 @@ func (a *App) createRemoteCSRInstall(stream cert.CertificateManagement_InstallCl
 	if ipAddr == "" {
 		ipAddr = t.Config.ResolvedIP
 	}
+	csrParamsOpts := []gcert.CertOption{
+		gcert.CertificateType(a.Config.CertInstallCertificateType),
+		gcert.MinKeySize(a.Config.CertInstallMinKeySize),
+		gcert.KeyType(a.Config.CertInstallKeyType),
+		gcert.CommonName(commonName),
+		gcert.Country(a.Config.CertInstallCountry),
+		gcert.State(a.Config.CertInstallState),
+		gcert.City(a.Config.CertInstallCity),
+		gcert.Org(a.Config.CertInstallOrg),
+		gcert.OrgUnit(a.Config.CertInstallOrgUnit),
+		gcert.IPAddress(ipAddr),
+	}
+	if a.Config.CertInstallEmailID != "" {
+		csrParamsOpts = append(csrParamsOpts, gcert.EmailID(a.Config.CertInstallEmailID))
+	}
 	req, err := gcert.NewCertInstallGenerateCSRRequest(
 		gcert.CertificateID(a.Config.CertInstallCertificateID),
-		gcert.CSRParams(
-			gcert.CertificateType(a.Config.CertInstallCertificateType),
-			gcert.MinKeySize(a.Config.CertInstallMinKeySize),
-			gcert.KeyType(a.Config.CertInstallKeyType),
-			gcert.CommonName(commonName),
-			gcert.Country(a.Config.CertInstallCountry),
-			gcert.State(a.Config.CertInstallState),
-			gcert.City(a.Config.CertInstallCity),
-			gcert.Org(a.Config.CertInstallOrg),
-			gcert.OrgUnit(a.Config.CertInstallOrgUnit),
-			gcert.IPAddress(ipAddr),
-			gcert.EmailID(a.Config.CertInstallEmailID),
-		),
+		gcert.CSRParams(csrParamsOpts...),
 	)
 	if err != nil {
 		return nil, err
