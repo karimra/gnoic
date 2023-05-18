@@ -79,6 +79,7 @@ func (a *App) RunECertRotate(cmd *cobra.Command, args []string) error {
 			ctx, cancel := context.WithCancel(a.ctx)
 			defer cancel()
 			ctx = metadata.AppendToOutgoingContext(ctx, "username", *t.Config.Username, "password", *t.Config.Password)
+
 			err = t.CreateGrpcClient(ctx, a.createBaseDialOpts()...)
 			if err != nil {
 				responseChan <- &TargetError{
@@ -133,6 +134,7 @@ func (a *App) CertRotate(ctx context.Context, t *api.Target) error {
 			a.Config.CertRotateGenCSR = true
 		}
 	}
+
 	keyPair := new(cert.KeyPair)
 	var creq *x509.CertificateRequest
 
@@ -163,6 +165,11 @@ func (a *App) CertRotate(ctx context.Context, t *api.Target) error {
 	if err != nil {
 		return fmt.Errorf("failed signing certificate: %v", err)
 	}
+	sCertText, err := CertificateText(signedCert, false)
+	if err != nil {
+		return err
+	}
+	a.Logger.Debugf("%q signed certificate:\n%s\n", t.Config.Address, sCertText)
 	b, err := toPEM(signedCert)
 	if err != nil {
 		return fmt.Errorf("failed toPEM: %v", err)
@@ -267,6 +274,7 @@ func (a *App) createLocalCSRRotate(t *api.Target) (*cert.KeyPair, *x509.Certific
 		EmailAddresses:     []string{a.Config.CertRotateEmailID},
 		SignatureAlgorithm: x509.SHA256WithRSA,
 		IPAddresses:        make([]net.IP, 0),
+		DNSNames:           []string{commonName},
 	}
 
 	if ipAddrs != nil {
@@ -300,21 +308,25 @@ func (a *App) createRemoteCSRRotate(stream cert.CertificateManagement_RotateClie
 	if ipAddr == "" {
 		ipAddr = t.Config.ResolvedIP
 	}
+	csrParamsOpts := []gcert.CertOption{
+		gcert.CertificateType(a.Config.CertRotateCertificateType),
+		gcert.MinKeySize(a.Config.CertRotateMinKeySize),
+		gcert.KeyType(a.Config.CertRotateKeyType),
+		gcert.CommonName(commonName),
+		gcert.Country(a.Config.CertRotateCountry),
+		gcert.State(a.Config.CertRotateState),
+		gcert.City(a.Config.CertRotateCity),
+		gcert.Org(a.Config.CertRotateOrg),
+		gcert.OrgUnit(a.Config.CertRotateOrgUnit),
+		gcert.IPAddress(ipAddr),
+	}
+	if a.Config.CertRotateEmailID != "" {
+		csrParamsOpts = append(csrParamsOpts, gcert.EmailID(a.Config.CertRotateEmailID))
+	}
+
 	req, err := gcert.NewCertRotateGenerateCSRRequest(
 		gcert.CertificateID(a.Config.CertRotateCertificateID),
-		gcert.CSRParams(
-			gcert.CertificateType(a.Config.CertRotateCertificateType),
-			gcert.MinKeySize(a.Config.CertRotateMinKeySize),
-			gcert.KeyType(a.Config.CertRotateKeyType),
-			gcert.CommonName(commonName),
-			gcert.Country(a.Config.CertRotateCountry),
-			gcert.State(a.Config.CertRotateState),
-			gcert.City(a.Config.CertRotateCity),
-			gcert.Org(a.Config.CertRotateOrg),
-			gcert.OrgUnit(a.Config.CertRotateOrgUnit),
-			gcert.IPAddress(ipAddr),
-			gcert.EmailID(a.Config.CertRotateEmailID),
-		),
+		gcert.CSRParams(csrParamsOpts...),
 	)
 	if err != nil {
 		return nil, err
