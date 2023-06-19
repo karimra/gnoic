@@ -750,3 +750,100 @@ func ProcessRestart(b bool) func(msg proto.Message) error {
 		return nil
 	}
 }
+
+func PackageFile(n string) func(msg proto.Message) error {
+	return func(msg proto.Message) error {
+		if msg == nil {
+			return fmt.Errorf("option PackageFile: %w", api.ErrInvalidMsgType)
+		}
+
+		switch msg := msg.ProtoReflect().Interface().(type) {
+		case *gnoisystem.SetPackageRequest:
+			switch m := msg.GetRequest().(type) {
+			case *gnoisystem.SetPackageRequest_Package:
+				m.Package.Filename = n
+			default:
+				return api.ErrInvalidMsgType
+			}
+		default:
+			return fmt.Errorf("option PackageFile: %w", api.ErrInvalidMsgType)
+		}
+
+		return nil
+	}
+}
+
+func Version(v string) func(msg proto.Message) error {
+	return func(msg proto.Message) error {
+		if msg == nil {
+			return fmt.Errorf("option Version: %w", api.ErrInvalidMsgType)
+		}
+
+		switch msg := msg.ProtoReflect().Interface().(type) {
+		case *gnoisystem.SetPackageRequest:
+			switch m := msg.GetRequest().(type) {
+			case *gnoisystem.SetPackageRequest_Package:
+				m.Package.Version = v
+			default:
+				return api.ErrInvalidMsgType
+			}
+		default:
+			return fmt.Errorf("option Version: %w", api.ErrInvalidMsgType)
+		}
+
+		return nil
+	}
+}
+
+func Activate(b bool) func(msg proto.Message) error {
+	return func(msg proto.Message) error {
+		if msg == nil {
+			return fmt.Errorf("option Activate: %w", api.ErrInvalidMsgType)
+		}
+
+		switch msg := msg.ProtoReflect().Interface().(type) {
+		case *gnoisystem.SetPackageRequest:
+			switch m := msg.GetRequest().(type) {
+			case *gnoisystem.SetPackageRequest_Package:
+				m.Package.Activate = b
+			default:
+				return api.ErrInvalidMsgType
+			}
+		default:
+			return fmt.Errorf("option Version: %w", api.ErrInvalidMsgType)
+		}
+
+		return nil
+	}
+}
+
+func Hash(method string, b []byte) func(msg proto.Message) error {
+	return func(msg proto.Message) error {
+		if msg == nil {
+			return fmt.Errorf("option Hash: %w", api.ErrInvalidMsgType)
+		}
+
+		ht, ok := types.HashType_HashMethod_value[strings.ToUpper(method)]
+		if !ok {
+			return api.ErrInvalidValue
+		}
+
+		switch msg := msg.ProtoReflect().Interface().(type) {
+		case *gnoisystem.SetPackageRequest:
+			switch m := msg.GetRequest().(type) {
+			case *gnoisystem.SetPackageRequest_Hash:
+				m.Hash = &types.HashType{
+					Method: types.HashType_HashMethod(ht),
+					Hash:   b,
+				}
+			default:
+				return fmt.Errorf("option Hash: %w", api.ErrInvalidMsgType)
+			}
+
+		default:
+			return fmt.Errorf("option Hash: %w", api.ErrInvalidMsgType)
+		}
+
+		return nil
+	}
+}

@@ -78,6 +78,7 @@ func newSystemSetPackageCmd() *cobra.Command {
 		PreRun: func(cmd *cobra.Command, _ []string) {
 			gApp.Config.SetLocalFlagsFromFile(cmd)
 		},
+		PreRunE:      gApp.PreRunESetPackage,
 		RunE:         gApp.RunESystemSetPackage,
 		SilenceUsage: true,
 	}

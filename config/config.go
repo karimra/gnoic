@@ -198,6 +198,7 @@ type LocalFlags struct {
 	SystemSwitchControlProcessorPath string `json:"system-switch-control-processor-path,omitempty" mapstructure:"system-switch-control-processor-path,omitempty" yaml:"system-switch-control-processor-path,omitempty"`
 	// System SetPackage
 	SystemSetPackageFile        string `json:"system-set-package-file,omitempty" mapstructure:"system-set-package-file,omitempty" yaml:"system-set-package-file,omitempty"`
+	SystemSetPackageDstFile     string `json:"system-set-package-dst-file,omitempty" mapstructure:"system-set-package-dst-file,omitempty" yaml:"system-set-package-dst-file,omitempty"`
 	SystemSetPackageVersion     string `json:"system-set-package-version,omitempty" mapstructure:"system-set-package-version,omitempty" yaml:"system-set-package-version,omitempty"`
 	SystemSetPackageActivate    bool   `json:"system-set-package-activate,omitempty" mapstructure:"system-set-package-activate,omitempty" yaml:"system-set-package-activate,omitempty"`
 	SystemSetPackageRemoteFile  string `json:"system-set-package-remote-file,omitempty" mapstructure:"system-set-package-remote-file,omitempty" yaml:"system-set-package-remote-file,omitempty"`
