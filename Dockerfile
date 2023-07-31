@@ -1,4 +1,4 @@
-FROM golang:1.19.5 as builder
+FROM golang:1.20.6 as builder
 ADD . /build
 WORKDIR /build
 RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o gnoic .
