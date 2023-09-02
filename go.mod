@@ -43,7 +43,7 @@ require (
 	github.com/mattn/go-runewidth v0.0.13 // indirect
 	github.com/spf13/afero v1.8.2 // indirect
 	golang.org/x/net v0.10.0 // indirect
-	golang.org/x/sys v0.11.0
+	golang.org/x/sys v0.12.0
 	google.golang.org/genproto v0.0.0-20230526161137-0005af68ea54 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 )
