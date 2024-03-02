@@ -36,6 +36,7 @@ func (a *App) PreRunESystemKillProcess(cmd *cobra.Command, args []string) error 
 	case "TERM":
 	case "KILL":
 	case "HUP":
+	case "ABRT":
 	default:
 		return fmt.Errorf("unknown kill signal %q", a.Config.SystemKillProcessSignal)
 	}
