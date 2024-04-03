@@ -1,6 +1,6 @@
 module github.com/karimra/gnoic
 
-go 1.21.1
+go 1.22.2
 
 require (
 	github.com/adrg/xdg v0.4.0
