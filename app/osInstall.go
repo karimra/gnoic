@@ -162,6 +162,8 @@ func (a *App) osInstallTransferContent(ctx context.Context, t *api.Target, osic 
 		defer a.Logger.Infof("target %q: TransferContent done...", t.Config.Name)
 		for {
 			select {
+			case <-ctx.Done():
+				return
 			case <-doneCh:
 				return
 			default:
@@ -188,6 +190,8 @@ func (a *App) osInstallTransferContent(ctx context.Context, t *api.Target, osic 
 OUTER:
 	for {
 		select {
+		case <-ctx.Done():
+			return ctx.Err()
 		case err := <-errCh:
 			return err
 		default:

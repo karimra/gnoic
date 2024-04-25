@@ -191,7 +191,7 @@ func (a *App) handleFileArtifact(targetName string, h *healthz.ArtifactResponse_
 	}
 }
 
-func (a *App) handleCustomArtifact(targetName string, h *healthz.ArtifactResponse_Header, stream healthz.Healthz_ArtifactClient) error {
+func (a *App) handleCustomArtifact(targetName string, h *healthz.ArtifactResponse_Header, _ healthz.Healthz_ArtifactClient) error {
 	id := h.Header.GetId()
 	log.Infof("%s: received custom header for artifactID: %s", targetName, id)
 	fmt.Println(prototext.Format(h.Header))
@@ -199,7 +199,7 @@ func (a *App) handleCustomArtifact(targetName string, h *healthz.ArtifactRespons
 	return nil
 }
 
-func (a *App) handleProtoArtifact(targetName string, h *healthz.ArtifactResponse_Header, stream healthz.Healthz_ArtifactClient) error {
+func (a *App) handleProtoArtifact(targetName string, h *healthz.ArtifactResponse_Header, _ healthz.Healthz_ArtifactClient) error {
 	id := h.Header.GetId()
 	log.Infof("%s: received proto header for artifactID: %s", targetName, id)
 	fmt.Println(prototext.Format(h.Header))

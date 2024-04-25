@@ -9,7 +9,6 @@ import (
 	"os"
 
 	gsystem "github.com/karimra/gnoic/api/system"
-	"github.com/openconfig/gnoi/system"
 	gnoisystem "github.com/openconfig/gnoi/system"
 
 	"github.com/karimra/gnoic/api"
@@ -144,7 +143,7 @@ func (a *App) SystemSetPackage(ctx context.Context, t *api.Target) error {
 	return nil
 }
 
-func (a *App) sendSysPackageFile(fileName, remoteFile string, sysClient system.System_SetPackageClient, t *api.Target) error {
+func (a *App) sendSysPackageFile(fileName, remoteFile string, sysClient gnoisystem.System_SetPackageClient, t *api.Target) error {
 	f, err := os.Open(fileName)
 	if err != nil {
 		a.Logger.Errorf("failed opening file %q: %v", fileName, err)
