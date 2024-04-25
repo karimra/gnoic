@@ -32,6 +32,7 @@ func (a *App) InitSystemTracerouteFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&a.Config.SystemTracerouteL3Protocol, "l3protocol", "3", "", "Layer3 protocol requested for the traceroute, v4 or v6, defaults to UNSPECIFIED")
 	cmd.Flags().StringVarP(&a.Config.SystemTracerouteL4Protocol, "l4protocol", "4", "ICMP", "Layer4 protocol requested for the traceroute, ICMP, UDP or TCP")
 	cmd.Flags().BoolVar(&a.Config.SystemTracerouteDoNotLookupAsn, "do-not-lookup-asn", false, "Do not try to lookup ASN")
+	cmd.Flags().StringVarP(&a.Config.SystemTracerouteNetworkInstance, "ns", "", "", "Network instance name")
 	//
 	cmd.Flags().VisitAll(func(flag *pflag.Flag) {
 		a.Config.FileConfig.BindPFlag(fmt.Sprintf("%s-%s", cmd.Name(), flag.Name), flag)
@@ -119,6 +120,7 @@ func (a *App) SystemTraceRoute(ctx context.Context, t *api.Target) error {
 		gsystem.L3Protocol(a.Config.SystemTracerouteL3Protocol),
 		gsystem.L4Protocol(a.Config.SystemTracerouteL4Protocol),
 		gsystem.DoNotLookupAsn(a.Config.SystemTracerouteDoNotLookupAsn),
+		gsystem.NetworkInstance(a.Config.SystemTracerouteNetworkInstance),
 	)
 	if err != nil {
 		return err
