@@ -284,7 +284,7 @@ OUTER:
 			return nil, status.Errorf(codes.FailedPrecondition, "%v", err)
 		}
 		buf = buf[:n]
-		h.Write(buf)
+		_, err = h.Write(buf)
 		if err != nil {
 			return nil, err
 		}

@@ -175,7 +175,22 @@ func DoNotResolve(b bool) func(msg proto.Message) error {
 		return nil
 	}
 }
-
+func NetworkInstance(ns string) func(msg proto.Message) error {
+	return func(msg proto.Message) error {
+		if msg == nil {
+			return fmt.Errorf("option NetworkInstance: %w", api.ErrInvalidMsgType)
+		}
+		switch msg := msg.ProtoReflect().Interface().(type) {
+		case *gnoisystem.PingRequest:
+			msg.NetworkInstance = ns
+		case *gnoisystem.TracerouteRequest:
+			msg.NetworkInstance = ns
+		default:
+			return fmt.Errorf("option NetworkInstance: %w", api.ErrInvalidMsgType)
+		}
+		return nil
+	}
+}
 func L3Protocol(p string) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {

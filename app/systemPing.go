@@ -36,6 +36,7 @@ func (a *App) InitSystemPingFlags(cmd *cobra.Command) {
 	cmd.Flags().BoolVar(&a.Config.SystemPingDoNotFragment, "do-not-fragment", false, "Set the do not fragment bit. (IPv4 destinations)")
 	cmd.Flags().BoolVar(&a.Config.SystemPingDoNotResolve, "do-not-resolve", false, "Do not try resolve the address returned")
 	cmd.Flags().StringVar(&a.Config.SystemPingProtocol, "protocol", "", "Layer3 protocol requested for the ping, V4 or V6, defaults to UNSPECIFIED")
+	cmd.Flags().StringVar(&a.Config.SystemPingNetworkInstance, "ns", "", "Network instance name")
 	//
 	cmd.Flags().VisitAll(func(flag *pflag.Flag) {
 		a.Config.FileConfig.BindPFlag(fmt.Sprintf("%s-%s", cmd.Name(), flag.Name), flag)
@@ -117,6 +118,7 @@ func (a *App) SystemPing(ctx context.Context, t *api.Target) error {
 		gsystem.DoNotFragment(a.Config.SystemPingDoNotFragment),
 		gsystem.DoNotResolve(a.Config.SystemPingDoNotResolve),
 		gsystem.L3Protocol(a.Config.SystemPingProtocol),
+		gsystem.NetworkInstance(a.Config.SystemPingNetworkInstance),
 	)
 	if err != nil {
 		return err
