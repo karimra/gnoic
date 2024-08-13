@@ -4,7 +4,7 @@ go 1.21.9
 
 require (
 	github.com/adrg/xdg v0.4.0
-	github.com/bramvdbogaerde/go-scp v1.4.0
+	github.com/bramvdbogaerde/go-scp v1.5.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mitchellh/mapstructure v1.5.0
