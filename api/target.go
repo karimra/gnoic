@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"errors"
+	"net"
 	"strings"
 	"time"
 
@@ -77,10 +78,33 @@ func (t *Target) CreateGrpcClient(ctx context.Context, opts ...grpc.DialOption) 
 		return err
 	}
 	tOpts = append(tOpts, nOpts...)
-	timeoutCtx, cancel := context.WithTimeout(ctx, t.Config.Timeout)
-	defer cancel()
-	t.client, err = grpc.DialContext(timeoutCtx, t.Config.Address, tOpts...)
+	tOpts = append(tOpts, grpc.WithContextDialer(t.createDialer(t.Config.Address)))
+	t.client, err = grpc.NewClient(t.Config.Address, tOpts...)
 	return err
+}
+
+func (t *Target) createDialer(addr string) func(context.Context, string) (net.Conn, error) {
+	return t.createCustomDialer(addr)
+}
+
+func (t *Target) createCustomDialer(addr string) func(context.Context, string) (net.Conn, error) {
+	return func(ctx context.Context, _ string) (net.Conn, error) {
+		dialer := net.Dialer{
+			Timeout:   t.Config.Timeout,
+			KeepAlive: t.Config.TCPKeepalive,
+		}
+		ctx, cancel := context.WithTimeout(ctx, t.Config.Timeout)
+		defer cancel()
+
+		var networkType = "tcp"
+		if indx := strings.Index(addr, "://"); indx > 0 {
+			if addr[:indx] == "unix" {
+				networkType = "unix"
+				addr = addr[indx+3:]
+			}
+		}
+		return dialer.DialContext(ctx, networkType, addr)
+	}
 }
 
 func (t *Target) Conn() grpc.ClientConnInterface { return t.client }
