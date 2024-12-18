@@ -6,8 +6,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net"
+	"os"
 	"strings"
 	"time"
 
@@ -36,6 +36,8 @@ type TargetConfig struct {
 	//
 	CommonName string `json:"common-name,omitempty"`
 	ResolvedIP string `json:"resolved-ip,omitempty"`
+
+	tlsConfig *tls.Config
 }
 
 func (c *Config) GetTargets() (map[string]*TargetConfig, error) {
@@ -189,11 +191,18 @@ func (tc *TargetConfig) DialOpts() ([]grpc.DialOption, error) {
 }
 
 func (tc *TargetConfig) newTLS() (*tls.Config, error) {
+	if tc.tlsConfig != nil {
+		return tc.tlsConfig, nil
+	}
 	tlsConfig := &tls.Config{
 		Renegotiation:      tls.RenegotiateNever,
 		InsecureSkipVerify: *tc.SkipVerify,
 		MaxVersion:         tc.getTLSMaxVersion(),
 		MinVersion:         tc.getTLSMinVersion(),
+	}
+	tlsConfig.CipherSuites = defaultCipherSuitesTLS12
+	if tlsConfig.MaxVersion == tls.VersionTLS13 || tlsConfig.MaxVersion == 0 {
+		tlsConfig.CipherSuites = append(tlsConfig.CipherSuites, defaultCipherSuitesTLS13...)
 	}
 	err := loadCerts(tlsConfig, tc)
 	if err != nil {
@@ -240,11 +249,10 @@ func loadCerts(tlscfg *tls.Config, tc *TargetConfig) error {
 			return err
 		}
 		tlscfg.Certificates = []tls.Certificate{certificate}
-		// tlscfg.BuildNameToCertificate()
 	}
 	if tc.TLSCA != nil && *tc.TLSCA != "" {
 		certPool := x509.NewCertPool()
-		caFile, err := ioutil.ReadFile(*tc.TLSCA)
+		caFile, err := os.ReadFile(*tc.TLSCA)
 		if err != nil {
 			return err
 		}
@@ -262,4 +270,8 @@ func (tc *TargetConfig) String() string {
 		return ""
 	}
 	return string(b)
+}
+
+func (tc *TargetConfig) SetTLSConfig(tlsConfig *tls.Config) {
+	tc.tlsConfig = tlsConfig
 }

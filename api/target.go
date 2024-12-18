@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"net"
 	"strings"
@@ -16,7 +17,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-var DefaultTargetTimeout = 10 * time.Second
+var defaultTargetTimeout = 10 * time.Second
 
 type TargetOption func(*Target) error
 
@@ -50,7 +51,7 @@ func NewTarget(opts ...TargetOption) (*Target, error) {
 		t.Config.Name = strings.Split(t.Config.Address, ",")[0]
 	}
 	if t.Config.Timeout == 0 {
-		t.Config.Timeout = DefaultTargetTimeout
+		t.Config.Timeout = defaultTargetTimeout
 	}
 	if t.Config.Insecure == nil && t.Config.SkipVerify == nil {
 		t.Config.Insecure = pointer.ToBool(false)
@@ -232,6 +233,14 @@ func TLSMaxVersion(v string) TargetOption {
 func TLSVersion(v string) TargetOption {
 	return func(t *Target) error {
 		t.Config.TLSVersion = v
+		return nil
+	}
+}
+
+// TLSConfig
+func TLSConfig(tlsconfig *tls.Config) TargetOption {
+	return func(t *Target) error {
+		t.Config.SetTLSConfig(tlsconfig)
 		return nil
 	}
 }
