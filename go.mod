@@ -13,7 +13,7 @@ require (
 	github.com/pkg/sftp v1.13.7
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.1
-	github.com/spf13/pflag v1.0.5
+	github.com/spf13/pflag v1.0.6
 	github.com/spf13/viper v1.19.0
 	golang.org/x/crypto v0.32.0
 	google.golang.org/grpc v1.69.2
