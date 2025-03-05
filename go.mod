@@ -1,6 +1,8 @@
 module github.com/karimra/gnoic
 
-go 1.22.9
+go 1.23.0
+
+toolchain go1.24.1
 
 require (
 	github.com/adrg/xdg v0.5.3
@@ -46,6 +48,6 @@ require (
 	github.com/mattn/go-runewidth v0.0.16 // indirect
 	github.com/spf13/afero v1.11.0 // indirect
 	golang.org/x/net v0.32.0 // indirect
-	golang.org/x/sys v0.29.0
+	golang.org/x/sys v0.31.0
 	gopkg.in/ini.v1 v1.67.0 // indirect
 )
