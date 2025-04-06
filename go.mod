@@ -15,7 +15,7 @@ require (
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.19.0
-	golang.org/x/crypto v0.32.0
+	golang.org/x/crypto v0.37.0
 	google.golang.org/grpc v1.69.2
 	google.golang.org/protobuf v1.36.4
 )
