@@ -77,6 +77,21 @@ func StandbySupervisor(b bool) func(msg proto.Message) error {
 	}
 }
 
+func PackageSize(pkgSize uint64) func(msg proto.Message) error {
+	return func(msg proto.Message) error {
+		if msg == nil {
+			return fmt.Errorf("option PackageSize: %w", api.ErrInvalidMsgType)
+		}
+		switch msg := msg.ProtoReflect().Interface().(type) {
+		case *gnoios.TransferRequest:
+			msg.PackageSize = pkgSize
+		default:
+			return fmt.Errorf("option PackageSize: %w", api.ErrInvalidMsgType)
+		}
+		return nil
+	}
+}
+
 func NoReboot(b bool) func(msg proto.Message) error {
 	return func(msg proto.Message) error {
 		if msg == nil {
