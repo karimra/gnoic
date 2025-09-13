@@ -102,9 +102,15 @@ func (a *App) OsInstall(ctx context.Context, t *api.Target) error {
 		return err
 	}
 	a.Logger.Infof("target %q: starting Install stream", t.Config.Name)
+
+	pkgInfo, err := os.Stat(a.Config.OsInstallPackage)
+	if err != nil {
+		return err
+	}
 	req, err := gos.NewOSInstallTransferRequest(
 		gos.Version(a.Config.OsInstallVersion),
 		gos.StandbySupervisor(a.Config.OsInstallStandbySupervisor),
+		gos.PackageSize(uint64(pkgInfo.Size())),
 	)
 	if err != nil {
 		return err
