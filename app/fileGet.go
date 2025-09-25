@@ -157,7 +157,7 @@ func (a *App) fileGet(ctx context.Context, t *api.Target, fileClient file.FileCl
 			return nil, err
 		}
 
-		a.Logger.Debugf(prototext.Format(getResponse))
+		a.Logger.Debug(prototext.Format(getResponse))
 
 		content := getResponse.GetContents()
 		if content != nil {

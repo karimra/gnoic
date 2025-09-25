@@ -51,10 +51,10 @@ func (a *App) tree(c *cobra.Command, indent string) error {
 	for i, subC := range subCmds {
 		add := " │   "
 		if i == numSubCommands-1 {
-			fmt.Printf(indent + " └─── ")
+			fmt.Print(indent + " └─── ")
 			add = "     "
 		} else {
-			fmt.Printf(indent + " ├─── ")
+			fmt.Print(indent + " ├─── ")
 		}
 
 		err := a.tree(subC, indent+add)
