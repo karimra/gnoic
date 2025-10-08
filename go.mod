@@ -45,5 +45,5 @@ require (
 	github.com/mattn/go-runewidth v0.0.16 // indirect
 	github.com/spf13/afero v1.12.0 // indirect
 	golang.org/x/net v0.42.0 // indirect
-	golang.org/x/sys v0.34.0
+	golang.org/x/sys v0.37.0
 )
