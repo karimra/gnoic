@@ -12,8 +12,8 @@ require (
 	github.com/openconfig/gnoi v0.7.0
 	github.com/pkg/sftp v1.13.7
 	github.com/sirupsen/logrus v1.9.3
-	github.com/spf13/cobra v1.8.1
-	github.com/spf13/pflag v1.0.7
+	github.com/spf13/cobra v1.10.2
+	github.com/spf13/pflag v1.0.9
 	github.com/spf13/viper v1.20.1
 	golang.org/x/crypto v0.43.0
 	google.golang.org/grpc v1.75.1
