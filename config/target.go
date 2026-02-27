@@ -243,7 +243,7 @@ func tlsVersionStringToUint(v string) uint16 {
 }
 
 func loadCerts(tlscfg *tls.Config, tc *TargetConfig) error {
-	if *tc.TLSCert != "" && *tc.TLSKey != "" {
+	if (tc.TLSCert != nil && *tc.TLSCert != "") && (tc.TLSKey != nil && *tc.TLSKey != "") {
 		certificate, err := tls.LoadX509KeyPair(*tc.TLSCert, *tc.TLSKey)
 		if err != nil {
 			return err
