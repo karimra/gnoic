@@ -50,10 +50,14 @@ github.com/olekukonko/tablewriter v0.0.5 h1:P2Ga83D34wi1o9J6Wh1mRuqd4mF/x/lgBS7N
 github.com/olekukonko/tablewriter v0.0.5/go.mod h1:hPp6KlRPjbx+hW8ykQs1w3UBbZlj6HuIJcUGPhkA7kY=
 github.com/openconfig/bootz v0.6.0 h1:QAbYVKKYqoJfO7Vzmv4PTBTcPe1PWRrSz0vgALvnYdk=
 github.com/openconfig/bootz v0.6.0/go.mod h1:QStTgg5QBpnjVRYi3xsP9JObziPJGeP/qhbj+EAuXtM=
+github.com/openconfig/bootz v0.6.1 h1:1jfSYgc9i0lLrrjVLYTmtcalL4RCozdaMP/ESTF4X+w=
+github.com/openconfig/bootz v0.6.1/go.mod h1:FIi46oRpvqA3OaFVd3qFXkm3WhbfQ/Vm8C0h0lBjQuE=
 github.com/openconfig/gnmi v0.14.1 h1:qKMuFvhIRR2/xxCOsStPQ25aKpbMDdWr3kI+nP9bhMs=
 github.com/openconfig/gnmi v0.14.1/go.mod h1:whr6zVq9PCU8mV1D0K9v7Ajd3+swoN6Yam9n8OH3eT0=
 github.com/openconfig/gnoi v0.7.0 h1:4tpZkmyOQGzpbERtYoEEhzaUa0YhvdjRInZtAL6PwAk=
 github.com/openconfig/gnoi v0.7.0/go.mod h1:UWK+WdtOvS7Ri3QAQRuMiB3GVrVFoE6WjlCSiSEra7I=
+github.com/openconfig/gnoi v0.8.0 h1:fwZm4zlwoY5i7KALTpVhpAv53Y3YskleoTpg1IUCa+c=
+github.com/openconfig/gnoi v0.8.0/go.mod h1:/kbYAWyBjQ08oahe7VGG8lAJc+yIfXdD7CF/T8RUjl0=
 github.com/openconfig/gnsi v1.9.0 h1:DokjN2rvzrP9/sMexBtigq6XkeKO8cPzzQmF8HQcVLQ=
 github.com/openconfig/gnsi v1.9.0/go.mod h1:mvfo1wUBFfojkHrD8kKqVV8Epoyq1Vt1Qpkj2hif6ow=
 github.com/pelletier/go-toml/v2 v2.2.3 h1:YmeHyLY8mFWbdkNWwpr+qIL2bEqT0o95WSdkNHvL12M=

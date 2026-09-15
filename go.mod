@@ -9,7 +9,7 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/olekukonko/tablewriter v0.0.5
-	github.com/openconfig/gnoi v0.7.0
+	github.com/openconfig/gnoi v0.8.0
 	github.com/pkg/sftp v1.13.7
 	github.com/sirupsen/logrus v1.10.2
 	github.com/spf13/cobra v1.10.2
@@ -25,7 +25,7 @@ require (
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/kr/fs v0.1.0 // indirect
-	github.com/openconfig/bootz v0.6.0 // indirect
+	github.com/openconfig/bootz v0.6.1 // indirect
 	github.com/openconfig/gnmi v0.14.1 // indirect
 	github.com/openconfig/gnsi v1.9.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
