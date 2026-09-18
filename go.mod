@@ -5,7 +5,7 @@ go 1.26.0
 require (
 	github.com/adrg/xdg v0.5.3
 	github.com/bramvdbogaerde/go-scp v1.6.1
-	github.com/dustin/go-humanize v1.0.1
+	github.com/dustin/go-humanize v1.1.0
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/olekukonko/tablewriter v0.0.5
